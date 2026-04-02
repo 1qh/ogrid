@@ -104,7 +104,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                   key={key}>
                   <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
                     <DragHandle />
-                    <div className='min-w-0 flex-1 self-stretch overflow-auto'>{content}</div>
+                    <div className={cn('min-w-0 flex-1 self-stretch', fill ? 'overflow-hidden' : 'overflow-y-auto')}>
+                      {content}
+                    </div>
                   </div>
                 </div>
               ))}
