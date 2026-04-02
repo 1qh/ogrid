@@ -119,11 +119,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       contentMinConstraint = useMemo(
         () => ({
           constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
+            console.log(`[constrainSize CALLED] ${_item.i}: w=${String(w)} h=${String(h)}`)
             if (FILL_ITEMS.has(_item.i)) return { h, w }
             const el = cardRef.current.get(_item.i)
             if (!el) return { h, w }
             const natural = measureNaturalHeight(el),
               minH = pxToGridH(natural)
+            console.log(
+              `[constrainSize] ${_item.i}: proposed h=${String(h)}, natural=${String(natural)}px, minH=${String(minH)}, returning h=${String(Math.max(h, minH))}`
+            )
             return { h: Math.max(h, minH), w }
           },
           name: 'content-min'
