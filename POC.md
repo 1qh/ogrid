@@ -32,6 +32,7 @@ ogrid wraps react-grid-layout with the missing pieces: auto-sizing, content-awar
 - **Fail fast** — wrong config caught immediately
 - **Opinionated** — the library makes decisions so developers don't have to
 - **No nested grids** — Grid inside Grid throws. Detected via React context on mount. Dashboards are flat — nesting grids is always a mistake.
+- **No wasteful wrappers** — runtime DOM validation warns when items have unnecessary root wrappers (bare div wrapping children, single-child wrapper, bare text wrapper). Consumers use fragments or pass components directly. Proven in flexity — carries over unchanged.
 - **Minimal DOM** — every wrapper div must earn its place. react-grid-layout adds one positioning div per item (necessary for absolute placement). We add one inner div per item (for cell styling + content centering). That's 2 divs per item — the minimum required. No extra wrappers, no gratuitous nesting. If a div can be eliminated, it must be.
 - **Don't fight the layout engine** — use react-grid-layout's proven interaction code, add value on top
 
