@@ -24,29 +24,31 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Sessions & Users Over Time</span>
       <span className='text-xs text-muted-foreground'>12-month trend with peak season highlighted</span>
-      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id='gradSessions' x1='0' x2='0' y1='0' y2='1'>
-              <stop offset='5%' stopColor='var(--color-sessions)' stopOpacity={0.8} />
-              <stop offset='95%' stopColor='var(--color-sessions)' stopOpacity={0.1} />
-            </linearGradient>
-            <linearGradient id='gradUsers' x1='0' x2='0' y1='0' y2='1'>
-              <stop offset='5%' stopColor='var(--color-users)' stopOpacity={0.8} />
-              <stop offset='95%' stopColor='var(--color-users)' stopOpacity={0.1} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray='3 3' vertical={false} />
-          <XAxis dataKey='month' tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
-          <ReferenceArea fill='var(--chart-4)' fillOpacity={0.08} label='Peak Season' x1='Oct' x2='Dec' />
-          <ReferenceLine label='Avg' stroke='var(--chart-5)' strokeDasharray='5 5' y={3000} />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <ChartLegend content={<ChartLegendContent />} />
-          <Area dataKey='sessions' fill='url(#gradSessions)' fillOpacity={1} stroke='var(--color-sessions)' strokeWidth={2} type='monotone' />
-          <Area dataKey='users' fill='url(#gradUsers)' fillOpacity={1} stroke='var(--color-users)' strokeWidth={2} type='monotone' />
-        </AreaChart>
-      </ChartContainer>
+      <div className='min-h-0 flex-1'>
+        <ChartContainer className='h-full w-full' config={config}>
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id='gradSessions' x1='0' x2='0' y1='0' y2='1'>
+                <stop offset='5%' stopColor='var(--color-sessions)' stopOpacity={0.8} />
+                <stop offset='95%' stopColor='var(--color-sessions)' stopOpacity={0.1} />
+              </linearGradient>
+              <linearGradient id='gradUsers' x1='0' x2='0' y1='0' y2='1'>
+                <stop offset='5%' stopColor='var(--color-users)' stopOpacity={0.8} />
+                <stop offset='95%' stopColor='var(--color-users)' stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray='3 3' vertical={false} />
+            <XAxis dataKey='month' tick={{ fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} />
+            <ReferenceArea fill='var(--chart-4)' fillOpacity={0.08} label='Peak Season' x1='Oct' x2='Dec' />
+            <ReferenceLine label='Avg' stroke='var(--chart-5)' strokeDasharray='5 5' y={3000} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartLegend content={<ChartLegendContent />} />
+            <Area dataKey='sessions' fill='url(#gradSessions)' fillOpacity={1} stroke='var(--color-sessions)' strokeWidth={2} type='monotone' />
+            <Area dataKey='users' fill='url(#gradUsers)' fillOpacity={1} stroke='var(--color-users)' strokeWidth={2} type='monotone' />
+          </AreaChart>
+        </ChartContainer>
+      </div>
     </div>
   )
 export default AreaChartWidget

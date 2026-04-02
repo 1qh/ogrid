@@ -29,28 +29,30 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Sparkline Trend</span>
       <span className='text-xs text-muted-foreground'>17-day DAU with average line</span>
-      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>
-              <stop offset='5%' stopColor='var(--color-v)' stopOpacity={0.4} />
-              <stop offset='95%' stopColor='var(--color-v)' stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey='d' hide />
-          <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
-          <ReferenceLine stroke='var(--chart-3)' strokeDasharray='3 3' y={AVG} />
-          <ChartTooltip content={<ChartTooltipContent hideLabel indicator='line' />} />
-          <Area
-            dataKey='v'
-            dot={{ fill: 'var(--color-v)', r: 2 }}
-            fill='url(#sparkGrad)'
-            stroke='var(--color-v)'
-            strokeWidth={2}
-            type='monotone'
-          />
-        </AreaChart>
-      </ChartContainer>
+      <div className='min-h-0 flex-1'>
+        <ChartContainer className='h-full w-full' config={config}>
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>
+                <stop offset='5%' stopColor='var(--color-v)' stopOpacity={0.4} />
+                <stop offset='95%' stopColor='var(--color-v)' stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey='d' hide />
+            <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
+            <ReferenceLine stroke='var(--chart-3)' strokeDasharray='3 3' y={AVG} />
+            <ChartTooltip content={<ChartTooltipContent hideLabel indicator='line' />} />
+            <Area
+              dataKey='v'
+              dot={{ fill: 'var(--color-v)', r: 2 }}
+              fill='url(#sparkGrad)'
+              stroke='var(--color-v)'
+              strokeWidth={2}
+              type='monotone'
+            />
+          </AreaChart>
+        </ChartContainer>
+      </div>
       <div className='flex items-center justify-between text-sm'>
         <span className='text-muted-foreground'>Last 17 days (avg: {String(AVG)})</span>
         <span className='font-medium text-primary'>+145%</span>

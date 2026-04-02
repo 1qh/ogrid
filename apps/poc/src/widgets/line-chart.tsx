@@ -25,22 +25,24 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Revenue, Profit & CAC</span>
       <span className='text-xs text-muted-foreground'>3 metrics with dual Y-axes and annotations</span>
-      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray='3 3' />
-          <XAxis dataKey='month' tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} yAxisId='left' />
-          <YAxis orientation='right' tick={{ fontSize: 12 }} yAxisId='right' />
-          <ReferenceArea fill='var(--chart-3)' fillOpacity={0.08} label='Danger' y1={0} y2={2000} yAxisId='left' />
-          <ReferenceLine label='Target' stroke='var(--chart-3)' strokeDasharray='3 3' y={4000} yAxisId='left' />
-          <ReferenceDot fill='var(--chart-4)' label='Peak' r={6} stroke='var(--chart-4)' x='Mar' y={9800} yAxisId='left' />
-          <ChartTooltip content={<ChartTooltipContent indicator='dashed' />} />
-          <ChartLegend content={<ChartLegendContent />} />
-          <Line activeDot={{ r: 6 }} dataKey='revenue' dot={{ r: 3 }} stroke='var(--color-revenue)' strokeWidth={2} type='monotone' yAxisId='left' />
-          <Line activeDot={{ r: 6 }} dataKey='profit' dot={{ r: 3 }} stroke='var(--color-profit)' strokeWidth={2} type='monotone' yAxisId='left' />
-          <Line dataKey='cac' stroke='var(--color-cac)' strokeDasharray='5 5' strokeWidth={1.5} type='monotone' yAxisId='right' />
-        </LineChart>
-      </ChartContainer>
+      <div className='min-h-0 flex-1'>
+        <ChartContainer className='h-full w-full' config={config}>
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray='3 3' />
+            <XAxis dataKey='month' tick={{ fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} yAxisId='left' />
+            <YAxis orientation='right' tick={{ fontSize: 12 }} yAxisId='right' />
+            <ReferenceArea fill='var(--chart-3)' fillOpacity={0.08} label='Danger' y1={0} y2={2000} yAxisId='left' />
+            <ReferenceLine label='Target' stroke='var(--chart-3)' strokeDasharray='3 3' y={4000} yAxisId='left' />
+            <ReferenceDot fill='var(--chart-4)' label='Peak' r={6} stroke='var(--chart-4)' x='Mar' y={9800} yAxisId='left' />
+            <ChartTooltip content={<ChartTooltipContent indicator='dashed' />} />
+            <ChartLegend content={<ChartLegendContent />} />
+            <Line activeDot={{ r: 6 }} dataKey='revenue' dot={{ r: 3 }} stroke='var(--color-revenue)' strokeWidth={2} type='monotone' yAxisId='left' />
+            <Line activeDot={{ r: 6 }} dataKey='profit' dot={{ r: 3 }} stroke='var(--color-profit)' strokeWidth={2} type='monotone' yAxisId='left' />
+            <Line dataKey='cac' stroke='var(--color-cac)' strokeDasharray='5 5' strokeWidth={1.5} type='monotone' yAxisId='right' />
+          </LineChart>
+        </ChartContainer>
+      </div>
     </div>
   )
 export default LineChartWidget

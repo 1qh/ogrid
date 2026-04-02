@@ -29,27 +29,29 @@ const outerData = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Browser & Device Share</span>
       <span className='text-xs text-muted-foreground'>Nested donut with total center label</span>
-      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
-        <PieChart>
-          <ChartTooltip content={<ChartTooltipContent nameKey='name' />} />
-          <ChartLegend content={<ChartLegendContent nameKey='name' />} />
-          <Pie data={innerData} dataKey='value' innerRadius={30} nameKey='name' outerRadius={55}>
-            {innerData.map(entry => (
-              <Cell fill={entry.fill} key={entry.name} />
-            ))}
-          </Pie>
-          <Pie data={outerData} dataKey='value' innerRadius={65} label nameKey='name' outerRadius={90}>
-            {outerData.map(entry => (
-              <Cell fill={entry.fill} key={entry.name} />
-            ))}
-            <Label
-              className='fill-foreground text-2xl font-bold'
-              position='center'
-              value={String(TOTAL)}
-            />
-          </Pie>
-        </PieChart>
-      </ChartContainer>
+      <div className='min-h-0 flex-1'>
+        <ChartContainer className='h-full w-full' config={config}>
+          <PieChart>
+            <ChartTooltip content={<ChartTooltipContent nameKey='name' />} />
+            <ChartLegend content={<ChartLegendContent nameKey='name' />} />
+            <Pie data={innerData} dataKey='value' innerRadius={30} nameKey='name' outerRadius={55}>
+              {innerData.map(entry => (
+                <Cell fill={entry.fill} key={entry.name} />
+              ))}
+            </Pie>
+            <Pie data={outerData} dataKey='value' innerRadius={65} label nameKey='name' outerRadius={90}>
+              {outerData.map(entry => (
+                <Cell fill={entry.fill} key={entry.name} />
+              ))}
+              <Label
+                className='fill-foreground text-2xl font-bold'
+                position='center'
+                value={String(TOTAL)}
+              />
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      </div>
     </div>
   )
 export default PieChartWidget
