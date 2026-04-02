@@ -37,6 +37,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
+      initializedRef = useRef(false),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
@@ -85,6 +86,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
             })
           if (!changed) return prev
+          initializedRef.current = true
           return placed
         })
       }, [computeLayout])
@@ -147,16 +149,18 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }),
         [measureNaturalHeight]
       ),
-      handleLayoutChange = useCallback((newLayout: Layout) => {
-        setLayout(
-          newLayout.map(item => {
+      handleLayoutChange = useCallback(
+        (newLayout: Layout) => {
+          const enforced = newLayout.map(item => {
             if (FILL_ITEMS.has(item.i)) return item
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
               h = Math.max(item.h, minH)
             return { ...item, h, minH }
           })
-        )
-      }, []),
+          setLayout(initializedRef.current ? enforced : computeLayout(enforced))
+        },
+        [computeLayout]
+      ),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
