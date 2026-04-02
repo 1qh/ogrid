@@ -675,14 +675,22 @@ Scaffold copied from flexity. Monorepo with turbo, lintmax, Tailwind v4, lib/ui 
 - Test drag-onto-occupied and resize-into-neighbor under both modes
 - Document which mode produces better UX
 
-**After completing:** Update the phase tracker above to “done”. STOP and ask the user to verify:
+**Phase A results (commit c5f3d44):**
 
-- “Resize data-table — does it stop at minimum with no snap-back?”
-- “Resize chart — does it shrink freely?”
-- “Scroll inside a widget — does it scroll without triggering drag?”
-- “Click buttons inside widget — do they work?”
-- “Items have correct auto-measured heights? No infinite loops?”
-- “Try drag-onto-occupied under both collision modes — which do you prefer?”
+- A1 constrainSize: PASS. Uses height:auto technique on inner div ref. RGL clones direct children and steals refs — put refs on INNER div. constrainSize replaces default constraints.
+- A2 Scroll: PASS. draggableHandle works. Scroll inside cells works. Buttons/links clickable.
+- A3 ResizeObserver: PASS. useLayoutEffect measures synchronously before paint. Card div uses min-h-full during measurement, h-full+overflow-hidden after init.
+- A4 Collision: preventCollision:true is the right default. Drag rejected (snap back). Resize works (including shrink). preventCollision:false pushes items unpredictably.
+
+**Key implementation details for Phase B (learned in Phase A):**
+- RGL v2 API: `compactor` prop (not `compactType`), `dragConfig.handle` (not `draggableHandle`), `constraints` array
+- Refs must be on inner div (RGL clones direct children via React.cloneElement, steals refs)
+- Don't use `dynamic()` for components that need initial measurement (resolves async, measurement captures near-zero height)
+- Card div: `min-h-full` during measurement (content overflows for accurate scrollHeight), `h-full overflow-hidden` after init (clips to RGL wrapper for resize)
+- Observer stops re-measuring after initialization (`initializedRef`)
+- `handleLayoutChange` runs `computeLayout` only before init, passes through after
+- `constrainSize` uses height:auto technique: temporarily set parent to `height:auto`, read `scrollHeight`, restore
+- FILL_ITEMS skip measurement and constrainSize — shrink freely
 
 ### Phase B — All remaining tests
 
