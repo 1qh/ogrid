@@ -41,6 +41,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     { i: 'sparkline', w: 8 }
   ] as const,
   ADDABLE_WIDGETS = ['badges', 'accordion', 'prose'] as const,
+  ITEM_CLASS: Record<string, string> = {
+    kpi: 'bg-muted/50 rounded-lg',
+    stats: 'bg-muted/50 rounded-lg'
+  },
   DragHandle = () => (
     <div
       className={`${DRAG_HANDLE_CLASS} flex cursor-grab items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing`}>
@@ -284,9 +288,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                 style={phase === 'measuring' ? { transition: 'none' } : undefined}
                 width={width}>
                 {itemKeys.map(key => (
-                  <div className='h-full' key={key}>
+                  <div className='group h-full rounded-lg ring-1 ring-transparent transition-shadow hover:ring-ring' key={key}>
                     <div
-                      className={`flex flex-col rounded-lg border bg-card p-3 ${phase === 'done' ? 'h-full overflow-auto' : 'min-h-full'}`}
+                      className={`flex flex-col rounded-lg border bg-card p-3 ${phase === 'done' ? 'h-full overflow-auto' : 'min-h-full'} ${ITEM_CLASS[key] ?? ''}`}
                       ref={el => setCardRef(key, el)}>
                       <div className='flex min-h-0 flex-1 items-start gap-2'>
                         <DragHandle />
