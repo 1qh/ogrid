@@ -46,34 +46,52 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           i: key,
           w: 2,
           x: (idx % 2) * 2,
-          y: Math.floor(idx / 2)
+          y: Math.floor(idx / 2) * 20
         }))
       ),
       [preventCollision, setPreventCollision] = useState(true),
+      computeLayout = useCallback((items: Layout): Layout => {
+        const colBottoms = Array.from({ length: COLS }, () => 0),
+          result: LayoutItem[] = []
+        for (const item of items) {
+          let bestY = Number.POSITIVE_INFINITY,
+            bestX = item.x
+          for (let x = 0; x <= COLS - item.w; x += 1) {
+            let maxY = 0
+            for (let col = x; col < x + item.w; col += 1) maxY = Math.max(maxY, colBottoms[col] ?? 0)
+            if (maxY < bestY) {
+              bestY = maxY
+              bestX = x
+            }
+          }
+          const placed = { ...item, x: bestX, y: bestY }
+          result.push(placed)
+          for (let col = bestX; col < bestX + placed.w; col += 1) colBottoms[col] = bestY + placed.h
+        }
+        return result
+      }, []),
       measureAndUpdate = useCallback(() => {
         for (const [key, el] of cardRef.current.entries()) {
           if (FILL_ITEMS.has(key)) continue
           minHRef.current.set(key, pxToGridH(el.scrollHeight))
         }
         setLayout(prev => {
-          const next: LayoutItem[] = []
-          let changed = false
-          for (const item of prev) {
-            const minH = minHRef.current.get(item.i) ?? 1,
-              targetH = Math.max(item.h, minH)
-            if (targetH === item.h && item.minH === minH) {
-              next.push(item)
-              continue
-            }
-            changed = true
-            next.push({ ...item, h: targetH, minH })
-          }
+          const measured = prev.map(item => {
+              const minH = minHRef.current.get(item.i) ?? 1,
+                targetH = Math.max(item.h, minH)
+              return { ...item, h: targetH, minH }
+            }),
+            placed = computeLayout(measured),
+            changed = prev.some((item, idx) => {
+              const p = placed[idx]
+              return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
+            })
           if (!changed) return prev
           stateCountRef.current += 1
           console.log(`[measurement] setState #${String(stateCountRef.current)}`)
-          return next
+          return placed
         })
-      }, [])
+      }, [computeLayout])
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
