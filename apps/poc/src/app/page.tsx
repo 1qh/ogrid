@@ -42,11 +42,11 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
-          h: 20,
+          h: 1,
           i: key,
           w: 2,
           x: (idx % 2) * 2,
-          y: Math.floor(idx / 2) * 20
+          y: Math.floor(idx / 2)
         }))
       ),
       [preventCollision, setPreventCollision] = useState(true),
