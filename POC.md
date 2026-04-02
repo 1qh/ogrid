@@ -147,7 +147,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** react-grid-layout's resize callbacks are read-only (`void` return). You can't cancel a resize mid-drag from callbacks. The constraint API (`constrainSize`) runs before layout updates and can enforce minimums. But we've never used it — need to prove it actually prevents undersized resize in practice.
 
-**How to verify:** Resize a table widget smaller — it should stop at the table's natural width/height. Resize a chart widget smaller — it should shrink freely (chart adapts via ResponsiveContainer).
+**How to verify:** Resize a table widget smaller — it should stop at the table's natural width/height. Resize a chart widget smaller — it should shrink freely (chart adapts via ResponsiveContainer). Classification: the grid always measures content at height:auto to get the natural minimum. Charts with ResponsiveContainer render at minimal height when unconstrained (because they fill available space via percentage height — with no explicit height, they collapse). Fixed content like tables render at their full height. No explicit declaration needed — the measurement technique naturally distinguishes them.
 
 ### Row spanning
 
@@ -203,7 +203,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** With `compactType: null` and freeform placement, narrowing the window might cause items to overflow the container or overlap. react-grid-layout might not handle responsive behavior well without compaction.
 
-**How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow sensibly. Strategy: freeform (`compactType: null`) above 1200px, vertical compaction below. `compactType={width < 1200 ? 'vertical' : null}`. Verify the transition is smooth and items don't overlap at the breakpoint.
+**How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow sensibly. Strategy: freeform (`compactType: null`) above 1200px, vertical compaction below. `compactType={width < 1200 ? 'vertical' : null}`. Verify the transition is smooth and items don't overlap at the breakpoint. State management: maintain two separate layout arrays — freeformLayout and compactedLayout. Above 1200px, use freeformLayout. Below, compute compactedLayout from the same items using vertical compaction. Switching back above 1200px restores freeformLayout. User edits in freeform mode update freeformLayout only. User edits in compact mode update compactedLayout only. Both persist independently.
 
 ### Cell className
 
@@ -235,13 +235,13 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** If `minH` is calculated once and never updated, widening an item doesn't allow shrinking height even though the content now fits in less vertical space. The constraint must recalculate when column span changes.
 
-**How to verify:** Place a widget with wrapping text. Resize it from 1 column to 2 columns — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height. Recalculation happens on span change (discrete events), not every frame — zero wasted work. The grid measures the component's rendered height as-is (including any internal padding the component has). Cell styling from `className` is for the cell container only (bg, rounded, border) — not padding. Interior spacing is the component's responsibility.
+**How to verify:** Place a widget with wrapping text. Resize it from 1 column to 2 columns — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height. Recalculation happens on span change (discrete events), not every frame — zero wasted work. The grid measures the component's rendered height as-is (including any internal padding the component has). Cell styling from `className` is for the cell container only (bg, rounded, border) — not padding. Interior spacing is the component's responsibility. Timing: when column span changes, the grid updates w in the layout. React re-renders the item at the new width. ResizeObserver fires (content reflowed at new width). The observer updates the measurement ref. The NEXT constrainSize call reads the fresh ref. This is a multi-frame sequence: frame 1 (width change + re-render), frame 2 (browser reflow + observer fires + ref updated), frame 3+ (constraint reads fresh data). The one-frame lag is acceptable — the user is still dragging.
 
 ### Constraint API works for content clamping
 
 **What:** react-grid-layout v2's `constrainSize` function runs before layout updates and can enforce minimum sizes based on content measurement.
 
-**Why this must be proven:** This is the foundation of content-aware resize. The constraint API is documented but we've never used it. Need to confirm it actually fires during resize, receives the correct context (item, proposed size, container dimensions), and successfully prevents undersized cells.
+**Why this must be proven:** This is the foundation of content-aware resize. The constraint API is documented but we've never used it. Need to confirm it actually fires during resize, receives the correct context (item, proposed size, container dimensions), and successfully prevents undersized cells. Measurement data flow: ResizeObserver updates a ref (not state) with the latest content dimensions. The constrainSize function reads from this ref synchronously. This avoids async gaps where stale measurements would allow undersized cells.
 
 **How to verify:** Add a constraint that logs every call. Resize an item. Confirm the constraint fires with correct parameters. Then add content-based minimum logic and confirm it prevents shrinking below content.
 
@@ -307,7 +307,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** In flexity, re-resizable added an extra wrapper that caused ring/styling misalignment. We must confirm that react-grid-layout's DOM structure plus our inner div is sufficient — no hidden wrappers from the library, no extra divs needed for resize handles or drag behavior.
 
-**How to verify:** Inspect the DOM of a rendered grid item. It should be: `div[position:absolute]` (react-grid-layout) → `div[className]` (our cell styling) → component content. Nothing else. Resize handles and drag handles should be part of the existing structure, not additional wrapper divs.
+**How to verify:** Inspect the DOM of a rendered grid item. It should be: `div[position:absolute]` (react-grid-layout) → `div[className]` (our cell styling) → component content. Plus react-grid-layout's resize handle elements (small spans at edges) which are part of the interaction surface, not wrapper divs. Resize handles and drag handles should be part of the existing structure, not additional wrapper divs.
 
 ### Performance at scale
 
@@ -315,7 +315,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** 5 items is trivial. Real dashboards have 20-50 widgets. ResizeObserver callbacks fire in bursts, each triggering setState, each causing react-grid-layout to re-layout the entire grid. If this cascades, the dashboard becomes unusable.
 
-**How to verify:** Add 25+ items to the POC page. Drag and resize several items. Measure frame rate — should stay above 30fps during interaction.
+**How to verify:** Add 25+ items to the POC page. Drag and resize several items. Measure frame rate — should stay above 60fps during interaction. Strategy: use a single ResizeObserver instance observing all items (not one per item), batch measurements into one state update via requestAnimationFrame. This prevents 25 separate re-renders from 25 observer callbacks.
 
 ### First-render measurement sequence
 
@@ -323,15 +323,15 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** Chicken-and-egg problem — react-grid-layout needs `w`/`h` to position items, but we need the DOM to exist to measure content. The first render must handle this gracefully.
 
-**How to verify:** Load the POC page with no layout config. Items should appear at their natural sizes without visible flicker, jump, or layout shift. Record a slow-motion screen capture if needed.
+**Strategy:** Render the grid with `opacity: 0` and default sizes (e.g., w:1, h:1 per item). On mount, ResizeObserver measures each item's content, computes correct w/h in grid units, updates layout, then sets opacity to 1. The measurement pass is invisible — user sees the final layout only. **How to verify:** Load the POC page with no layout config. Items should appear at correct sizes with no visible flicker or layout shift.
 
 ### SSR and hydration
 
-**What:** The grid renders acceptably during server-side rendering and hydrates without layout shift or mismatch warnings.
+**What:** The grid is a client-only component. Server renders a loading skeleton or empty container. The real layout computes on the client after mount.
 
-**Why this must be proven:** react-grid-layout uses DOM measurements (container width). ResizeObserver doesn't exist on the server. The grid layout cannot be computed server-side. If SSR produces a completely different layout than the client, users see a flash of wrong content.
+**Why this must be proven:** react-grid-layout requires DOM measurements (container width) that don't exist on the server. Pretending SSR works would produce wrong layouts. Being explicit about client-only rendering is honest and avoids hydration mismatches.
 
-**How to verify:** Load the POC page with JavaScript disabled — verify the server-rendered HTML is reasonable (not empty, not overlapping). Then load normally — verify no hydration mismatch warnings and no visible layout shift.
+**How to verify:** Server-rendered HTML shows a placeholder. Client hydration adds the grid without mismatch warnings or layout shift.
 
 ### Click handler on item without interfering with drag
 
