@@ -203,7 +203,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** With `compactType: null` and freeform placement, narrowing the window might cause items to overflow the container or overlap. react-grid-layout might not handle responsive behavior well without compaction.
 
-**How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow or scale without overlapping or overflowing.
+**How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow sensibly. Strategy: freeform (`compactType: null`) above 1200px, vertical compaction below. `compactType={width < 1200 ? 'vertical' : null}`. Verify the transition is smooth and items don't overlap at the breakpoint.
 
 ### Cell className
 
@@ -233,9 +233,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **What:** Resize an item wider. Content reflows (text unwraps, table columns spread). The minimum height changes. The item can now be made shorter because the content is shorter at the wider width.
 
-**Why this must be proven:** If `minH` is calculated once and never updated, widening an item doesn't allow shrinking height even though the content now fits in less vertical space. The constraint must recalculate after width changes.
+**Why this must be proven:** If `minH` is calculated once and never updated, widening an item doesn't allow shrinking height even though the content now fits in less vertical space. The constraint must recalculate when column span changes.
 
-**How to verify:** Place a widget with wrapping text. Resize it wider — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height.
+**How to verify:** Place a widget with wrapping text. Resize it from 1 column to 2 columns — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height. Recalculation happens on span change (discrete events), not every frame — zero wasted work. The grid measures the component's rendered height as-is (including any internal padding the component has). Cell styling from `className` is for the cell container only (bg, rounded, border) — not padding. Interior spacing is the component's responsibility.
 
 ### Constraint API works for content clamping
 
@@ -259,7 +259,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** With no compaction, collision resolution is different. Items can't be pushed "down" by a compactor. They might need to swap, or the drop might be rejected. Need to understand the behavior and confirm it's usable.
 
-**How to verify:** Drag item A directly onto item B. Observe what happens. Both items should be visible with no overlap.
+**How to verify:** Drag item A directly onto item B. The displaced item should move to the nearest available space (`preventCollision: false`). Both items should be visible with no overlap. If the behavior feels unnatural, we reconsider.
 
 ### Ring on outer div follows resize
 
