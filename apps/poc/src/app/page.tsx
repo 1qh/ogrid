@@ -2,6 +2,7 @@
 /* eslint-disable no-console, @typescript-eslint/max-params, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/no-unused-vars */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
+import { cn } from '@a/ui'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -47,8 +48,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       <GripVertical className='size-4' />
     </div>
   ),
-  items: Record<string, { content: React.ReactNode; label: string }> = {
-    chart: { content: <BarChartWidget />, label: 'Bar Chart' },
+  items: Record<string, { content: React.ReactNode; fill?: boolean; label: string }> = {
+    chart: { content: <BarChartWidget />, fill: true, label: 'Bar Chart' },
     kpi: { content: <KpiCard />, label: 'KPI Card' },
     scroll: { content: <ScrollContent />, label: 'Scroll Area' },
     table: { content: <DataTableWidget />, label: 'Data Table' }
@@ -97,11 +98,13 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               onLayoutChange={handleLayoutChange}
               resizeConfig={{ enabled: true, handles: ['se'] }}
               width={width}>
-              {Object.entries(items).map(([key, { content }]) => (
-                <div className='flex h-full flex-col justify-center rounded-lg border bg-card p-3' key={key}>
-                  <div className='flex max-h-full items-start gap-2'>
+              {Object.entries(items).map(([key, { content, fill }]) => (
+                <div
+                  className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
+                  key={key}>
+                  <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
                     <DragHandle />
-                    <div className='min-w-0 flex-1 overflow-auto'>{content}</div>
+                    <div className='min-w-0 flex-1 self-stretch overflow-auto'>{content}</div>
                   </div>
                 </div>
               ))}
