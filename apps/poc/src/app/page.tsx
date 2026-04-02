@@ -453,7 +453,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                       <div className='absolute right-1 top-1 z-10'>
                         <DragHandle />
                       </div>
-                      <div className='min-h-0 min-w-0 flex-1 overflow-hidden'>{getContent(key)}</div>
+                      <div className='flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden'>{getContent(key)}</div>
                     </div>
                   </div>
                 ))}
