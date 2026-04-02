@@ -10,9 +10,9 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import 'react-grid-layout/css/styles.css'
 import { GridLayout, noCompactor } from 'react-grid-layout'
 import DataTableWidget from '~/widgets/data-table'
+import KpiCard from '~/widgets/kpi-card'
 import ScrollContent from '~/widgets/scroll-content'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
-  KpiCard = dynamic(async () => import('~/widgets/kpi-card'), { ssr: false }),
   COLS = 4,
   ROW_HEIGHT = 30,
   MARGIN_Y = 16,
