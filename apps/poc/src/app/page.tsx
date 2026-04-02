@@ -14,7 +14,7 @@ import KpiCard from '~/widgets/kpi-card'
 import ScrollContent from '~/widgets/scroll-content'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
   COLS = 12,
-  ROW_HEIGHT = 30,
+  ROW_HEIGHT = 50,
   MARGIN_Y = 16,
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
   DRAG_HANDLE_CLASS = 'ogrid-drag-handle',
