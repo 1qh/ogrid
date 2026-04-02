@@ -628,10 +628,10 @@ The POC is built in 4 phases across 4 sessions. Each phase is one session. After
 
 ### Phase tracker
 
-| Phase | Description           | Status |
-| ----- | --------------------- | ------ |
-| 0     | Project scaffold      | done   |
-| A     | Go/no-go tests        | not started |
+| Phase | Description           | Status      |
+| ----- | --------------------- | ----------- |
+| 0     | Project scaffold      | done        |
+| A     | Go/no-go tests        | done        |
 | B     | All remaining tests   | not started |
 | C     | Scale test (25 items) | not started |
 
