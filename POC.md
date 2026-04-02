@@ -604,9 +604,139 @@ All points verified. If any point fails, we document why and decide whether to:
 2. Choose a different approach (CSS Grid, different library)
 3. Accept the limitation and document it
 
-**POC testing order:**
-- **Phase A:** Test both collision modes (`preventCollision` true and false) with a simple 3-4 item grid. Also test scroll-inside-cell (potential showstopper: scroll vs drag conflict with `draggableHandle`). Also test `constrainSize` runtime behavior (does it actually prevent undersized resize?). These are go/no-go decisions.
-- **Phase B:** Run all remaining tests with the chosen collision mode.
-- **Phase C:** Scale test at 25 items — measure perceived loading time (with one 1.5s-delayed widget), drag fps, measurement-phase re-render count, `computeLayout` execution time. This prevents running every collision-dependent test twice.
-
 No point should be a surprise after the POC. If we proceed to full implementation, we proceed with confidence.
+
+## Build workflow
+
+The POC is built in 4 phases across 4 sessions. Each phase is one session. After completing a phase, STOP and ask the user to verify in the browser before proceeding.
+
+**Rules:**
+- Read this entire document before starting any phase
+- Commit and push incrementally (small frequent commits)
+- No AI tooling in commits
+- Never use `--no-verify`
+- Never ignore `no-unsafe-*` lint rules
+- Don't use `any` — find a way
+- Only code when everything is clear, ask if unsure
+
+### Phase tracker
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 0 | Project scaffold | not started |
+| A | Go/no-go tests | not started |
+| B | All remaining tests | not started |
+| C | Scale test (25 items) | not started |
+
+### Phase 0 — Project scaffold
+
+**Build:**
+- Next.js app at `ogrid/apps/poc/` (App Router)
+- Install and pin `react-grid-layout@2.2.3`
+- Tailwind v4 setup
+- Create placeholder widgets: `kpi-card.tsx`, `chart.tsx`, `data-table.tsx`, `tall-widget.tsx`, `text-widget.tsx` with simple static content
+- Basic `page.tsx` that renders a raw `<GridLayout>` with 3-4 hardcoded items
+- Verify: page loads, items render in a grid, no errors
+
+**After completing:** Update the phase tracker above to "done". STOP and ask the user to verify: "The page should load at localhost:3000 with items visible in a grid layout. Please verify and tell me to proceed to Phase A."
+
+### Phase A — Go/no-go tests
+
+4 tests that determine whether the approach is viable. Build incrementally on the Phase 0 scaffold, committing after each test.
+
+**Test A1 — constrainSize runtime behavior:**
+- Grid-level `constrainSize` clamping `h` to a hardcoded minimum (e.g., 3 rows) for the data-table
+- Per-item constraint on one widget
+- Console.log every constrainSize call (item id, proposed w/h, returned w/h)
+- Chart widget without constraint shrinks freely
+- Go/no-go: if constrainSize doesn't prevent undersized resize (snap-back or ignored), fall back to `minW`/`minH` on layout items
+
+**Test A2 — Scroll inside cell:**
+- One widget with more content than fits (overflow: auto on inner div)
+- `draggableHandle` on a grip icon
+- Scrolling inside widget must NOT trigger drag
+- Buttons/links inside remain clickable
+- Go/no-go: if scroll conflicts with drag, need alternative drag trigger
+
+**Test A3 — ResizeObserver measurement → re-render:**
+- Single ResizeObserver on all item inner divs
+- `h = Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))`
+- RAF-batched into single setState
+- Console.log callback count per item, total setState calls
+- Must stabilize within 3 callbacks per item, no infinite loops, no flicker
+- Go/no-go: if ResizeObserver → setState causes infinite loops, need different measurement approach
+
+**Test A4 — Collision mode decision:**
+- Toggle button for `preventCollision` true/false
+- `compactType: null` (freeform)
+- Test drag-onto-occupied and resize-into-neighbor under both modes
+- Document which mode produces better UX
+
+**After completing:** Update the phase tracker above to "done". STOP and ask the user to verify:
+- "Resize data-table — does it stop at minimum with no snap-back?"
+- "Resize chart — does it shrink freely?"
+- "Scroll inside a widget — does it scroll without triggering drag?"
+- "Click buttons inside widget — do they work?"
+- "Items have correct auto-measured heights? No infinite loops?"
+- "Try drag-onto-occupied under both collision modes — which do you prefer?"
+
+### Phase B — All remaining tests
+
+All POC.md validation points not covered by Phase A, using the collision mode chosen in Phase A. One session, built incrementally. Each test corresponds to a section under "POC — What we need to prove" above.
+
+**Tests:**
+- Content-driven auto-sizing on first render (opacity:0 → measure → opacity:1 sequence)
+- Row spanning (tall chart next to stacked KPI cards)
+- Freeform placement with gaps (compactType: null, gaps persist across re-mount)
+- Drag to empty cell
+- Drag handle + interactive content
+- Smooth transitions (CSS transitions on position changes)
+- Responsive behavior (768px breakpoint, freeform ↔ compact mode switch)
+- Cell className + content centering
+- Dynamic minH after width resize
+- Auto-placement (computeLayout for items without explicit x/y)
+- Column count change + reflow (computeLayout runs BEFORE RGL)
+- New item into existing freeform layout
+- Overlap prevention (all scenarios: drag, resize, column change, responsive)
+- Ring on outer div follows resize
+- Grid unit conversion accuracy
+- Minimal DOM (2 divs per item max)
+- Dense grid + constraint deadlock
+- ResizeObserver stabilization (no oscillation at row boundaries)
+- Tailwind v4 + RGL CSS compatibility
+- Stale layout (userResized flag)
+- Dynamic content after mount (measurement window closes, content scrolls)
+- onLayoutChange reliability
+- Async data loading auto-sizing (async-table.tsx with 1.5s delay)
+- Margin interaction with content sizing
+- Responsive boundary transition (rapid 768px crossing)
+- First-render measurement sequence (2-phase computeLayout)
+- SSR and hydration
+- Click handler without drag interference
+
+**After completing:** Update the phase tracker above to "done". STOP and ask the user to verify. List every test with what to check in the browser.
+
+### Phase C — Scale test (25 items)
+
+**Build:**
+- 25 widgets (mix of KPI cards, charts, tables, text)
+- One widget with 1.5s simulated async data load (async-table.tsx)
+- One widget with non-monotonic height (layout-switch.tsx)
+- Measure and log to console:
+  - Perceived loading time (opacity:0 → opacity:1)
+  - Drag fps (performance.now() around RAF)
+  - Measurement-phase setState call count
+  - React component re-render count
+  - computeLayout execution time
+
+**After completing:** Update the phase tracker above to "done". STOP and ask the user to verify:
+- "All 25 items render correctly?"
+- "Drag feels smooth? (target 60fps, acceptable ≥45fps, showstopper <30fps)"
+- "Measurement phase feels fast enough?"
+- "Check console metrics"
+
+### Continuation prompt (paste into a fresh session)
+
+```
+Read /home/huylq42/vb/ogrid/POC.md thoroughly. Check the phase tracker to see which phase to build next. Build that phase, following the rules and instructions in the document. After completing, update the phase tracker and STOP to ask me to verify before proceeding.
+```
