@@ -32,7 +32,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     scroll: <ScrollContent />,
     table: <DataTableWidget />
   },
-  COMPACTOR = { ...noCompactor, preventCollision: true },
+  COMPACTOR = noCompactor,
   Page = () => {
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
