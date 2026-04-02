@@ -91,7 +91,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       })
     }, [])
     useEffect(() => {
+      for (const [key, el] of cardRef.current.entries())
+        console.log(
+          `[mount] ${key}: scrollHeight=${String(el.scrollHeight)}, clientHeight=${String(el.clientHeight)}, offsetHeight=${String(el.offsetHeight)}`
+        )
       flushMeasurements()
+      setMeasured(true)
     }, [flushMeasurements])
     useLayoutEffect(() => {
       const observer = new ResizeObserver(entries => {
