@@ -75,6 +75,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     text: <TextWidget />,
     timeline: <Timeline />
   },
+  checkOverlaps = (items: Layout) => {
+    for (let a = 0; a < items.length; a += 1)
+      for (let b = a + 1; b < items.length; b += 1) {
+        const ia = items[a],
+          ib = items[b]
+        if (ia && ib && ia.x < ib.x + ib.w && ia.x + ia.w > ib.x && ia.y < ib.y + ib.h && ia.y + ia.h > ib.y)
+          console.warn(`[ogrid] overlap detected: '${ia.i}' and '${ib.i}'`)
+      }
+  },
   FREEFORM_COMPACTOR = { ...noCompactor, preventCollision: true },
   COMPACT_COMPACTOR = { ...verticalCompactor, preventCollision: false },
   clampLayoutToCols = (items: Layout, cols: number): Layout =>
@@ -104,8 +113,28 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     }
     return result
   },
+  SKELETON_ITEMS = [
+    { h: 200, w: '50%' },
+    { h: 120, w: '50%' },
+    { h: 120, w: '50%' },
+    { h: 200, w: '66%' },
+    { h: 120, w: '50%' },
+    { h: 200, w: '50%' }
+  ],
+  Skeleton = () => (
+    <div className='grid grid-cols-2 gap-4'>
+      {SKELETON_ITEMS.map((s, idx) => (
+        <div
+          className='animate-pulse rounded-lg bg-muted'
+          key={idx}
+          style={{ height: s.h, width: s.w }}
+        />
+      ))}
+    </div>
+  ),
   Page = () => {
-    const containerRef = useRef<HTMLDivElement>(null),
+    const [mounted, setMounted] = useState(false),
+      containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
       lastKnownWRef = useRef(new Map<string, number>()),
@@ -184,6 +213,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         })
         resetIdleTimer()
       }, [computeLayout, resetIdleTimer])
+    useLayoutEffect(() => setMounted(true), [])
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
@@ -288,6 +318,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             return { ...item, h, minH }
           })
           const result = measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced
+          checkOverlaps(result)
           freeformLayoutRef.current = result
           setLayout(result)
         },
@@ -385,7 +416,13 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             </>
           )}
         </div>
-        <div ref={containerRef}>
+        <div ref={containerRef} className='relative'>
+          {!mounted && <Skeleton />}
+          {mounted && phase === 'measuring' && (
+            <div className='absolute inset-0'>
+              <Skeleton />
+            </div>
+          )}
           {width > 0 && (
             <div
               className={phase === 'measuring' ? 'opacity-0' : 'opacity-100 transition-opacity duration-150'}
