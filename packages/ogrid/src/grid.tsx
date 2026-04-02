@@ -219,7 +219,7 @@ const extractKeys = (children: ReactNode): string[] => {
           resizedIdsRef.current.clear()
           minHRef.current.clear()
           freeformLayoutRef.current = []
-          measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: setTimeout(closeMeasureWindow, MAX_TIMEOUT) }
+          measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: null }
           setPhase('measuring')
           setLayout(buildLayout(itemKeys, configMap, fillSet, config?.cols ?? DEFAULT_COLS))
         }
