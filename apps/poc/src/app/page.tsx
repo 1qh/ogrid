@@ -189,7 +189,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                 return (
                   <div key={key}>
                     <div
-                      className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
+                      className={cn(
+                        'flex min-h-full flex-col rounded-lg border bg-card p-3',
+                        fill ? '' : 'justify-center'
+                      )}
                       ref={el => setCardRef(key, el)}>
                       <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
                         <DragHandle />
