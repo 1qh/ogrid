@@ -261,7 +261,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         resetIdleTimer()
       }, [computeLayout, resetIdleTimer, trackSetLayout])
     renderCountRef.current += 1
-    useLayoutEffect(() => setMounted(true), [])
+    useLayoutEffect(() => {
+      setMounted(true)
+      const originalWarn = console.warn
+      console.warn = (...args: unknown[]) => {
+        if (typeof args[0] === 'string' && args[0].includes('width(-1)')) return
+        originalWarn.apply(console, args)
+      }
+      return () => { console.warn = originalWarn }
+    }, [])
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return

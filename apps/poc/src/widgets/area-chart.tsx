@@ -19,7 +19,7 @@ const data = [
       <span className='text-sm font-medium'>Sessions & Users Over Time</span>
       <span className='text-xs text-muted-foreground'>12-month trend with peak season highlighted</span>
       <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
+        <ResponsiveContainer height='100%' width='100%'>
           <AreaChart data={data}>
             <defs>
               <linearGradient id='gradSessions' x1='0' x2='0' y1='0' y2='1'>

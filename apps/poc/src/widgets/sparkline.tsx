@@ -25,7 +25,7 @@ const data = [
       <span className='text-sm font-medium'>Sparkline Trend</span>
       <span className='text-xs text-muted-foreground'>17-day DAU with average line</span>
       <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
+        <ResponsiveContainer height='100%' width='100%'>
           <AreaChart data={data}>
             <defs>
               <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>

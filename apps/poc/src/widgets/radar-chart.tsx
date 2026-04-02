@@ -15,7 +15,7 @@ const data = [
       <span className='text-sm font-medium'>Student Comparison</span>
       <span className='text-xs text-muted-foreground'>3 students across 8 subjects</span>
       <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
+        <ResponsiveContainer height='100%' width='100%'>
           <RadarChart data={data}>
             <PolarGrid gridType='polygon' />
             <PolarAngleAxis dataKey='subject' tick={{ fontSize: 11 }} />

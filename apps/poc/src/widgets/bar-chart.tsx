@@ -19,7 +19,7 @@ const data = [
       <span className='text-sm font-medium'>Desktop vs Mobile Traffic</span>
       <span className='text-xs text-muted-foreground'>Monthly visitors with target zone</span>
       <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
+        <ResponsiveContainer height='100%' width='100%'>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray='3 3' vertical={false} />
             <XAxis dataKey='month' tick={{ fontSize: 12 }} />
