@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback */
+/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
 'use client'
-import type { Layout, LayoutItem } from 'react-grid-layout'
+import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { cn } from '@a/ui'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -53,8 +53,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       measureAndUpdate = useCallback(() => {
         for (const [key, el] of cardRef.current.entries()) {
           if (FILL_ITEMS.has(key)) continue
-          const gridH = pxToGridH(el.scrollHeight)
-          minHRef.current.set(key, gridH)
+          minHRef.current.set(key, pxToGridH(el.scrollHeight))
         }
         setLayout(prev => {
           const next: LayoutItem[] = []
@@ -108,7 +107,30 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
     }, [measureAndUpdate])
-    const handleLayoutChange = useCallback((newLayout: Layout) => {
+    const measureNaturalHeight = useCallback((el: HTMLDivElement) => {
+        const parent = el.parentElement
+        if (!parent) return el.scrollHeight
+        const prevHeight = parent.style.height
+        parent.style.height = 'auto'
+        const natural = el.scrollHeight
+        parent.style.height = prevHeight
+        return natural
+      }, []),
+      contentMinConstraint = useMemo(
+        () => ({
+          constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
+            if (FILL_ITEMS.has(_item.i)) return { h, w }
+            const el = cardRef.current.get(_item.i)
+            if (!el) return { h, w }
+            const natural = measureNaturalHeight(el),
+              minH = pxToGridH(natural)
+            return { h: Math.max(h, minH), w }
+          },
+          name: 'content-min'
+        }),
+        [measureNaturalHeight]
+      ),
+      handleLayoutChange = useCallback((newLayout: Layout) => {
         setLayout(
           newLayout.map(item => {
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
@@ -136,6 +158,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           {width > 0 && (
             <GridLayout
               compactor={compactor}
+              constraints={[contentMinConstraint]}
               dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
               gridConfig={{
                 cols: COLS,
