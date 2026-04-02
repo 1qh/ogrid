@@ -10,6 +10,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import 'react-grid-layout/css/styles.css'
 import { GridLayout, noCompactor } from 'react-grid-layout'
 import Accordion from '~/widgets/accordion'
+import AsyncTable from '~/widgets/async-table'
 import Badges from '~/widgets/badges'
 import DataTableWidget from '~/widgets/data-table'
 import KpiCard from '~/widgets/kpi-card'
@@ -42,7 +43,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     { i: 'timeline', w: 8 },
     { i: 'sparkline', w: 8 },
     { i: 'text', w: 12 },
-    { i: 'layoutswitch', w: 12 }
+    { i: 'layoutswitch', w: 12 },
+    { i: 'async', w: 12 }
   ] as const,
   ADDABLE_WIDGETS = ['badges', 'accordion', 'prose'] as const,
   ITEM_CLASS: Record<string, string> = {
@@ -57,6 +59,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   ),
   ITEM_CONTENT: Record<string, React.ReactNode> = {
     accordion: <Accordion />,
+    async: <AsyncTable />,
     badges: <Badges />,
     chart: <BarChartWidget />,
     kpi: <KpiCard />,
@@ -78,6 +81,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       lastKnownWRef = useRef(new Map<string, number>()),
       previousMinHRef = useRef(new Map<string, number>()),
       transitionFrameRef = useRef(new Map<string, number>()),
+      positionedIdsRef = useRef(new Set<string>()),
+      resizedIdsRef = useRef(new Set<string>()),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       rafRef = useRef(0),
@@ -262,6 +267,29 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         },
         [computeLayout]
       ),
+      handleDragStop = useCallback((_layout: Layout, _oldItem: LayoutItem | null, newItem: LayoutItem | null) => {
+        if (newItem) positionedIdsRef.current.add(newItem.i)
+      }, []),
+      handleResizeStop = useCallback((_layout: Layout, _oldItem: LayoutItem | null, newItem: LayoutItem | null) => {
+        if (newItem) resizedIdsRef.current.add(newItem.i)
+      }, []),
+      handleReset = useCallback(() => {
+        positionedIdsRef.current.clear()
+        resizedIdsRef.current.clear()
+        minHRef.current.clear()
+        measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: setTimeout(closeMeasureWindow, MAX_TIMEOUT) }
+        setPhase('measuring')
+        setLayout(
+          INITIAL_ITEMS.map(item => ({
+            h: FILL_ITEMS.has(item.i) ? 8 : 1,
+            i: item.i,
+            w: item.w,
+            x: 0,
+            y: 0
+          }))
+        )
+        setItemKeys(INITIAL_ITEMS.map(i => i.i))
+      }, [closeMeasureWindow]),
       handleAddItem = useCallback(() => {
         const widgetKey = ADDABLE_WIDGETS[addCountRef.current % ADDABLE_WIDGETS.length]
         addCountRef.current += 1
@@ -289,9 +317,14 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         <div className='flex items-center gap-4'>
           <span className='text-sm font-medium'>ogrid POC — Phase B</span>
           {phase === 'done' && (
-            <Button onClick={handleAddItem} size='sm' variant='outline'>
-              Add Item
-            </Button>
+            <>
+              <Button onClick={handleAddItem} size='sm' variant='outline'>
+                Add Item
+              </Button>
+              <Button onClick={handleReset} size='sm' variant='outline'>
+                Reset
+              </Button>
+            </>
           )}
         </div>
         <div ref={containerRef}>
@@ -311,7 +344,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                   rowHeight: ROW_HEIGHT
                 }}
                 layout={layout}
+                onDragStop={handleDragStop}
                 onLayoutChange={handleLayoutChange}
+                onResizeStop={handleResizeStop}
                 resizeConfig={{ enabled: phase === 'done', handles: ['se'] }}
                 style={phase === 'measuring' ? { transition: 'none' } : undefined}
                 width={width}>
