@@ -22,7 +22,7 @@ import LayoutSwitchWidget from '~/widgets/layout-switch'
 import ProgressBars from '~/widgets/progress-bars'
 import Prose from '~/widgets/prose'
 import ScrollContent from '~/widgets/scroll-content'
-import SliderWidget from '~/widgets/slider'
+import Separator from '~/widgets/separator'
 import StatsGrid from '~/widgets/stats-grid'
 import TabsPanel from '~/widgets/tabs-panel'
 import TextWidget from '~/widgets/text-widget'
@@ -66,7 +66,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     { i: 'calendar', w: 8 },
     { i: 'checkbox', w: 8 },
     { i: 'form', w: 12 },
-    { i: 'slider', w: 8 },
+    { i: 'separator', w: 8 },
     { i: 'tabs', w: 12 },
     { i: 'toggles', w: 8 },
     { i: 'avatars', w: 8 },
@@ -102,7 +102,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     prose: <Prose />,
     radialchart: <RadialChartWidget />,
     scroll: <ScrollContent />,
-    slider: <SliderWidget />,
+    separator: <Separator />,
     sparkline: <SparklineWidget />,
     stats: <StatsGrid />,
     table: <DataTableWidget />,
