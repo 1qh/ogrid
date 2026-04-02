@@ -612,11 +612,7 @@ The POC is built in 4 phases across 4 sessions. Each phase is one session. After
 
 **Rules:**
 - Read this entire document before starting any phase
-- Commit and push incrementally (small frequent commits)
-- No AI tooling in commits
-- Never use `--no-verify`
-- Never ignore `no-unsafe-*` lint rules
-- Don't use `any` — find a way
+- Follow all conventions in CLAUDE.md (auto-loaded by Claude Code)
 - Only code when everything is clear, ask if unsure
 
 ### Phase tracker
@@ -738,5 +734,5 @@ All POC.md validation points not covered by Phase A, using the collision mode ch
 ### Continuation prompt (paste into a fresh session)
 
 ```
-Read /home/huylq42/vb/ogrid/POC.md thoroughly. Check the phase tracker to see which phase to build next. Build that phase, following the rules and instructions in the document. After completing, update the phase tracker and STOP to ask me to verify before proceeding.
+Read POC.md thoroughly. Check the phase tracker to see which phase to build next. Build that phase, following the rules and instructions in the document. After completing, update the phase tracker and STOP to ask me to verify before proceeding.
 ```
