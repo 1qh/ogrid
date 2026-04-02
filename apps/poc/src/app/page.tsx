@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-console, no-continue, @typescript-eslint/max-params, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 'use client'
-import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
+import type { Layout, LayoutItem } from 'react-grid-layout'
 import { cn } from '@a/ui'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -89,12 +89,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               for (const item of prev) {
                 const minH = getMinH(item.i),
                   targetH = Math.max(item.h, minH)
-                if (targetH === item.h) {
+                if (targetH === item.h && item.minH === minH) {
                   next.push(item)
                   continue
                 }
                 layoutChanged = true
-                next.push({ ...item, h: targetH })
+                next.push({ ...item, h: targetH, minH })
               }
               if (!layoutChanged) return prev
               stateCountRef.current += 1
@@ -107,28 +107,13 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
     }, [getMinH])
-    const contentMinConstraint = useMemo(
-        () => ({
-          constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
-            if (FILL_ITEMS.has(_item.i)) return { h, w }
-            const minH = getMinH(_item.i),
-              clamped = Math.max(h, minH)
-            console.log(
-              `[constrainSize] ${_item.i}: proposed h=${String(h)}, minH=${String(minH)}, returned h=${String(clamped)}`
-            )
-            return { h: clamped, w }
-          },
-          name: 'content-min'
-        }),
-        [getMinH]
-      ),
-      handleLayoutChange = useCallback(
+    const handleLayoutChange = useCallback(
         (newLayout: Layout) => {
           setLayout(
             newLayout.map(item => {
-              const minH = getMinH(item.i)
-              if (item.h >= minH) return item
-              return { ...item, h: minH }
+              const minH = getMinH(item.i),
+                h = Math.max(item.h, minH)
+              return { ...item, h, minH }
             })
           )
         },
@@ -153,7 +138,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           {width > 0 && (
             <GridLayout
               compactor={compactor}
-              constraints={[contentMinConstraint]}
               dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
               gridConfig={{
                 cols: COLS,
