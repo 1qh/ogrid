@@ -187,9 +187,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               }}
               layout={layout}
               onLayoutChange={handleLayoutChange}
-              onResize={(_layout, _old, newItem) => {
-                console.log(`[onResize] ${newItem?.i}: h=${String(newItem?.h)}`)
-              }}
               resizeConfig={{ enabled: true, handles: ['se'] }}
               width={width}>
               {itemKeys.map(key => (
