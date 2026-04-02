@@ -153,7 +153,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** react-grid-layout's resize callbacks are read-only (`void` return). You can't cancel a resize mid-drag from callbacks. The constraint API (`constrainSize`) runs before layout updates and can enforce minimums. But we've never used it — need to prove it actually prevents undersized resize in practice.
 
-**How to verify:** Resize a table widget smaller — it should stop at the table's natural width/height. Resize a chart widget smaller — it should shrink freely (chart adapts via ResponsiveContainer). Classification: the grid always measures content at height:auto to get the natural minimum. Charts with ResponsiveContainer render at minimal height when unconstrained (because they fill available space via percentage height — with no explicit height, they collapse). Fixed content like tables render at their full height. No explicit declaration needed — the measurement technique naturally distinguishes them. Note: this technique works when chart components collapse without explicit height (like recharts' ResponsiveContainer). Chart libraries with intrinsic height that DON'T collapse will be treated as fixed content and won't shrink below their intrinsic height. Consumers using such libraries can set an explicit minH override in the layout config if they want free shrinking.
+**How to verify:** Resize a table widget smaller — it should stop at the table's natural width/height. Resize a chart widget smaller — it should shrink freely (chart adapts via ResponsiveContainer). Classification: the grid always measures content at height:auto to get the natural minimum. Charts with ResponsiveContainer render at minimal height when unconstrained (because they fill available space via percentage height — with no explicit height, they collapse). Fixed content like tables render at their full height. No explicit declaration needed — the measurement technique naturally distinguishes them. **This is recharts-specific behavior.** Chart libraries with intrinsic height that DON'T collapse (e.g., ECharts, Chart.js with explicit height) will be treated as fixed content and won't shrink below their intrinsic height. Consumers using such libraries can set an explicit `minH` override in the layout config if they want free shrinking. POC test: add a mock widget with a fixed 200px height div (simulating a non-collapsing chart). Verify it gets classified as fixed content and cannot shrink below 200px. Then add `minH: 1` override — verify it becomes freely shrinkable.
 
 ### Row spanning
 
@@ -161,7 +161,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** This is THE reason we abandoned flexbox. It's table stakes for any dashboard grid. react-grid-layout supports this via `h` spanning multiple rows. But we need to see it working with our auto-sizing and content-aware constraints — not just with hardcoded dimensions.
 
-**How to verify:** Place a chart with `rowSpan: 2` next to two KPI cards each with `rowSpan: 1`. All three should render correctly with the chart spanning both rows.
+**How to verify:** Place a chart with `h: 2` (2 rows in RGL's layout model) next to two KPI cards each with `h: 1`. All three should render correctly with the chart spanning both rows. Note: ogrid's API may use `rowSpan` as an alias for RGL's `h` — this is a naming decision for the full library, not a POC concern. The POC uses RGL's native `h` directly.
 
 ### Freeform placement with gaps
 
@@ -245,7 +245,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a widget with wrapping text. Resize it from 1 column to 2 columns — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height. Recalculation happens on span change (discrete events), not every frame — zero wasted work. The grid measures the component's rendered height as-is (including any internal padding the component has). Cell styling from `className` is for the cell container only (bg, rounded, border) — not padding. Interior spacing is the component's responsibility. Timing: when column span changes, the grid updates w in the layout. React re-renders the item at the new width. ResizeObserver fires (content reflowed at new width). The observer updates the measurement ref. The NEXT constrainSize call reads the fresh ref. This is a multi-frame sequence: frame 1 (width change + re-render), frame 2 (browser reflow + observer fires + ref updated), frame 3+ (constraint reads fresh data). The one-frame lag is safe for MOST content: when width increases, content typically gets shorter (text unwraps), so the OLD minH is larger than the new minH — stale data over-constrains, never under-constrains. When width decreases, content gets taller, but the user is narrowing — the next constrainSize call gets the fresh (larger) minH.
 
-**Edge case — non-monotonic height:** Components with CSS breakpoints or layout switches (e.g., switching from single-column to two-column at a width threshold) could get TALLER when wider. For one frame, the stale minH would be too small. Mitigation: `constrainSize` uses `Math.max(currentMinH, previousMinH)` during the transition frame — always pick the larger of the two. `previousMinH` is a one-frame guard: it is set when width changes, and cleared when the next ResizeObserver measurement commits (fresh data replaces the guard). This prevents items from getting permanently stuck at a larger-than-necessary minH. Also test diagonal resize (both width and height simultaneously). Confirm content is never visibly clipped, even with non-monotonic height components.
+**Edge case — non-monotonic height:** Components with CSS breakpoints or layout switches (e.g., switching from single-column to two-column at a width threshold) could get TALLER when wider. For one frame, the stale minH would be too small. Mitigation: `constrainSize` uses `Math.max(currentMinH, previousMinH)` during the transition frame — always pick the larger of the two. `previousMinH` is a one-frame guard: it is set when width changes, and cleared when the next ResizeObserver measurement commits (fresh data replaces the guard). This prevents items from getting permanently stuck at a larger-than-necessary minH.
+
+**POC test — non-monotonic height widget:** Add a widget that switches from 1-column to 2-column internal layout at a width threshold (e.g., >400px). This widget gets TALLER when wider (2-column layout has more vertical content). Resize it wider — confirm content is never visibly clipped during the transition frame. Also test diagonal resize (both width and height simultaneously).
 
 ### Constraint API works for content clamping
 
@@ -255,9 +257,11 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Important:** `constrainSize` fires during RESIZE only, not during drag. During drag, content minimum protection comes from `minW`/`minH` set on each layout item. The grid must keep `minW`/`minH` in sync with content measurements at all times. Two protection mechanisms for two interaction types: `constrainSize` for resize (real-time clamping), `minW`/`minH` for drag collision (prevents collision resolution from shrinking items below content minimum).
 
-**minW/minH sync mechanism:** When ResizeObserver fires (content changed), the observer callback updates both the `measurementsRef` (for constrainSize) AND triggers a batched state update that sets `minW`/`minH` on the corresponding layout items. This keeps `minW`/`minH` in sync with actual content. The state update is batched via `requestAnimationFrame` — at most one re-render per frame, regardless of how many items changed.
+**minW/minH sync mechanism:** When ResizeObserver fires (content changed), the observer callback updates both the `measurementsRef` (for constrainSize) AND queues a `minW`/`minH` update. All queued updates are flushed in a single `requestAnimationFrame` callback as ONE `setState` call — updating all changed items' `minW`/`minH` in the layout array at once. This produces exactly one React re-render per frame, regardless of how many items changed. After the measurement window closes, `minW`/`minH` updates are the ONLY state changes from observer callbacks — no `w`/`h` changes, so RGL repositioning is not triggered.
 
 **How to verify:** Add a constraint that logs every call. Resize an item — confirm the constraint fires and prevents shrinking below content. Then drag an item onto another — confirm `minW`/`minH` prevents the displaced item from being shrunk below its content minimum by collision resolution.
+
+**Resize-overlap prevention:** Also test: resize item A to be larger such that it would overlap item B. Verify RGL's own collision detection prevents the overlap during resize (separate from `constrainSize` content clamping). The `constrainSize` callback receives the full `layout` — confirm it includes all items' current positions. If RGL does NOT prevent resize-overlap, `constrainSize` must also enforce maximum sizes based on neighbor positions. Document which mechanism handles this.
 
 ### Auto-placement with compactType: null
 
@@ -331,7 +335,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** 5 items is trivial. Real dashboards have 20-50 widgets. ResizeObserver callbacks fire in bursts, each triggering setState, each causing react-grid-layout to re-layout the entire grid. If this cascades, the dashboard becomes unusable.
 
-**How to verify:** Add 25+ items to the POC page. Drag and resize several items. Use Chrome DevTools Performance panel to measure: frame rate (should stay above 30fps minimum, target 60fps), longest task duration during interaction, and number of layout recalculations per drag/resize frame. If RGL's layout algorithm is O(n²), 25 items may cause visible jank — document the threshold where performance degrades.
+**How to verify:** Add 25+ items to the POC page. Drag and resize several items. Use Chrome DevTools Performance panel to measure frame rate, longest task duration, and render count per interaction.
+
+**Pass/fail criteria:** Drag interaction must maintain ≥30fps with 25 items on a mid-range laptop (e.g., M1 MacBook Air or equivalent). Below 30fps is a showstopper. 30-60fps is acceptable with a note. If it fails: mitigation options include debouncing ResizeObserver callbacks during drag, virtualizing off-screen items, or reducing the item count recommendation. Log render count during a single drag with 25 items — if RGL re-renders the entire grid more than once per frame, investigate.
 
 **Data flow architecture:** A single ResizeObserver instance observes all items. On callback:
 1. Update a `measurementsRef` (Map of itemId → {width, height} in pixels). This is synchronous — `constrainSize` reads from this ref immediately.
@@ -400,7 +406,9 @@ In either case: no overlap, no freeze, no content clipping.
 
 **Why:** The monitor repo uses `userResized` (Set). We extend with `userPositioned` to track position intent separately from size intent. A user who only drags an item hasn't expressed intent about its size — height should still auto-size on reload. This respects user intent — a user who made an item small intentionally shouldn't have the grid expand it on every load.
 
-**How to verify:** Auto-size an item, save layout, change content to be taller, reload — item should grow. Then manually resize that item smaller, save, change content again, reload — item should stay at user's size and content scrolls.
+**How to verify:** (Via re-mounting, not page reload — POC excludes localStorage.) Auto-size an item. Re-mount with the emitted layout + taller content — non-userResized item should auto-size to the new content height. Then resize that item smaller manually (marks userResized). Re-mount with the same layout + even taller content — userResized item should retain its saved size and content scrolls inside the cell.
+
+**Scroll-inside-cell interaction:** When content scrolls inside a user-resized cell (`overflow: auto`), verify that scrolling does NOT accidentally trigger RGL's drag behavior. The `draggableHandle` scopes drag to the grip icon — scrolling the content area must work independently. This is a potential showstopper if scroll and drag conflict. POC must test: place a scrollable table inside a cell, scroll it, confirm no drag is initiated.
 
 ### Dynamic content after mount
 
@@ -429,7 +437,7 @@ In either case: no overlap, no freeze, no content clipping.
 
 **What:** A widget that loads data asynchronously (simulated API call with setTimeout) renders correctly at its data-loaded size, not its empty/loading size.
 
-**Why this must be proven:** Real dashboard widgets fetch data from APIs. A strict "first synchronous render only" measurement would capture the loading spinner or empty state, producing wrong sizes. The measurement window (500ms idle / 2s max) must handle this.
+**Why this must be proven:** Real dashboard widgets fetch data from APIs. A strict "first synchronous render only" measurement would capture the loading spinner or empty state, producing wrong sizes. The measurement window (200ms idle / 2s max) must handle this.
 
 **How to verify:** Create a widget that shows "Loading..." for 200ms, then renders a table with 5 rows. The grid should wait for the data, measure the table at its loaded size, and display the correctly-sized cell. No flicker of wrong-sized content.
 
@@ -455,15 +463,21 @@ In either case: no overlap, no freeze, no content clipping.
 
 **Why this must be proven:** Chicken-and-egg problem — react-grid-layout needs `w`/`h` to position items, but we need the DOM to exist to measure content. The first render must handle this gracefully.
 
-**Strategy — single-pass measurement:**
+**Strategy — measure-then-place:**
 
-Render all items with `opacity: 0`, auto-placed via `computeLayout` at each item's configured `w` (falling back to `cols` if unspecified), `h: 1`. Items with explicit `w` render at that width so height measurement is accurate for the final width. ResizeObserver measures each item's content height. Height is converted to grid units: `h = Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))` (the +1 is the stabilization buffer). Then `computeLayout` runs again with final `w`/`h` to assign `x`/`y` positions.
+Phase 1 (measure): Render all items with `opacity: 0`, auto-placed via `computeLayout` at each item's configured `w` (falling back to `cols` if unspecified), `h: 1`. CSS transitions disabled. Items with explicit `w` render at that width so height measurement is accurate for the final width. ResizeObserver measures each item's content height. Height is converted to grid units: `h = Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))` (the +1 is the stabilization buffer).
+
+Phase 2 (place): `computeLayout` runs again with final `w`/`h` to assign `x`/`y` positions. This produces different positions than Phase 1 because items now have real heights. RGL updates positions with transitions still disabled — no animation between placeholder and final layout. Then `opacity: 1`, transitions re-enabled.
+
+This is two `computeLayout` calls but a single measurement. No width changes occur between phases, so no re-measurement is needed.
 
 **Width is NOT auto-sized.** Width defaults to `w: cols` (full grid width). Developers set explicit `w` in the layout config for narrower items. This is intentionally simple — width auto-sizing requires content-dependent heuristics that are fragile and add an extra render pass. Height auto-sizing is the hard problem worth solving. Width is a developer choice.
 
-**Measurement window:** stays open until content stabilizes (ResizeObserver stops firing for 200ms) or 2s max. When the window closes, the inner div switches from `height: auto` to `h-full`, `overflow: auto` is applied (enabling scroll for oversized content), `opacity` is set to 1. Disable CSS transitions during measurement to prevent animation from placeholder to final sizes. Re-enable after. This is a single render pass (not two) — no width changes means no re-measurement needed. The 200ms idle timer resets on every ResizeObserver callback (NOT on RAF batched updates — the timer tracks content changes, not rendering).
+**Measurement window:** stays open until content stabilizes (ResizeObserver stops firing for 200ms) or 2s max. When the window closes, the inner div switches from `height: auto` to `h-full`, `overflow: auto` is applied (enabling scroll for oversized content), `opacity` is set to 1. Disable CSS transitions during measurement to prevent animation from placeholder to final sizes. Re-enable after. Width doesn't change between phases, so no re-measurement is needed. The 200ms idle timer resets on every ResizeObserver callback (NOT on RAF batched updates — the timer tracks content changes, not rendering).
 
-Monitor CLS — if grid container height changes dramatically between measurement and reveal, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 200ms for 5 items with synchronous content (no async data). For items with async data, the grid becomes visible after data loads + 200ms idle stabilization (the idle timeout). The 500ms idle timeout from the measurement window is the MAX idle wait — the grid reveals as soon as ResizeObserver is idle for 200ms, not 500ms. The 2s hard cap is the absolute maximum. If the opacity:0 phase feels too long, show a skeleton placeholder instead of blank space (see SSR sequence).
+Monitor CLS — if grid container height changes dramatically between measurement and reveal, set a min-height on the container. CLS between skeleton and final grid is unavoidable unless the skeleton height is approximately correct — document actual CLS in the POC. Consider smooth height transition via CSS when swapping from skeleton to grid.
+
+**Performance budget:** The idle timeout is 200ms everywhere (the single source of truth is the measurement window definition above). For 5 items with synchronous content: grid visible within ~200ms (one measurement cycle + idle timeout). For 5 items with async data: grid visible after data loads + 200ms idle. For 25 items with synchronous content: worst case is 25 items × 3 measurement iterations × ~16ms per frame = ~1.2s of measurement before the 200ms idle timer starts = ~1.4s total. This is under the 2s hard cap. The 2s hard cap is the absolute maximum. If the opacity:0 phase feels too long, show a skeleton placeholder (see SSR sequence). POC must measure and log actual measurement duration at 5 and 25 items to validate these estimates.
 
 **How to verify:** Load the POC page with no layout config. Items should appear at full width with correct heights. No visible flicker or layout shift.
 
@@ -516,6 +530,7 @@ ogrid/
           tall-widget.tsx
           text-widget.tsx
           async-table.tsx   # simulates API data loading with delay
+          layout-switch.tsx # non-monotonic height: 1-col→2-col at width threshold
       package.json
   package.json      # monorepo root
 ```
