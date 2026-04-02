@@ -187,14 +187,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               {itemKeys.map(key => {
                 const fill = FILL_ITEMS.has(key)
                 return (
-                  <div
-                    className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
-                    key={key}
-                    ref={el => setCardRef(key, el)}>
-                    <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
-                      <DragHandle />
-                      <div className={cn('min-w-0 flex-1 self-stretch', fill ? 'overflow-hidden' : '')}>
-                        {itemContent[key]}
+                  <div key={key}>
+                    <div
+                      className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
+                      ref={el => setCardRef(key, el)}>
+                      <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
+                        <DragHandle />
+                        <div className={cn('min-w-0 flex-1 self-stretch', fill ? 'overflow-hidden' : '')}>
+                          {itemContent[key]}
+                        </div>
                       </div>
                     </div>
                   </div>
