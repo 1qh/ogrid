@@ -109,6 +109,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     }, [getMinH])
     const handleLayoutChange = useCallback(
         (newLayout: Layout) => {
+          for (const item of newLayout)
+            console.log(
+              `[onLayoutChange] ${item.i}: h=${String(item.h)}, minH=${String(item.minH)}, scrollH=${String(cardRef.current.get(item.i)?.scrollHeight)}`
+            )
           setLayout(
             newLayout.map(item => {
               const minH = getMinH(item.i),
