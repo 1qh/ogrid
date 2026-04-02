@@ -301,7 +301,7 @@ const extractKeys = (children: ReactNode): string[] => {
               style={phase === 'measuring' ? { transition: 'none' } : undefined}
               width={width}>
               {itemKeys.map(key => (
-                <div className='group h-full rounded-lg ring-1 ring-transparent transition-shadow hover:ring-blue-500' key={key}>
+                <div className='group h-full rounded-lg ring-ring/0 ring-1 transition-shadow hover:ring-ring' key={key}>
                   <div
                     className={twMerge(
                       'relative flex flex-col rounded-lg border p-3',

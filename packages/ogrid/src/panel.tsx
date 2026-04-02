@@ -25,7 +25,7 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
   },
   Panel = () => {
     const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
-    if (!state || state.phase === 'measuring') return null
+    if (!state) return null
     const handleCopy = () => {
       const code = generateConfig(state)
       navigator.clipboard.writeText(code).catch(() => {})
@@ -34,12 +34,14 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
       <div className='flex flex-wrap items-center gap-3 rounded-lg border bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur dark:bg-gray-900/80'>
         <span className='font-medium'>ogrid</span>
         <span className='text-gray-500'>{String(state.layout.length)} items</span>
-        <button
-          className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
-          onClick={handleCopy}
-          type='button'>
-          Copy
-        </button>
+        {state.phase === 'done' && (
+          <button
+            className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
+            onClick={handleCopy}
+            type='button'>
+            Copy
+          </button>
+        )}
       </div>
     )
   }
