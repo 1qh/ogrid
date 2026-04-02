@@ -119,10 +119,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       contentMinConstraint = useMemo(
         () => ({
           constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
-            console.log(`[constrainSize CALLED] ${_item.i}: w=${String(w)} h=${String(h)}`)
+            console.log(
+              `[constrainSize CALLED] ${_item.i}: w=${String(w)} h=${String(h)}, cardRef has keys: [${[...cardRef.current.keys()].join(', ')}]`
+            )
             if (FILL_ITEMS.has(_item.i)) return { h, w }
             const el = cardRef.current.get(_item.i)
-            if (!el) return { h, w }
+            if (!el) {
+              console.log(`[constrainSize] ${_item.i}: NO REF FOUND`)
+              return { h, w }
+            }
             const natural = measureNaturalHeight(el),
               minH = pxToGridH(natural)
             console.log(
@@ -148,7 +153,11 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         if (el) {
           el.dataset.itemKey = key
           cardRef.current.set(key, el)
-        } else cardRef.current.delete(key)
+          console.log(`[ref] SET ${key}, map size=${String(cardRef.current.size)}`)
+        } else {
+          cardRef.current.delete(key)
+          console.log(`[ref] DELETE ${key}, map size=${String(cardRef.current.size)}`)
+        }
       }, [])
     return (
       <div className='flex flex-col gap-4 p-4'>
