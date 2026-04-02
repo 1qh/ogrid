@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars, max-statements */
+/* eslint-disable no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars, max-statements */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { Button } from '@a/ui/button'
@@ -11,18 +11,29 @@ import 'react-grid-layout/css/styles.css'
 import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
 import Accordion from '~/widgets/accordion'
 import AsyncTable from '~/widgets/async-table'
+import Avatars from '~/widgets/avatars'
 import Badges from '~/widgets/badges'
+import CalendarWidget from '~/widgets/calendar'
+import CheckboxWidget from '~/widgets/checkbox'
 import DataTableWidget from '~/widgets/data-table'
+import FormWidget from '~/widgets/form'
 import KpiCard from '~/widgets/kpi-card'
 import LayoutSwitchWidget from '~/widgets/layout-switch'
 import ProgressBars from '~/widgets/progress-bars'
 import Prose from '~/widgets/prose'
 import ScrollContent from '~/widgets/scroll-content'
+import SliderWidget from '~/widgets/slider'
 import StatsGrid from '~/widgets/stats-grid'
+import TabsPanel from '~/widgets/tabs-panel'
 import TextWidget from '~/widgets/text-widget'
 import Timeline from '~/widgets/timeline'
+import ToggleGroup from '~/widgets/toggle-group'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
   SparklineWidget = dynamic(async () => import('~/widgets/sparkline'), { ssr: false }),
+  AreaChartWidget = dynamic(async () => import('~/widgets/area-chart'), { ssr: false }),
+  LineChartWidget = dynamic(async () => import('~/widgets/line-chart'), { ssr: false }),
+  PieChartWidget = dynamic(async () => import('~/widgets/pie-chart'), { ssr: false }),
+  RadialChartWidget = dynamic(async () => import('~/widgets/radial-chart'), { ssr: false }),
   RESPONSIVE_BREAKPOINT = 768,
   DEFAULT_COLS = 24,
   COL_OPTIONS = [12, 16, 24] as const,
@@ -34,19 +45,33 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   MAX_TIMEOUT = 2000,
   FALLBACK_H = 4,
   pxToGridH = (px: number) => Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)),
-  FILL_ITEMS = new Set(['chart', 'scroll', 'sparkline']),
+  FILL_ITEMS = new Set(['chart', 'scroll', 'sparkline', 'areachart', 'linechart', 'piechart', 'radialchart']),
   INITIAL_ITEMS = [
     { i: 'chart', w: 12 },
     { i: 'kpi', w: 12 },
+    { i: 'areachart', w: 12 },
     { i: 'progress', w: 12 },
     { i: 'table', w: 16 },
-    { i: 'stats', w: 12 },
+    { i: 'stats', w: 8 },
     { i: 'scroll', w: 12 },
-    { i: 'timeline', w: 8 },
+    { i: 'timeline', w: 12 },
     { i: 'sparkline', w: 8 },
+    { i: 'linechart', w: 8 },
+    { i: 'piechart', w: 8 },
     { i: 'text', w: 12 },
     { i: 'layoutswitch', w: 12 },
-    { i: 'async', w: 12 }
+    { i: 'async', w: 12 },
+    { i: 'accordion', w: 12 },
+    { i: 'badges', w: 8 },
+    { i: 'calendar', w: 8 },
+    { i: 'checkbox', w: 8 },
+    { i: 'form', w: 12 },
+    { i: 'slider', w: 8 },
+    { i: 'tabs', w: 12 },
+    { i: 'toggles', w: 8 },
+    { i: 'avatars', w: 8 },
+    { i: 'radialchart', w: 8 },
+    { i: 'prose', w: 12 }
   ] as const,
   ADDABLE_WIDGETS = ['badges', 'accordion', 'prose'] as const,
   ITEM_CLASS: Record<string, string> = {
@@ -61,19 +86,30 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   ),
   ITEM_CONTENT: Record<string, React.ReactNode> = {
     accordion: <Accordion />,
+    areachart: <AreaChartWidget />,
     async: <AsyncTable />,
+    avatars: <Avatars />,
     badges: <Badges />,
+    calendar: <CalendarWidget />,
     chart: <BarChartWidget />,
+    checkbox: <CheckboxWidget />,
+    form: <FormWidget />,
     kpi: <KpiCard />,
     layoutswitch: <LayoutSwitchWidget />,
+    linechart: <LineChartWidget />,
+    piechart: <PieChartWidget />,
     progress: <ProgressBars />,
     prose: <Prose />,
+    radialchart: <RadialChartWidget />,
     scroll: <ScrollContent />,
+    slider: <SliderWidget />,
     sparkline: <SparklineWidget />,
     stats: <StatsGrid />,
     table: <DataTableWidget />,
+    tabs: <TabsPanel />,
     text: <TextWidget />,
-    timeline: <Timeline />
+    timeline: <Timeline />,
+    toggles: <ToggleGroup />
   },
   checkOverlaps = (items: Layout) => {
     for (let a = 0; a < items.length; a += 1)
@@ -93,7 +129,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       return w !== item.w || x !== item.x ? { ...item, w, x } : item
     }),
   computeLayoutWithCols = (items: Layout, cols: number): Layout => {
-    const colBottoms = Array.from({ length: cols }, () => 0),
+    const t0 = performance.now(),
+      colBottoms = Array.from({ length: cols }, () => 0),
       result: LayoutItem[] = []
     for (const item of items) {
       const w = Math.min(item.w, cols)
@@ -111,6 +148,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       result.push(placed)
       for (let col = bestX; col < bestX + placed.w; col += 1) colBottoms[col] = bestY + placed.h
     }
+    console.log(`[ogrid:perf] computeLayout ${String(items.length)} items: ${(performance.now() - t0).toFixed(2)}ms`)
     return result
   },
   SKELETON_ITEMS = [
@@ -145,6 +183,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       freeformLayoutRef = useRef<Layout>([]),
       compactModeRef = useRef(false),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
+      setLayoutCountRef = useRef(0),
+      renderCountRef = useRef(0),
+      dragFpsRef = useRef({ frames: 0, start: 0 }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       [compact, setCompact] = useState(false),
       [cols, setCols] = useState(DEFAULT_COLS),
@@ -161,6 +202,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           y: 0
         }))
       ),
+      trackSetLayout = useCallback((updater: Layout | ((prev: Layout) => Layout)) => {
+        setLayoutCountRef.current += 1
+        setLayout(updater)
+      }, []),
       computeLayout = useCallback((items: Layout): Layout => computeLayoutWithCols(items, cols), [cols]),
       closeMeasureWindow = useCallback(() => {
         const mw = measureWindowRef.current
@@ -170,7 +215,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         if (mw.capTimer) clearTimeout(mw.capTimer)
         mw.idleTimer = null
         mw.capTimer = null
-        setLayout(prev => {
+        const elapsed = performance.now() - mw.openedAt
+        console.log(`[ogrid:perf] measurement window: ${elapsed.toFixed(0)}ms (setState calls: ${String(setLayoutCountRef.current)})`)
+        trackSetLayout(prev => {
           const final = prev.map(item => {
             if (FILL_ITEMS.has(item.i)) return item
             const minH = minHRef.current.get(item.i)
@@ -185,7 +232,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           return placed
         })
         setPhase('done')
-      }, [cols]),
+      }, [cols, trackSetLayout]),
       resetIdleTimer = useCallback(() => {
         const mw = measureWindowRef.current
         if (mw.phase === 'done') return
@@ -197,7 +244,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           if (FILL_ITEMS.has(key)) continue
           minHRef.current.set(key, pxToGridH(el.scrollHeight))
         }
-        setLayout(prev => {
+        trackSetLayout(prev => {
           const measured = prev.map(item => {
               const minH = minHRef.current.get(item.i) ?? 1,
                 targetH = Math.max(item.h, minH)
@@ -212,7 +259,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           return placed
         })
         resetIdleTimer()
-      }, [computeLayout, resetIdleTimer])
+      }, [computeLayout, resetIdleTimer, trackSetLayout])
+    renderCountRef.current += 1
     useLayoutEffect(() => setMounted(true), [])
     useLayoutEffect(() => {
       const el = containerRef.current
@@ -324,8 +372,17 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         },
         [computeLayout]
       ),
+      handleDragStart = useCallback(() => {
+        dragFpsRef.current = { frames: 0, start: performance.now() }
+      }, []),
+      handleDrag = useCallback(() => {
+        dragFpsRef.current.frames += 1
+      }, []),
       handleDragStop = useCallback((_layout: Layout, _oldItem: LayoutItem | null, newItem: LayoutItem | null) => {
         if (newItem) positionedIdsRef.current.add(newItem.i)
+        const { frames, start } = dragFpsRef.current,
+          elapsed = (performance.now() - start) / 1000
+        if (elapsed > 0) console.log(`[ogrid:perf] drag fps: ${(frames / elapsed).toFixed(1)} (${String(frames)} frames in ${(elapsed * 1000).toFixed(0)}ms)`)
       }, []),
       handleResizeStop = useCallback((_layout: Layout, _oldItem: LayoutItem | null, newItem: LayoutItem | null) => {
         if (newItem) resizedIdsRef.current.add(newItem.i)
@@ -335,6 +392,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         resizedIdsRef.current.clear()
         minHRef.current.clear()
         freeformLayoutRef.current = []
+        setLayoutCountRef.current = 0
+        renderCountRef.current = 0
         measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: setTimeout(closeMeasureWindow, MAX_TIMEOUT) }
         setPhase('measuring')
         setLayout(
@@ -391,7 +450,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       <div className='flex flex-col gap-4 p-4'>
         <div className='flex flex-wrap items-center gap-4'>
           <span className='text-sm font-medium'>
-            ogrid POC — Phase B {compact && '(compact mode)'}
+            ogrid POC — Phase C ({String(itemKeys.length)} items) {compact && '(compact mode)'}
           </span>
           {phase === 'done' && !compact && (
             <>
@@ -400,6 +459,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               </Button>
               <Button onClick={handleReset} size='sm' variant='outline'>
                 Reset
+              </Button>
+              <Button
+                onClick={() => console.log(`[ogrid:perf] render count: ${String(renderCountRef.current)}, setState count: ${String(setLayoutCountRef.current)}`)}
+                size='sm'
+                variant='outline'>
+                Log Metrics
               </Button>
               <div className='flex items-center gap-1'>
                 <span className='text-xs text-muted-foreground'>Cols:</span>
@@ -439,6 +504,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                   rowHeight: ROW_HEIGHT
                 }}
                 layout={effectiveLayout}
+                onDrag={handleDrag}
+                onDragStart={handleDragStart}
                 onDragStop={handleDragStop}
                 onLayoutChange={handleLayoutChange}
                 onResizeStop={handleResizeStop}
