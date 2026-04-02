@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
+/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback */
 'use client'
 import type { Layout, LayoutItem } from 'react-grid-layout'
 import { cn } from '@a/ui'
@@ -36,9 +36,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   Page = () => {
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
+      minHRef = useRef(new Map<string, number>()),
       rafRef = useRef(0),
       stateCountRef = useRef(0),
-      callbackCountRef = useRef(new Map<string, number>()),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
@@ -50,10 +50,30 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }))
       ),
       [preventCollision, setPreventCollision] = useState(true),
-      getMinH = useCallback((key: string) => {
-        const el = cardRef.current.get(key)
-        if (!el || FILL_ITEMS.has(key)) return 1
-        return pxToGridH(el.scrollHeight)
+      measureAndUpdate = useCallback(() => {
+        for (const [key, el] of cardRef.current.entries()) {
+          if (FILL_ITEMS.has(key)) continue
+          const gridH = pxToGridH(el.scrollHeight)
+          minHRef.current.set(key, gridH)
+        }
+        setLayout(prev => {
+          const next: LayoutItem[] = []
+          let changed = false
+          for (const item of prev) {
+            const minH = minHRef.current.get(item.i) ?? 1,
+              targetH = Math.max(item.h, minH)
+            if (targetH === item.h && item.minH === minH) {
+              next.push(item)
+              continue
+            }
+            changed = true
+            next.push({ ...item, h: targetH, minH })
+          }
+          if (!changed) return prev
+          stateCountRef.current += 1
+          console.log(`[measurement] setState #${String(stateCountRef.current)}`)
+          return next
+        })
       }, [])
     useLayoutEffect(() => {
       const el = containerRef.current
@@ -73,56 +93,30 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           if (!(el instanceof HTMLDivElement)) continue
           const key = el.dataset.itemKey
           if (!key || FILL_ITEMS.has(key)) continue
-          const prev = callbackCountRef.current.get(key) ?? 0
-          callbackCountRef.current.set(key, prev + 1)
+          const gridH = pxToGridH(el.scrollHeight),
+            prevMinH = minHRef.current.get(key)
+          if (prevMinH === gridH) continue
+          minHRef.current.set(key, gridH)
           changed = true
-          console.log(
-            `[observer] ${key}: scrollHeight=${String(el.scrollHeight)}px → h=${String(pxToGridH(el.scrollHeight))} (callback #${String(callbackCountRef.current.get(key))})`
-          )
+          console.log(`[observer] ${key}: scrollHeight=${String(el.scrollHeight)}px → minH=${String(gridH)}`)
         }
         if (changed) {
           cancelAnimationFrame(rafRef.current)
-          rafRef.current = requestAnimationFrame(() => {
-            setLayout(prev => {
-              const next: LayoutItem[] = []
-              let layoutChanged = false
-              for (const item of prev) {
-                const minH = getMinH(item.i),
-                  targetH = Math.max(item.h, minH)
-                if (targetH === item.h && item.minH === minH) {
-                  next.push(item)
-                  continue
-                }
-                layoutChanged = true
-                next.push({ ...item, h: targetH, minH })
-              }
-              if (!layoutChanged) return prev
-              stateCountRef.current += 1
-              console.log(`[measurement] setState #${String(stateCountRef.current)}`)
-              return next
-            })
-          })
+          rafRef.current = requestAnimationFrame(measureAndUpdate)
         }
       })
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
-    }, [getMinH])
-    const handleLayoutChange = useCallback(
-        (newLayout: Layout) => {
-          for (const item of newLayout)
-            console.log(
-              `[onLayoutChange] ${item.i}: h=${String(item.h)}, minH=${String(item.minH)}, scrollH=${String(cardRef.current.get(item.i)?.scrollHeight)}`
-            )
-          setLayout(
-            newLayout.map(item => {
-              const minH = getMinH(item.i),
-                h = Math.max(item.h, minH)
-              return { ...item, h, minH }
-            })
-          )
-        },
-        [getMinH]
-      ),
+    }, [measureAndUpdate])
+    const handleLayoutChange = useCallback((newLayout: Layout) => {
+        setLayout(
+          newLayout.map(item => {
+            const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
+              h = Math.max(item.h, minH)
+            return { ...item, h, minH }
+          })
+        )
+      }, []),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
