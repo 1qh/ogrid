@@ -147,6 +147,14 @@ const extractKeys = (children: ReactNode): string[] => {
         resetIdleTimer()
       }, [computeLayout, fillSet, gap, resetIdleTimer, rowHeight])
     useLayoutEffect(() => {
+      const originalWarn = console.warn
+      console.warn = (...args: unknown[]) => {
+        if (typeof args[0] === 'string' && args[0].includes('width(-1)')) return
+        originalWarn.apply(console, args)
+      }
+      return () => { console.warn = originalWarn }
+    }, [])
+    useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
       const updateWidth = (w: number) => {
