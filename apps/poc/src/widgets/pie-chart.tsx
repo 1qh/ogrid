@@ -1,7 +1,5 @@
 'use client'
-import type { ChartConfig } from '@a/ui/chart'
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@a/ui/chart'
-import { Cell, Label, Pie, PieChart } from 'recharts'
+import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 const outerData = [
     { fill: 'var(--chart-1)', name: 'Chrome', value: 275 },
     { fill: 'var(--chart-2)', name: 'Safari', value: 200 },
@@ -15,25 +13,15 @@ const outerData = [
     { fill: 'var(--chart-4)', name: 'Tablet', value: 55 }
   ],
   TOTAL = outerData.reduce((sum, d) => sum + d.value, 0),
-  config: ChartConfig = {
-    Chrome: { color: 'var(--chart-1)', label: 'Chrome' },
-    Desktop: { color: 'var(--chart-1)', label: 'Desktop' },
-    Edge: { color: 'var(--chart-4)', label: 'Edge' },
-    Firefox: { color: 'var(--chart-3)', label: 'Firefox' },
-    Mobile: { color: 'var(--chart-2)', label: 'Mobile' },
-    Other: { color: 'var(--chart-5)', label: 'Other' },
-    Safari: { color: 'var(--chart-2)', label: 'Safari' },
-    Tablet: { color: 'var(--chart-4)', label: 'Tablet' }
-  },
   PieChartWidget = () => (
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Browser & Device Share</span>
       <span className='text-xs text-muted-foreground'>Nested donut with total center label</span>
       <div className='min-h-0 flex-1'>
-        <ChartContainer className='h-full w-full' style={{ aspectRatio: 'auto' }} config={config}>
+        <ResponsiveContainer height='100%' width='100%'>
           <PieChart>
-            <ChartTooltip content={<ChartTooltipContent nameKey='name' />} />
-            <ChartLegend content={<ChartLegendContent nameKey='name' />} />
+            <Tooltip />
+            <Legend />
             <Pie data={innerData} dataKey='value' innerRadius={30} nameKey='name' outerRadius={55}>
               {innerData.map(entry => (
                 <Cell fill={entry.fill} key={entry.name} />
@@ -50,7 +38,7 @@ const outerData = [
               />
             </Pie>
           </PieChart>
-        </ChartContainer>
+        </ResponsiveContainer>
       </div>
     </div>
   )
