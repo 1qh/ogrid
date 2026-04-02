@@ -102,6 +102,11 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       widthObserver.observe(el)
       return () => widthObserver.disconnect()
     }, [])
+    // biome-ignore lint/correctness/useExhaustiveDependencies: width triggers re-measurement
+    useLayoutEffect(() => {
+      if (cardRef.current.size === 0) return
+      measureAndUpdate()
+    }, [measureAndUpdate, width])
     useLayoutEffect(() => {
       const observer = new ResizeObserver(entries => {
         let changed = false
