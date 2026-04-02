@@ -341,15 +341,13 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Add a button inside a grid item. Click it — the button's onClick should fire. Drag from the grip icon — the item should drag. These must not interfere with each other.
 
-### Pre-POC investigation (must be done before coding)
+### Pre-POC investigation (completed)
 
-Before writing any POC code, these must be answered:
+**constrainSize API — VERIFIED:** react-grid-layout v2.2.3 (stable). `constrainSize` fires on every resize event (start, during, stop), receives item + proposed w/h in grid units + resize handle + full context (cols, containerWidth, rowHeight, margin, layout), returns constrained `{ w, h }`. Constraints compose: grid-level first, then per-item. The built-in `aspectRatio` constraint demonstrates the exact pattern we'll use for content minimum clamping.
 
-**constrainSize API verification:** Read react-grid-layout v2's source code. Confirm `constrainSize` exists in a stable release, fires during resize drag (not just on stop), receives item + proposed size + context, and can return a clamped size that react-grid-layout respects. If this API doesn't exist or doesn't work, the entire content-clamping approach changes.
+**Auto-placement with compactType:null — RESOLVED:** Items do NOT pile at (0,0). The monitor repo uses a `computeLayout` function that assigns positions row-by-row (left-to-right, wrap at column boundary) BEFORE passing to react-grid-layout. `noCompactor` is a no-op that preserves these positions. We need our own equivalent `computeLayout` — straightforward cursor-based placement.
 
-**Auto-placement with compactType:null:** Test what react-grid-layout does when items have no explicit `x, y` and `compactType` is `null`. If items pile at `(0,0)`, we need a custom auto-placement algorithm — scope that work before the POC.
-
-**react-grid-layout version:** Confirm the exact version available, whether it's stable, and whether the API matches what we expect from the monitor repo's usage.
+**react-grid-layout version — CONFIRMED:** v2.2.3, stable, production-tested in the monitor repo. All APIs we need (`constrainSize`, `noCompactor`, `preventCollision`, per-item constraints) exist and are documented.
 
 ## POC structure
 
