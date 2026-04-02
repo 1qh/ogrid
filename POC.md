@@ -29,6 +29,7 @@ ogrid wraps react-grid-layout with the missing pieces: auto-sizing, content-awar
 
 - **Zero config works** — drop items in, they arrange themselves sensibly
 - **Content is sacred** — the grid respects content boundaries, never clips or crushes
+- **Fill by default** — items fill their cell (`h-full w-full`). Charts, tables, and most dashboard content should stretch to fill. Small content that wants centering opts in via `className: 'flex items-center justify-center'` on the layout entry
 - **Android home screen UX** — items snap to grid cells, freeform placement, configurable columns
 - **One source of truth** — layout config is the single place all placement/sizing lives
 - **Fail fast** — wrong config caught immediately
@@ -93,7 +94,7 @@ recharts v3's `ResponsiveContainer` warns about width(-1)/height(-1) during SSR 
 - **Visual tuning** — hover to see cell boundaries, drag to reposition, drag edges to resize
 - **One copy-paste** — click copy, paste config into code, TypeScript validates
 - **Cell styling** — optional `className` on layout entries for cell background/border/rounded
-- **Content centered** — items sit centered in their cell by default
+- **Fill by default** — items fill their cell (`h-full w-full`). Centering is opt-in via className
 - **Android home screen UX** — configurable column count, freeform placement, snap to cells
 - **Dev toolbar** — gap, column count, debug toggles, reset, copy
 - **Per-item settings** — click a button on each item to configure its placement/styling
@@ -122,7 +123,7 @@ recharts v3's `ResponsiveContainer` warns about width(-1)/height(-1) during SSR 
 - **No pixel-level width control** — width is column spans, not pixels. A 4-column grid on a 1200px viewport gives 300px columns. You get 300, 600, 900, 1200 — not 437px.
 - **No keyboard drag** — react-grid-layout does not support keyboard-driven drag/reposition. Mouse and touch only. Keyboard resize may be added as a custom feature later.
 - **Touch interactions** — react-grid-layout supports touch drag/resize, but with draggableHandle and compactType:null, the mobile UX is not validated in this POC. Touch is out of scope.
-- **No auto-growth after mount** — cells auto-size on first render only. Dynamic content growth scrolls, doesn't expand the cell. This prevents overlap in freeform layouts.
+- **No auto-growth after measurement window** — cells auto-size during the initial measurement window (500ms idle or 2s max, allowing async data to load). After the window closes, the layout is locked. Dynamic content growth scrolls, doesn't expand the cell. This prevents overlap in freeform layouts.
 
 ## Why no one has solved this
 
@@ -178,13 +179,15 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Drag a KPI card to an empty area several rows below. It should land there and stay.
 
-### Drag reorder
+### Drag collision behavior
 
-**What:** Drag an item onto another. The other item moves out of the way.
+**What:** Drag an item onto another occupied cell. Understand and validate the collision behavior with `compactType: null`.
 
-**Why this must be proven:** With `compactType: null`, what happens when items collide during drag? Do they push? Swap? Overlap? The behavior might differ from compacted mode.
+**Why this must be proven:** With `compactType: null`, collision resolution works differently from compacted mode. `preventCollision: false` (default) allows items to push, but without a compactor to decide direction, items may push in unexpected directions or go off-grid. `preventCollision: true` rejects the drop (item snaps back). We need to test BOTH modes, understand the trade-offs, and pick a default.
 
-**How to verify:** Drag one item directly onto another. The displaced item should move to a sensible position without overlapping.
+**How to verify:** Test with `preventCollision: false` — drag item A onto item B. Observe where B goes. Does it push predictably? Does it go off-grid? Test with `preventCollision: true` — drag item A onto item B. Item A should snap back. Document which mode produces better UX for dashboard use.
+
+**Note:** `constrainSize` does NOT fire during drag — it only fires during resize. Collision protection during drag relies on `minW`/`minH` set on each layout item. The grid must set `minW`/`minH` on every layout item based on content measurements so that collision resolution cannot shrink items below their content minimum.
 
 ### Drag handle
 
@@ -209,6 +212,8 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 **Why this must be proven:** With `compactType: null` and freeform placement, narrowing the window might cause items to overflow the container or overlap. react-grid-layout might not handle responsive behavior well without compaction.
 
 **How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow sensibly. Strategy: freeform (`compactType: null`) above 1200px, vertical compaction below. `compactType={width < 1200 ? 'vertical' : null}`. Verify the transition is smooth and items don't overlap at the breakpoint. State management: maintain two separate layout arrays — freeformLayout and compactedLayout. Above 1200px, use freeformLayout. Below, compute compactedLayout from the same items using vertical compaction. Switching back above 1200px restores freeformLayout. User edits in freeform mode update freeformLayout only. User edits in compact mode update compactedLayout only. Both persist independently.
+
+**Item addition/removal across modes:** When items are added or removed from the grid, BOTH layout arrays must be updated. New items get auto-placed in both freeformLayout and compactedLayout. Removed items are filtered from both. The source of truth for which items exist is the `items` prop — both layouts must always have entries for exactly those items. If an item exists in `items` but not in a layout array, it gets auto-placed. If an item exists in a layout array but not in `items`, it is silently dropped.
 
 ### Cell className
 
@@ -240,7 +245,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** This is the foundation of content-aware resize. The constraint API is documented but we've never used it. Need to confirm it actually fires during resize, receives the correct context (item, proposed size, container dimensions), and successfully prevents undersized cells. Measurement data flow: ResizeObserver updates a ref (not state) with the latest content dimensions. The constrainSize function reads from this ref synchronously. This avoids async gaps where stale measurements would allow undersized cells.
 
-**How to verify:** Add a constraint that logs every call. Resize an item. Confirm the constraint fires with correct parameters. Then add content-based minimum logic and confirm it prevents shrinking below content.
+**Important:** `constrainSize` fires during RESIZE only, not during drag. During drag, content minimum protection comes from `minW`/`minH` set on each layout item. The grid must keep `minW`/`minH` in sync with content measurements at all times. Two protection mechanisms for two interaction types: `constrainSize` for resize (real-time clamping), `minW`/`minH` for drag collision (prevents collision resolution from shrinking items below content minimum).
+
+**How to verify:** Add a constraint that logs every call. Resize an item — confirm the constraint fires and prevents shrinking below content. Then drag an item onto another — confirm `minW`/`minH` prevents the displaced item from being shrunk below its content minimum by collision resolution.
 
 ### Auto-placement with compactType: null
 
@@ -252,11 +259,11 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 ### Overlap prevention with compactType: null
 
-**What:** When dragging an item onto an occupied cell, the other item moves out of the way. No overlap.
+**What:** No two items ever visually overlap, regardless of drag behavior or window resize.
 
-**Why this must be proven:** With no compaction, collision resolution is different. Items can't be pushed "down" by a compactor. They might need to swap, or the drop might be rejected. Need to understand the behavior and confirm it's usable.
+**Why this must be proven:** With no compaction, collision resolution is different. Items can't be pushed "down" by a compactor. The chosen collision mode (preventCollision true or false, determined by the drag collision test above) must guarantee no overlap in all scenarios: drag, resize, responsive reflow, column count change.
 
-**How to verify:** Drag item A directly onto item B. The displaced item should move to the nearest available space (`preventCollision: false`). Both items should be visible with no overlap. If the behavior feels unnatural, we reconsider.
+**How to verify:** After every interaction (drag, resize, column change, responsive switch), inspect the layout array. No two items should have overlapping `(x, y, w, h)` rectangles. Visually confirm no overlap.
 
 ### Ring on outer div follows resize
 
@@ -292,11 +299,11 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 ### Grid unit conversion accuracy
 
-**What:** Content is measured in pixels. react-grid-layout uses grid units. The conversion `minH = Math.ceil(contentPixelHeight / rowHeight)` must be accurate. Rounding errors could make cells one row too small (content clipped) or one row too large (excessive slack).
+**What:** Content is measured in pixels. react-grid-layout uses grid units. The conversion must account for margins. react-grid-layout's actual pixel height for `h` rows is: `h * rowHeight + (h - 1) * marginY`. So the conversion is: `minH = smallest h where h * rowHeight + (h - 1) * marginY >= contentPixelHeight`. Simplified: `minH = Math.ceil((contentPixelHeight + marginY) / (rowHeight + marginY))`. Rounding direction: always round UP to prevent clipping.
 
-**Why this must be proven:** If rowHeight=30 and content is 90px, minH should be 3 (exactly 90px). If content is 91px, minH should be 4 (120px). The rounding direction matters — always round UP to prevent clipping. Edge cases near row boundaries could cause visual bugs.
+**Why this must be proven:** If rowHeight=30, marginY=16, and content is 90px: `Math.ceil((90 + 16) / (30 + 16)) = Math.ceil(106 / 46) = 3` → 3 * 30 + 2 * 16 = 122px ≥ 90px ✓. Without accounting for margins, `Math.ceil(90 / 30) = 3` → seems right by coincidence, but at different values margins cause off-by-one errors that clip content.
 
-**How to verify:** Place items with content heights near row boundaries (e.g., 89px, 90px, 91px with rowHeight=30). Verify no clipping and reasonable slack.
+**How to verify:** Place items with content heights near row boundaries (e.g., 89px, 90px, 91px with rowHeight=30 and marginY=16). Verify no clipping and reasonable slack. Also verify with marginY=0 to confirm the formula degrades correctly to `Math.ceil(contentPixelHeight / rowHeight)`.
 
 ### Minimal DOM — 2 divs per item maximum
 
@@ -346,7 +353,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Strategy:** Measurements are snapped to grid units. The loop stops when the grid-unit size doesn't change, even if pixel size shifted slightly within the same unit. Grid units act as a natural quantization boundary.
 
-**How to verify:** Place a text widget that reflows at different widths. Log ResizeObserver callback count. Must stabilize within 3 callbacks. No infinite re-renders.
+**Edge case — boundary oscillation:** Content at exactly a grid-unit boundary (e.g., 90.0px with rowHeight=30) could oscillate between 3 and 4 rows if sub-pixel rendering shifts it between 89.9px and 90.1px. Mitigation: add a 1px tolerance buffer — `Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))`. This ensures content right at the boundary rounds up consistently. The 1px buffer is cheaper than the alternative (infinite loop).
+
+**How to verify:** Place a text widget that reflows at different widths. Log ResizeObserver callback count. Must stabilize within 3 callbacks. No infinite re-renders. Also test with content height exactly at a row boundary (e.g., exactly 90px with rowHeight=30) — must not oscillate.
 
 ### Tailwind v4 and react-grid-layout CSS compatibility
 
@@ -366,11 +375,16 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 ### Dynamic content after mount
 
-**What:** Auto-sizing happens on FIRST RENDER only. After mount, the layout is locked. If content grows (table loads more rows, API returns more data), it scrolls inside the cell. The cell does NOT auto-grow.
+**What:** Auto-sizing happens during the INITIAL MEASUREMENT WINDOW only — not just the first synchronous render. The measurement window stays open until content stabilizes (ResizeObserver stops firing for 500ms) or a maximum timeout (2 seconds) elapses, whichever comes first. After the window closes, the layout is locked. If content grows later, it scrolls inside the cell. The cell does NOT auto-grow.
 
-**Why:** With compactType:null, auto-growing a cell would push into occupied space, causing overlap. The developer controls cell size via resize. Dynamic content that exceeds the cell scrolls internally. This is how the monitor repo works — auto-size on mount, respect user resize after.
+**Why:** Real widgets load data asynchronously (API calls, lazy imports). A strict "first render only" rule would measure empty loading states and produce wrong sizes. The measurement window allows async content to load and stabilize before locking the layout. The timeout prevents indefinitely-loading widgets from blocking the grid.
 
-**How to verify:** Render a table with 3 rows. After 2 seconds, add 10 more rows. Confirm the cell does NOT grow — extra rows are scrollable inside the cell. The layout stays stable.
+**How to verify:**
+1. Render a widget that fetches data after 200ms. Confirm the grid waits and sizes correctly after data loads.
+2. Render a widget that fetches data after 200ms. After data loads AND the measurement window closes, add 10 more rows. Confirm the cell does NOT grow — extra rows are scrollable inside the cell.
+3. Render a widget that takes 5 seconds to load. Confirm the grid locks at the 2-second timeout and doesn't wait forever. The slow widget gets the size measured at timeout.
+
+**Edge case — userSized items:** If a user has already manually resized an item (userSized: true), the measurement window does NOT apply. The user's explicit size is always respected, even on reload with new content.
 
 ### onLayoutChange reliability
 
@@ -379,6 +393,14 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 **Why:** Copy/paste, localStorage, controlled mode all depend on getting correct layout data. With compactType:null and collision resolution, positions might be unexpected.
 
 **How to verify:** After every interaction, log the layout from onLayoutChange. Confirm every item's x/y/w/h matches the visual grid.
+
+### Async data loading auto-sizing
+
+**What:** A widget that loads data asynchronously (simulated API call with setTimeout) renders correctly at its data-loaded size, not its empty/loading size.
+
+**Why this must be proven:** Real dashboard widgets fetch data from APIs. A strict "first synchronous render only" measurement would capture the loading spinner or empty state, producing wrong sizes. The measurement window (500ms idle / 2s max) must handle this.
+
+**How to verify:** Create a widget that shows "Loading..." for 200ms, then renders a table with 5 rows. The grid should wait for the data, measure the table at its loaded size, and display the correctly-sized cell. No flicker of wrong-sized content.
 
 ### Margin interaction with content sizing
 
@@ -402,7 +424,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** Chicken-and-egg problem — react-grid-layout needs `w`/`h` to position items, but we need the DOM to exist to measure content. The first render must handle this gracefully.
 
-**Strategy:** Render the grid with `opacity: 0` and default sizes (e.g., w:1, h:1 per item). On mount, ResizeObserver measures each item's content, computes correct w/h in grid units, updates layout, then sets opacity to 1. The measurement pass is invisible — user sees the final layout only. Disable CSS transitions during the measurement pass to prevent items animating from placeholder sizes to measured sizes. Re-enable after final layout is computed. Monitor CLS — if grid container height changes dramatically between passes, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 100ms for 5 items, under 300ms for 25 items. If the opacity:0 measurement pass takes too long, consider skeleton placeholders at approximate sizes instead of blank flash. **How to verify:** Load the POC page with no layout config. Items should appear at correct sizes with no visible flicker or layout shift.
+**Strategy:** Render the grid with `opacity: 0` and default sizes (e.g., w:1, h:1 per item). On mount, the measurement window opens (see "Dynamic content after mount" — up to 500ms idle or 2s max). ResizeObserver measures each item's content, computes correct w/h in grid units, updates layout. When the measurement window closes, set opacity to 1. Disable CSS transitions during the measurement pass to prevent items animating from placeholder sizes to measured sizes. Re-enable after final layout is computed. Monitor CLS — if grid container height changes dramatically between passes, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 500ms for 5 items (including async data loading), under 2s for 25 items (matching the measurement window timeout). If the opacity:0 phase feels too long, show a skeleton placeholder instead of blank space. **How to verify:** Load the POC page with no layout config. Items should appear at correct sizes with no visible flicker or layout shift.
 
 ### SSR and hydration
 
@@ -424,7 +446,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **constrainSize API — VERIFIED:** react-grid-layout v2.2.3 (stable). `constrainSize` fires on every resize event (start, during, stop), receives item + proposed w/h in grid units + resize handle + full context (cols, containerWidth, rowHeight, margin, layout), returns constrained `{ w, h }`. Constraints compose: grid-level first, then per-item. The built-in `aspectRatio` constraint demonstrates the exact pattern we'll use for content minimum clamping.
 
-**Auto-placement with compactType:null — RESOLVED:** Items do NOT pile at (0,0). The monitor repo uses a `computeLayout` function that assigns positions row-by-row (left-to-right, wrap at column boundary) BEFORE passing to react-grid-layout. `noCompactor` is a no-op that preserves these positions. Note: `compactType={null}` and `compactor={noCompactor}` are equivalent — react-grid-layout v2 internally uses noCompactor when compactType is null. The POC uses `compactType={null}` (the public API). We need our own equivalent `computeLayout` — straightforward cursor-based placement.
+**Auto-placement with compactType:null — APPROACH RESOLVED, NEEDS POC VALIDATION:** Items do NOT pile at (0,0). The monitor repo uses a `computeLayout` function that assigns positions row-by-row (left-to-right, wrap at column boundary) BEFORE passing to react-grid-layout. `noCompactor` is a no-op that preserves these positions. Note: `compactType={null}` and `compactor={noCompactor}` are equivalent — react-grid-layout v2 internally uses noCompactor when compactType is null. The POC uses `compactType={null}` (the public API). We need our own equivalent `computeLayout` — straightforward cursor-based placement. The POC must validate this approach works end-to-end (auto-placement → user drag → persist → reload).
 
 **react-grid-layout version — CONFIRMED:** v2.2.3, the official `latest` on npm (published 2026-03-24). Not a fork — the original STRML/react-grid-layout repo. Actively maintained. All APIs we need (`constrainSize`, `noCompactor`, `preventCollision`, per-item constraints) exist and are documented.
 
@@ -446,6 +468,7 @@ ogrid/
           data-table.tsx
           tall-widget.tsx
           text-widget.tsx
+          async-table.tsx   # simulates API data loading with delay
       package.json
   package.json      # monorepo root
 ```
