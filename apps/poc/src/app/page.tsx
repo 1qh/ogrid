@@ -19,7 +19,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
   DRAG_HANDLE_CLASS = 'ogrid-drag-handle',
   pxToGridH = (px: number) => Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)),
-  FILL_ITEMS = new Set(['chart']),
+  FILL_ITEMS = new Set(['chart', 'scroll']),
   itemKeys = ['kpi', 'chart', 'table', 'scroll'] as const,
   DragHandle = () => (
     <div
