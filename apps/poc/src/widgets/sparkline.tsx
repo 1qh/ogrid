@@ -1,5 +1,7 @@
 'use client'
-import { Area, AreaChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import type { ChartConfig } from '@a/ui/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@a/ui/chart'
+import { Area, AreaChart, ReferenceLine, XAxis, YAxis } from 'recharts'
 const data = [
     { d: '03-16', v: 40 },
     { d: '03-17', v: 30 },
@@ -20,33 +22,35 @@ const data = [
     { d: '04-01', v: 98 }
   ],
   AVG = Math.round(data.reduce((s, d) => s + d.v, 0) / data.length),
+  config: ChartConfig = {
+    v: { color: 'var(--chart-1)', label: 'DAU' }
+  },
   Sparkline = () => (
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Sparkline Trend</span>
-      <span className='text-xs text-muted-foreground'>17-day daily active users with average line</span>
-      <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' width='100%'>
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>
-                <stop offset='5%' stopColor='var(--chart-1)' stopOpacity={0.4} />
-                <stop offset='95%' stopColor='var(--chart-1)' stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey='d' hide />
-            <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
-            <ReferenceLine stroke='var(--chart-3)' strokeDasharray='3 3' y={AVG} />
-            <Area
-              dataKey='v'
-              dot={{ fill: 'var(--chart-1)', r: 2 }}
-              fill='url(#sparkGrad)'
-              stroke='var(--chart-1)'
-              strokeWidth={2}
-              type='monotone'
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      <span className='text-xs text-muted-foreground'>17-day DAU with average line</span>
+      <ChartContainer className='min-h-0 flex-1' config={config}>
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>
+              <stop offset='5%' stopColor='var(--color-v)' stopOpacity={0.4} />
+              <stop offset='95%' stopColor='var(--color-v)' stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey='d' hide />
+          <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
+          <ReferenceLine stroke='var(--chart-3)' strokeDasharray='3 3' y={AVG} />
+          <ChartTooltip content={<ChartTooltipContent hideLabel indicator='line' />} />
+          <Area
+            dataKey='v'
+            dot={{ fill: 'var(--color-v)', r: 2 }}
+            fill='url(#sparkGrad)'
+            stroke='var(--color-v)'
+            strokeWidth={2}
+            type='monotone'
+          />
+        </AreaChart>
+      </ChartContainer>
       <div className='flex items-center justify-between text-sm'>
         <span className='text-muted-foreground'>Last 17 days (avg: {String(AVG)})</span>
         <span className='font-medium text-primary'>+145%</span>

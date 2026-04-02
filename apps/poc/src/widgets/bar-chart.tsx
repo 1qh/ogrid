@@ -1,6 +1,7 @@
 'use client'
-import { ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@a/ui/chart'
-import { Bar, BarChart, Brush, CartesianGrid, LabelList, ReferenceArea, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import type { ChartConfig } from '@a/ui/chart'
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@a/ui/chart'
+import { Bar, BarChart, CartesianGrid, LabelList, ReferenceArea, ReferenceLine, XAxis, YAxis } from 'recharts'
 const data = [
     { desktop: 186, mobile: 80, month: 'Jan' },
     { desktop: 305, mobile: 200, month: 'Feb' },
@@ -15,31 +16,29 @@ const data = [
     { desktop: 340, mobile: 230, month: 'Nov' },
     { desktop: 290, mobile: 180, month: 'Dec' }
   ],
-  tooltipContent = <ChartTooltipContent />,
-  legendContent = <ChartLegendContent />,
-  BRUSH_STYLE = { height: 20 },
+  config: ChartConfig = {
+    desktop: { color: 'var(--chart-1)', label: 'Desktop' },
+    mobile: { color: 'var(--chart-2)', label: 'Mobile' }
+  },
   BarChartWidget = () => (
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Desktop vs Mobile Traffic</span>
-      <span className='text-xs text-muted-foreground'>Monthly visitors with target zone and brush</span>
-      <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' width='100%'>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray='3 3' vertical={false} />
-            <XAxis dataKey='month' tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <ReferenceArea fill='var(--chart-3)' fillOpacity={0.1} y1={200} y2={350} />
-            <ReferenceLine label='Target' stroke='var(--chart-3)' strokeDasharray='3 3' y={250} />
-            <ChartTooltip content={tooltipContent} />
-            <ChartLegend content={legendContent} />
-            <Bar dataKey='desktop' fill='var(--chart-1)' radius={[4, 4, 0, 0]} stackId='a'>
-              <LabelList className='fill-foreground' dataKey='desktop' fontSize={10} position='top' />
-            </Bar>
-            <Bar dataKey='mobile' fill='var(--chart-2)' radius={[4, 4, 0, 0]} stackId='b' />
-            <Brush dataKey='month' height={BRUSH_STYLE.height} stroke='var(--chart-1)' />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <span className='text-xs text-muted-foreground'>Monthly visitors with target zone</span>
+      <ChartContainer className='min-h-0 flex-1' config={config}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray='3 3' vertical={false} />
+          <XAxis dataKey='month' tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} />
+          <ReferenceArea fill='var(--chart-3)' fillOpacity={0.1} y1={200} y2={350} />
+          <ReferenceLine label='Target' stroke='var(--chart-3)' strokeDasharray='3 3' y={250} />
+          <ChartTooltip content={<ChartTooltipContent indicator='line' />} />
+          <ChartLegend content={<ChartLegendContent />} />
+          <Bar dataKey='desktop' fill='var(--color-desktop)' radius={[4, 4, 0, 0]}>
+            <LabelList className='fill-foreground' dataKey='desktop' fontSize={10} position='top' />
+          </Bar>
+          <Bar dataKey='mobile' fill='var(--color-mobile)' radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ChartContainer>
     </div>
   )
 export default BarChartWidget
