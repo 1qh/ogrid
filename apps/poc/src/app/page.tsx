@@ -6,7 +6,7 @@ import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { cn } from '@a/ui'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import 'react-grid-layout/css/styles.css'
 import { GridLayout, noCompactor } from 'react-grid-layout'
 import DataTableWidget from '~/widgets/data-table'
@@ -39,18 +39,22 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       rafRef = useRef(0),
       stateCountRef = useRef(0),
       callbackCountRef = useRef(new Map<string, number>()),
-      [measured, setMeasured] = useState(false),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
-          h: 1,
+          h: 20,
           i: key,
           w: 2,
           x: (idx % 2) * 2,
-          y: Math.floor(idx / 2)
+          y: Math.floor(idx / 2) * 20
         }))
       ),
-      [preventCollision, setPreventCollision] = useState(true)
+      [preventCollision, setPreventCollision] = useState(true),
+      getMinH = useCallback((key: string) => {
+        const el = cardRef.current.get(key)
+        if (!el || FILL_ITEMS.has(key)) return 1
+        return pxToGridH(el.scrollHeight)
+      }, [])
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
@@ -61,43 +65,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       widthObserver.observe(el)
       return () => widthObserver.disconnect()
     }, [])
-    const flushMeasurements = useCallback(() => {
-      setLayout(prev => {
-        const next: LayoutItem[] = []
-        let layoutChanged = false
-        for (const item of prev) {
-          if (FILL_ITEMS.has(item.i)) {
-            next.push(item)
-            continue
-          }
-          const el = cardRef.current.get(item.i)
-          if (!el) {
-            next.push(item)
-            continue
-          }
-          const gridH = pxToGridH(el.scrollHeight)
-          if (gridH === item.h) {
-            next.push(item)
-            continue
-          }
-          layoutChanged = true
-          next.push({ ...item, h: gridH })
-        }
-        if (!layoutChanged) return prev
-        stateCountRef.current += 1
-        console.log(`[measurement] setState #${String(stateCountRef.current)}`)
-        setMeasured(true)
-        return next
-      })
-    }, [])
-    useEffect(() => {
-      for (const [key, el] of cardRef.current.entries())
-        console.log(
-          `[mount] ${key}: scrollHeight=${String(el.scrollHeight)}, clientHeight=${String(el.clientHeight)}, offsetHeight=${String(el.offsetHeight)}`
-        )
-      flushMeasurements()
-      setMeasured(true)
-    }, [flushMeasurements])
     useLayoutEffect(() => {
       const observer = new ResizeObserver(entries => {
         let changed = false
@@ -115,42 +82,58 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }
         if (changed) {
           cancelAnimationFrame(rafRef.current)
-          rafRef.current = requestAnimationFrame(flushMeasurements)
+          rafRef.current = requestAnimationFrame(() => {
+            setLayout(prev => {
+              const next: LayoutItem[] = []
+              let layoutChanged = false
+              for (const item of prev) {
+                const minH = getMinH(item.i),
+                  targetH = Math.max(item.h, minH)
+                if (targetH === item.h) {
+                  next.push(item)
+                  continue
+                }
+                layoutChanged = true
+                next.push({ ...item, h: targetH })
+              }
+              if (!layoutChanged) return prev
+              stateCountRef.current += 1
+              console.log(`[measurement] setState #${String(stateCountRef.current)}`)
+              return next
+            })
+          })
         }
       })
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
-    }, [flushMeasurements])
+    }, [getMinH])
     const contentMinConstraint = useMemo(
         () => ({
           constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
             if (FILL_ITEMS.has(_item.i)) return { h, w }
-            const el = cardRef.current.get(_item.i)
-            if (!el) return { h, w }
-            const naturalH = el.scrollHeight,
-              minH = pxToGridH(naturalH),
+            const minH = getMinH(_item.i),
               clamped = Math.max(h, minH)
             console.log(
-              `[constrainSize] ${_item.i}: proposed h=${String(h)}, scrollHeight=${String(naturalH)}px → minH=${String(minH)}, returned h=${String(clamped)}`
+              `[constrainSize] ${_item.i}: proposed h=${String(h)}, minH=${String(minH)}, returned h=${String(clamped)}`
             )
             return { h: clamped, w }
           },
           name: 'content-min'
         }),
-        []
+        [getMinH]
       ),
-      handleLayoutChange = useCallback((newLayout: Layout) => {
-        setLayout(
-          newLayout.map(item => {
-            if (FILL_ITEMS.has(item.i)) return item
-            const el = cardRef.current.get(item.i)
-            if (!el) return item
-            const minH = pxToGridH(el.scrollHeight)
-            if (item.h >= minH) return item
-            return { ...item, h: minH }
-          })
-        )
-      }, []),
+      handleLayoutChange = useCallback(
+        (newLayout: Layout) => {
+          setLayout(
+            newLayout.map(item => {
+              const minH = getMinH(item.i)
+              if (item.h >= minH) return item
+              return { ...item, h: minH }
+            })
+          )
+        },
+        [getMinH]
+      ),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
@@ -187,11 +170,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                 const fill = FILL_ITEMS.has(key)
                 return (
                   <div
-                    className={cn(
-                      'flex h-full flex-col rounded-lg border bg-card p-3',
-                      fill ? '' : 'justify-center',
-                      measured ? '' : 'invisible'
-                    )}
+                    className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
                     key={key}
                     ref={el => setCardRef(key, el)}>
                     <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
