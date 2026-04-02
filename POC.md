@@ -216,7 +216,15 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a small KPI card in a large cell. It should be centered. Place a chart that fills the cell — it should fill, not be constrained by centering.
 
-### 12. Dynamic minH after width resize
+### 12. Fill vs center — inner wrapper default behavior
+
+**What:** Some content should FILL the cell (charts use ResponsiveContainer at 100% width/height). Some content should CENTER in the cell (a small KPI card in a large cell). The default inner wrapper behavior determines which works out of the box.
+
+**Why this must be proven:** If the default is `flex items-center justify-center`, charts won't fill their cell — they'll render at natural size and center. If the default is `h-full w-full`, small content won't center. We need to find the right default and confirm both patterns work.
+
+**How to verify:** Place a chart that should fill its cell AND a small KPI card in a larger cell. Both should look correct. The developer controls the behavior via `className` on the layout entry — `className: 'flex items-center justify-center'` for centering, no className (or `className: 'h-full w-full'`) for filling.
+
+### 13. Dynamic minH after width resize
 
 **What:** Resize an item wider. Content reflows (text unwraps, table columns spread). The minimum height changes. The item can now be made shorter because the content is shorter at the wider width.
 
@@ -224,7 +232,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a widget with wrapping text. Resize it wider — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height.
 
-### 13. Constraint API works for content clamping
+### 14. Constraint API works for content clamping
 
 **What:** react-grid-layout v2's `constrainSize` function runs before layout updates and can enforce minimum sizes based on content measurement.
 
@@ -326,7 +334,7 @@ These are all proven in flexity. The POC only proves the layout engine integrati
 
 ## Success criteria
 
-All 20 points verified. If any point fails, we document why and decide whether to:
+All 22 points verified. If any point fails, we document why and decide whether to:
 1. Work around it (acceptable tradeoff)
 2. Choose a different approach (CSS Grid, different library)
 3. Accept the limitation and document it
