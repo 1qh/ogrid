@@ -31,6 +31,7 @@ ogrid wraps react-grid-layout with the missing pieces: auto-sizing, content-awar
 - **One source of truth** — layout config is the single place all placement/sizing lives
 - **Fail fast** — wrong config caught immediately
 - **Opinionated** — the library makes decisions so developers don't have to
+- **Minimal DOM** — every wrapper div must earn its place. react-grid-layout adds one positioning div per item (necessary for absolute placement). We add one inner div per item (for cell styling + content centering). That's 2 divs per item — the minimum required. No extra wrappers, no gratuitous nesting. If a div can be eliminated, it must be.
 - **Don't fight the layout engine** — use react-grid-layout's proven interaction code, add value on top
 
 ## Lessons learned from flexity
@@ -295,6 +296,14 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 **Why this must be proven:** If rowHeight=30 and content is 90px, minH should be 3 (exactly 90px). If content is 91px, minH should be 4 (120px). The rounding direction matters — always round UP to prevent clipping. Edge cases near row boundaries could cause visual bugs.
 
 **How to verify:** Place items with content heights near row boundaries (e.g., 89px, 90px, 91px with rowHeight=30). Verify no clipping and reasonable slack.
+
+### Minimal DOM — 2 divs per item maximum
+
+**What:** Each grid item has exactly 2 divs: react-grid-layout's positioning div (outer) and our cell styling div (inner). No extra wrappers. The component renders directly inside the inner div.
+
+**Why this must be proven:** In flexity, re-resizable added an extra wrapper that caused ring/styling misalignment. We must confirm that react-grid-layout's DOM structure plus our inner div is sufficient — no hidden wrappers from the library, no extra divs needed for resize handles or drag behavior.
+
+**How to verify:** Inspect the DOM of a rendered grid item. It should be: `div[position:absolute]` (react-grid-layout) → `div[className]` (our cell styling) → component content. Nothing else. Resize handles and drag handles should be part of the existing structure, not additional wrapper divs.
 
 ## POC structure
 
