@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
+/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars, max-statements */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { GripVertical } from 'lucide-react'
@@ -17,6 +17,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   MARGIN_Y = 16,
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
   DRAG_HANDLE_CLASS = 'ogrid-drag-handle',
+  IDLE_TIMEOUT = 200,
+  MAX_TIMEOUT = 2000,
+  FALLBACK_H = 4,
   pxToGridH = (px: number) => Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)),
   FILL_ITEMS = new Set(['chart', 'scroll']),
   itemKeys = ['kpi', 'chart', 'table', 'scroll'] as const,
@@ -37,8 +40,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
-      initializedRef = useRef(false),
-      [initialized, setInitialized] = useState(false),
+      measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
+      [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
@@ -70,6 +73,34 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }
         return result
       }, []),
+      closeMeasureWindow = useCallback(() => {
+        const mw = measureWindowRef.current
+        if (mw.phase === 'done') return
+        mw.phase = 'done'
+        if (mw.idleTimer) clearTimeout(mw.idleTimer)
+        if (mw.capTimer) clearTimeout(mw.capTimer)
+        mw.idleTimer = null
+        mw.capTimer = null
+        setLayout(prev => {
+          const final = prev.map(item => {
+            if (FILL_ITEMS.has(item.i)) return item
+            const minH = minHRef.current.get(item.i)
+            if (minH === undefined || minH <= 0) {
+              console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
+              return { ...item, h: FALLBACK_H, minH: 1 }
+            }
+            return { ...item, h: Math.max(item.h, minH), minH }
+          })
+          return computeLayout(final)
+        })
+        setPhase('done')
+      }, [computeLayout]),
+      resetIdleTimer = useCallback(() => {
+        const mw = measureWindowRef.current
+        if (mw.phase === 'done') return
+        if (mw.idleTimer) clearTimeout(mw.idleTimer)
+        mw.idleTimer = setTimeout(closeMeasureWindow, IDLE_TIMEOUT)
+      }, [closeMeasureWindow]),
       measureAndUpdate = useCallback(() => {
         for (const [key, el] of cardRef.current.entries()) {
           if (FILL_ITEMS.has(key)) continue
@@ -87,11 +118,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
             })
           if (!changed) return prev
-          initializedRef.current = true
-          setInitialized(true)
           return placed
         })
-      }, [computeLayout])
+        resetIdleTimer()
+      }, [computeLayout, resetIdleTimer])
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
@@ -102,12 +132,22 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       widthObserver.observe(el)
       return () => widthObserver.disconnect()
     }, [])
+    useLayoutEffect(() => {
+      const mw = measureWindowRef.current
+      mw.openedAt = performance.now()
+      mw.capTimer = setTimeout(closeMeasureWindow, MAX_TIMEOUT)
+      return () => {
+        if (mw.idleTimer) clearTimeout(mw.idleTimer)
+        if (mw.capTimer) clearTimeout(mw.capTimer)
+      }
+    }, [closeMeasureWindow])
     // biome-ignore lint/correctness/useExhaustiveDependencies: width triggers re-measurement
     useLayoutEffect(() => {
       if (cardRef.current.size === 0) return
       measureAndUpdate()
     }, [measureAndUpdate, width])
     useLayoutEffect(() => {
+      const mw = measureWindowRef.current
       const observer = new ResizeObserver(entries => {
         let changed = false
         for (const entry of entries) {
@@ -121,7 +161,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           minHRef.current.set(key, gridH)
           changed = true
         }
-        if (changed && !initializedRef.current) {
+        if (changed && mw.phase === 'measuring') {
           cancelAnimationFrame(rafRef.current)
           rafRef.current = requestAnimationFrame(measureAndUpdate)
         }
@@ -159,7 +199,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               h = Math.max(item.h, minH)
             return { ...item, h, minH }
           })
-          setLayout(initializedRef.current ? enforced : computeLayout(enforced))
+          setLayout(measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced)
         },
         [computeLayout]
       ),
@@ -171,37 +211,42 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       }, [])
     return (
       <div className='flex flex-col gap-4 p-4'>
-        <span className='text-sm font-medium'>ogrid POC — Phase A</span>
+        <span className='text-sm font-medium'>ogrid POC — Phase B</span>
         <div ref={containerRef}>
           {width > 0 && (
-            <GridLayout
-              compactor={COMPACTOR}
-              constraints={[contentMinConstraint]}
-              dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
-              gridConfig={{
-                cols: COLS,
-                containerPadding: null,
-                margin: MARGIN,
-                maxRows: Number.POSITIVE_INFINITY,
-                rowHeight: ROW_HEIGHT
-              }}
-              layout={layout}
-              onLayoutChange={handleLayoutChange}
-              resizeConfig={{ enabled: true, handles: ['se'] }}
-              width={width}>
-              {itemKeys.map(key => (
-                <div className='h-full' key={key}>
-                  <div
-                    className={`flex flex-col rounded-lg border bg-card p-3 ${initialized ? 'h-full overflow-hidden' : 'min-h-full'}`}
-                    ref={el => setCardRef(key, el)}>
-                    <div className='flex min-h-0 flex-1 items-start gap-2'>
-                      <DragHandle />
-                      <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{itemContent[key]}</div>
+            <div
+              className={phase === 'measuring' ? 'opacity-0' : 'opacity-100 transition-opacity duration-150'}
+              style={phase === 'measuring' ? { pointerEvents: 'none' } : undefined}>
+              <GridLayout
+                compactor={COMPACTOR}
+                constraints={[contentMinConstraint]}
+                dragConfig={{ bounded: false, enabled: phase === 'done', handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
+                gridConfig={{
+                  cols: COLS,
+                  containerPadding: null,
+                  margin: MARGIN,
+                  maxRows: Number.POSITIVE_INFINITY,
+                  rowHeight: ROW_HEIGHT
+                }}
+                layout={layout}
+                onLayoutChange={handleLayoutChange}
+                resizeConfig={{ enabled: phase === 'done', handles: ['se'] }}
+                style={phase === 'measuring' ? { transition: 'none' } : undefined}
+                width={width}>
+                {itemKeys.map(key => (
+                  <div className='h-full' key={key}>
+                    <div
+                      className={`flex flex-col rounded-lg border bg-card p-3 ${phase === 'done' ? 'h-full overflow-auto' : 'min-h-full'}`}
+                      ref={el => setCardRef(key, el)}>
+                      <div className='flex min-h-0 flex-1 items-start gap-2'>
+                        <DragHandle />
+                        <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{itemContent[key]}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </GridLayout>
+                ))}
+              </GridLayout>
+            </div>
           )}
         </div>
       </div>
