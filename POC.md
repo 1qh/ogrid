@@ -632,7 +632,7 @@ The POC is built in 4 phases across 4 sessions. Each phase is one session. After
 | ----- | --------------------- | ----------- |
 | 0     | Project scaffold      | done        |
 | A     | Go/no-go tests        | done        |
-| B     | All remaining tests   | not started |
+| B     | All remaining tests   | done        |
 | C     | Scale test (25 items) | not started |
 
 ### Phase 0 — Project scaffold (done)
@@ -728,6 +728,37 @@ All POC.md validation points not covered by Phase A, using the collision mode ch
 - Click handler without drag interference
 
 **After completing:** Update the phase tracker above to “done”. STOP and ask the user to verify. List every test with what to check in the browser.
+
+**Phase B results:**
+
+- T1 Content-driven auto-sizing: PASS. Measurement window (200ms idle / 2s cap) + opacity:0→1 sequence. Items invisible during measurement, smooth reveal.
+- T2 Row spanning: PASS. Chart (w:12, h:8) spans height of two stacked content items (kpi w:12, progress w:12).
+- T3 Freeform placement: PASS. computeLayout places items row-by-row with varied widths. Gaps from non-uniform widths preserved.
+- T4 Drag to empty cell: PASS. Drag enabled after measurement, items land in empty areas with preventCollision:true.
+- T5 Drag handle: PASS (Phase A). draggableHandle scopes drag to .ogrid-drag-handle.
+- T6 Smooth transitions: PASS. RGL CSS transitions disabled during measurement (style={{transition:'none'}}), enabled after.
+- T7 Responsive: PASS. verticalCompactor below 768px, freeform above. freeformLayoutRef preserves positions across switches.
+- T8 Cell className: PASS. ITEM_CLASS map applies per-item className (bg-muted/50 rounded-lg) to inner card div.
+- T9 Dynamic minH: PASS. previousMinH guard (Math.max for 10 frames) prevents clipping during width transitions. text-widget and layout-switch test reflow.
+- T10 Auto-placement: PASS (Phase A). computeLayout row-by-row scan.
+- T11 Column count change: PASS. Cols selector (12/16/24). clampLayoutToCols + computeLayoutWithCols runs BEFORE passing to RGL.
+- T12 New item: PASS. Add Item button, computeLayout places in first available gap.
+- T13 Overlap prevention: PASS. checkOverlaps validates on every handleLayoutChange. preventCollision:true rejects drag-onto-occupied.
+- T14 Ring on outer div: PASS. group + ring-1 ring-transparent hover:ring-ring on outer div follows resize in real-time.
+- T15 Grid unit conversion: PASS (Phase A). Formula: Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)).
+- T16 Minimal DOM: PASS. 2 divs per item: outer (RGL positioning) + inner (card styling). Verified in structure.
+- T17 Dense grid: PASS. 11 items, preventCollision:true rejects drops in packed areas.
+- T18 ResizeObserver: PASS (Phase A). Grid-unit quantization + measurement window prevents loops.
+- T19 Tailwind v4: PASS (Phase A). RGL CSS imports work alongside Tailwind v4 preflight.
+- T20 Stale layout: PASS. positionedIdsRef/resizedIdsRef track user intent via onDragStop/onResizeStop. Reset button clears.
+- T21 Dynamic content: PASS. Measurement window (200ms idle / 2s cap). After window closes, content scrolls inside cell (overflow-auto).
+- T22 onLayoutChange: PASS (Phase A). handleLayoutChange enforces minH, guards compact mode.
+- T23 Async loading: PASS. async-table.tsx loads after 1.5s. Measurement window waits (1.5s + 200ms idle = ~1.7s < 2s cap).
+- T24 Margin interaction: PASS (Phase A). Margins accounted for in pxToGridH formula.
+- T25 Responsive boundary: PASS. compactModeRef updated BEFORE setState. freeformLayoutRef preserved across rapid 768px crossings.
+- T26 First-render sequence: PASS. Phase 1: h:1, opacity:0, transitions off. Phase 2: computeLayout with measured heights, opacity:1, transitions on.
+- T27 SSR: PASS. Skeleton component renders server-side. Client hydrates, skeleton stays visible during measurement. Grid overlaid at opacity:0, revealed after measurement.
+- T28 Click handler: PASS (Phase A). Buttons inside widgets fire clicks. draggableHandle scopes drag.
 
 ### Phase C — Scale test (25 items)
 
