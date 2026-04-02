@@ -59,11 +59,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     ]
   },
   Page = () => (
-    <div className='flex flex-col gap-4 p-4'>
-      <div className='flex items-center gap-4'>
-        <span className='text-sm font-medium'>ogrid — Package Test (25 items)</span>
-        <Grid.Panel />
-      </div>
+    <>
+      <Grid.Panel />
       <Grid config={grid}>
         <BarChartWidget key='chart' />
         <KpiCard key='kpi' />
@@ -91,6 +88,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         <RadialChartWidget key='radialchart' />
         <Prose key='prose' />
       </Grid>
-    </div>
+    </>
   )
 export default Page

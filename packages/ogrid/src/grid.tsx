@@ -297,7 +297,7 @@ const extractKeys = (children: ReactNode): string[] => {
               onDragStop={handleDragStop}
               onLayoutChange={handleLayoutChange}
               onResizeStop={handleResizeStop}
-              resizeConfig={{ enabled: isFreeform, handles: ['se'] }}
+              resizeConfig={{ enabled: false }}
               style={phase === 'measuring' ? { transition: 'none' } : undefined}
               width={width}>
               {itemKeys.map(key => (
