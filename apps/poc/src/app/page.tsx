@@ -149,18 +149,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }),
         [measureNaturalHeight]
       ),
-      handleLayoutChange = useCallback(
-        (newLayout: Layout) => {
-          const enforced = newLayout.map(item => {
-            if (FILL_ITEMS.has(item.i)) return item
-            const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
-              h = Math.max(item.h, minH)
-            return { ...item, h, minH }
-          })
-          setLayout(initializedRef.current ? enforced : computeLayout(enforced))
-        },
-        [computeLayout]
-      ),
+      handleLayoutChange = useCallback((newLayout: Layout) => {
+        console.log(`[handleLayoutChange] scroll h=${String(newLayout.find(i => i.i === 'scroll')?.h)}`)
+        setLayout(newLayout)
+      }, []),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
@@ -174,7 +166,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           {width > 0 && (
             <GridLayout
               compactor={COMPACTOR}
-              constraints={[contentMinConstraint]}
               dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
               gridConfig={{
                 cols: COLS,
