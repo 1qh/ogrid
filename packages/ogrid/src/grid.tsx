@@ -4,7 +4,7 @@
 'use client'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
 import type { GridConfig } from './types'
-import { Children, type ReactElement, type ReactNode, isValidElement, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Children, type ReactElement, type ReactNode, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
 import { twMerge } from 'tailwind-merge'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
@@ -206,7 +206,7 @@ const extractKeys = (children: ReactNode): string[] => {
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
     }, [fillSet, gap, measureAndUpdate, rowHeight])
-    useLayoutEffect(() => {
+    useEffect(() => {
       gridStore.setState({
         cols, compact, gap, layout, phase, rowHeight,
         positionedIds: positionedIdsRef.current,
