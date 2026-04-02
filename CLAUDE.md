@@ -6,7 +6,7 @@
 - `q` wrapper for all scripts — silent on success, verbose on failure
 - Git pre-commit hook runs `bun clean && bun i && bun fix` — fresh install from latest upstream + full lint on every commit. Commit is rejected if any step fails. Never use `--no-verify`.
 
----
+* * *
 
 ## Code Style
 
@@ -35,7 +35,7 @@
 - NEVER reduce lintmax strictness — if upstream removes rules, find replacements
 - NEVER use `git clean` — it deletes `.env` and uncommitted files. Use explicit `rm -rf`.
 
----
+* * *
 
 ## Type Safety & Single Source of Truth
 
@@ -45,7 +45,7 @@ Every piece of data flows through exactly one definition:
 
 When adding new features, check existing utilities FIRST before writing inline logic.
 
----
+* * *
 
 ## React 19 + Next.js 16
 
@@ -53,7 +53,7 @@ When adding new features, check existing utilities FIRST before writing inline l
 - **`'use client'` only when needed** — components with hooks must be client components
 - **Per-page metadata** — each route has a `layout.tsx` server component that exports `Metadata`
 
----
+* * *
 
 ## shadcn — Native Look, No Overrides
 
@@ -78,7 +78,7 @@ className={cn('base-classes', variant === 'a' ? 'class-a' : 'class-b')}
 
 NEVER use template literals for conditional classNames.
 
----
+* * *
 
 ## Code Consolidation Checklist
 
@@ -90,7 +90,7 @@ Before writing any new code, verify:
 4. **Am I adding inline styles?** Only allowed for truly dynamic values. NEVER for colors or static properties.
 5. **Am I copy-pasting from another file?** Extract to a shared utility/component
 
----
+* * *
 
 ## Linters & Lintmax
 
@@ -98,11 +98,11 @@ Before writing any new code, verify:
 
 ### Ignore syntax
 
-| Linter | File-level                                           | Per-line                                         |
-| ------ | ---------------------------------------------------- | ------------------------------------------------ |
-| oxlint | `/* oxlint-disable rule-name */`                     | `// oxlint-disable-next-line rule-name`          |
-| eslint | `/* eslint-disable rule-name */`                     | `// eslint-disable-next-line rule-name`          |
-| biome  | `/** biome-ignore-all lint/category/rule: reason */` | `/** biome-ignore lint/category/rule: reason */` |
+| Linter | File-level | Per-line |
+| --- | --- | --- |
+| oxlint | `/* oxlint-disable rule-name */` | `// oxlint-disable-next-line rule-name` |
+| eslint | `/* eslint-disable rule-name */` | `// eslint-disable-next-line rule-name` |
+| biome | `/** biome-ignore-all lint/category/rule: reason */` | `/** biome-ignore lint/category/rule: reason */` |
 
 ### Ignore strategy
 
@@ -119,7 +119,7 @@ Before writing any new code, verify:
 ### Cross-linter rules
 
 - 2 linters with the same rule = double enforcement, NOT a conflict. Never disable one because the other covers it.
-- To suppress a shared eslint/oxlint rule: suppress eslint's version — oxlint auto-picks up eslint rules and is faster.
+- To suppress a shared eslint/oxlint rule: suppress eslint’s version — oxlint auto-picks up eslint rules and is faster.
 
 ### Safe-to-ignore rules
 
@@ -129,18 +129,18 @@ Before writing any new code, verify:
 
 **biome:** `style/noProcessEnv` (env files) · `performance/noAwaitInLoops` (sequential ops) · `nursery/noForIn` · `performance/noImgElement` · `suspicious/noExplicitAny` (generic boundaries)
 
----
+* * *
 
 ## Minimal DOM (React + Tailwind)
 
-Same UI, fewest DOM nodes. Every element must earn its place. If you can delete it and nothing breaks → it shouldn't exist.
+Same UI, fewest DOM nodes. Every element must earn its place. If you can delete it and nothing breaks → it shouldn’t exist.
 
 **A node is allowed only if it provides:**
 
 - **Semantics/a11y** — correct elements (`ul/li`, `button`, `label`, `form`, `nav`), ARIA patterns, focus behavior
 - **Layout constraint** — needs its own containing block / positioning / clipping / scroll / stacking context
 - **Behavior** — measurement refs, observers, portals, event boundary
-- **Component API** — can't pass props/classes to the real root
+- **Component API** — can’t pass props/classes to the real root
 
 **Before adding wrappers:**
 
@@ -156,7 +156,7 @@ Same UI, fewest DOM nodes. Every element must earn its place. If you can delete 
 
 **Review checklist:** Can I delete this node? → delete. Can `gap/space/divide` replace it? → do it. Can I pass `className`? → do it. Can `[&>...]:` remove repetition? → do it.
 
----
+* * *
 
 ## Commit style
 

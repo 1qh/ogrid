@@ -1,0 +1,16 @@
+{
+  "name": "@ogrid/poc",
+  "private": true,
+  "scripts": {
+    "build": "next build --turbo",
+    "dev": "next dev --turbo -p 3200"
+  },
+  "dependencies": {
+    "@a/ui": "workspace:*",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-grid-layout": "latest",
+    "recharts": "latest"
+  }
+}

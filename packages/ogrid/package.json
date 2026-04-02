@@ -1,0 +1,54 @@
+{
+  "name": "ogrid",
+  "version": "0.0.1",
+  "description": "A content-aware dashboard grid for React. Zero config. Full control.",
+  "keywords": [
+    "react",
+    "grid",
+    "dashboard",
+    "drag",
+    "resize",
+    "tailwind"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1qh/ogrid"
+  },
+  "license": "MIT",
+  "author": "1qh",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "react-grid-layout": "latest",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "latest",
+    "@testing-library/react": "latest",
+    "bun-types": "latest",
+    "happy-dom": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tsdown": "latest"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19",
+    "tailwindcss": ">=4"
+  }
+}

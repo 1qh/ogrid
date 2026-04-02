@@ -1,0 +1,7 @@
+{
+  "extends": "lintmax/tsconfig",
+  "compilerOptions": {
+    "paths": { "~/*": ["./src/*"] }
+  },
+  "include": [".", ".next/types/**/*.ts"]
+}
