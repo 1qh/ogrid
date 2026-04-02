@@ -6,6 +6,8 @@ We built a dashboard grid library called flexity. It took 30+ hours. It had grea
 
 This POC validates the next attempt before we invest another 30+ hours.
 
+**Note:** The flexity repo contains an older IDEA.md that describes a flexbox-based architecture with pixel-level `w`/`h`, no `x`/`y` positioning, and a wrap compactor. That spec is abandoned. This POC.md is the new spec. The architecture is fundamentally different: CSS Grid positioning via react-grid-layout, column/row spans instead of pixels, freeform `x`/`y` placement instead of flow order. Every design decision from flexity's IDEA.md should be considered superseded unless explicitly carried forward here.
+
 ## Motivation
 
 Every dashboard needs a grid where developers drop in widgets and visually tune the layout in the browser. Resize, drag, style, copy the config, paste into code. Done.
@@ -225,7 +227,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** If the default is `flex items-center justify-center`, charts won't fill their cell — they'll render at natural size and center. If the default is `h-full w-full`, small content won't center. We need to find the right default and confirm both patterns work.
 
-**How to verify:** Place a chart that should fill its cell AND a small KPI card in a larger cell. Both should look correct. The developer controls the behavior via `className` on the layout entry — `className: 'flex items-center justify-center'` for centering, no className (or `className: 'h-full w-full'`) for filling.
+**How to verify:** Place a chart that should fill its cell AND a small KPI card in a larger cell. Both should look correct. The default should be FILL (`h-full w-full`) since charts and tables are the most common dashboard content and they need to fill their cells. Small content that wants centering can opt in via `className: 'flex items-center justify-center'` on the layout entry. Verify both patterns work without the developer needing to learn special rules.
 
 ### Dynamic minH after width resize
 
@@ -306,6 +308,48 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 **Why this must be proven:** In flexity, re-resizable added an extra wrapper that caused ring/styling misalignment. We must confirm that react-grid-layout's DOM structure plus our inner div is sufficient — no hidden wrappers from the library, no extra divs needed for resize handles or drag behavior.
 
 **How to verify:** Inspect the DOM of a rendered grid item. It should be: `div[position:absolute]` (react-grid-layout) → `div[className]` (our cell styling) → component content. Nothing else. Resize handles and drag handles should be part of the existing structure, not additional wrapper divs.
+
+### Performance at scale
+
+**What:** The POC must work smoothly with 25+ items, not just 5. ResizeObserver on 25 items, layout recalculation on resize/drag, state updates from measurements — all must stay performant.
+
+**Why this must be proven:** 5 items is trivial. Real dashboards have 20-50 widgets. ResizeObserver callbacks fire in bursts, each triggering setState, each causing react-grid-layout to re-layout the entire grid. If this cascades, the dashboard becomes unusable.
+
+**How to verify:** Add 25+ items to the POC page. Drag and resize several items. Measure frame rate — should stay above 30fps during interaction.
+
+### First-render measurement sequence
+
+**What:** On first render with no config, items must appear at their correct content-driven sizes without visible layout shift or flash of wrong-sized content.
+
+**Why this must be proven:** Chicken-and-egg problem — react-grid-layout needs `w`/`h` to position items, but we need the DOM to exist to measure content. The first render must handle this gracefully.
+
+**How to verify:** Load the POC page with no layout config. Items should appear at their natural sizes without visible flicker, jump, or layout shift. Record a slow-motion screen capture if needed.
+
+### SSR and hydration
+
+**What:** The grid renders acceptably during server-side rendering and hydrates without layout shift or mismatch warnings.
+
+**Why this must be proven:** react-grid-layout uses DOM measurements (container width). ResizeObserver doesn't exist on the server. The grid layout cannot be computed server-side. If SSR produces a completely different layout than the client, users see a flash of wrong content.
+
+**How to verify:** Load the POC page with JavaScript disabled — verify the server-rendered HTML is reasonable (not empty, not overlapping). Then load normally — verify no hydration mismatch warnings and no visible layout shift.
+
+### Click handler on item without interfering with drag
+
+**What:** A click handler (e.g., for a future "css" settings button) can be attached to an item without react-grid-layout's drag system swallowing the click event.
+
+**Why this must be proven:** The dev-tool layer from flexity (css button, floating panel) requires click handlers on items. If react-grid-layout captures all pointer events on its positioning divs, our click handlers won't fire. The drag handle (`draggableHandle`) should scope drag to a specific element, leaving the rest clickable.
+
+**How to verify:** Add a button inside a grid item. Click it — the button's onClick should fire. Drag from the grip icon — the item should drag. These must not interfere with each other.
+
+### Pre-POC investigation (must be done before coding)
+
+Before writing any POC code, these must be answered:
+
+**constrainSize API verification:** Read react-grid-layout v2's source code. Confirm `constrainSize` exists in a stable release, fires during resize drag (not just on stop), receives item + proposed size + context, and can return a clamped size that react-grid-layout respects. If this API doesn't exist or doesn't work, the entire content-clamping approach changes.
+
+**Auto-placement with compactType:null:** Test what react-grid-layout does when items have no explicit `x, y` and `compactType` is `null`. If items pile at `(0,0)`, we need a custom auto-placement algorithm — scope that work before the POC.
+
+**react-grid-layout version:** Confirm the exact version available, whether it's stable, and whether the API matches what we expect from the monitor repo's usage.
 
 ## POC structure
 
