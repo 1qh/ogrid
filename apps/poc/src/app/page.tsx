@@ -8,13 +8,13 @@ import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import 'react-grid-layout/css/styles.css'
-import { GridLayout, noCompactor } from 'react-grid-layout'
+import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
 import Accordion from '~/widgets/accordion'
 import AsyncTable from '~/widgets/async-table'
 import Badges from '~/widgets/badges'
 import DataTableWidget from '~/widgets/data-table'
 import KpiCard from '~/widgets/kpi-card'
-import LayoutSwitch from '~/widgets/layout-switch'
+import LayoutSwitchWidget from '~/widgets/layout-switch'
 import ProgressBars from '~/widgets/progress-bars'
 import Prose from '~/widgets/prose'
 import ScrollContent from '~/widgets/scroll-content'
@@ -23,7 +23,9 @@ import TextWidget from '~/widgets/text-widget'
 import Timeline from '~/widgets/timeline'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
   SparklineWidget = dynamic(async () => import('~/widgets/sparkline'), { ssr: false }),
-  COLS = 24,
+  RESPONSIVE_BREAKPOINT = 768,
+  DEFAULT_COLS = 24,
+  COL_OPTIONS = [12, 16, 24] as const,
   ROW_HEIGHT = 50,
   MARGIN_Y = 16,
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
@@ -63,7 +65,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     badges: <Badges />,
     chart: <BarChartWidget />,
     kpi: <KpiCard />,
-    layoutswitch: <LayoutSwitch />,
+    layoutswitch: <LayoutSwitchWidget />,
     progress: <ProgressBars />,
     prose: <Prose />,
     scroll: <ScrollContent />,
@@ -73,7 +75,35 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     text: <TextWidget />,
     timeline: <Timeline />
   },
-  COMPACTOR = { ...noCompactor, preventCollision: true },
+  FREEFORM_COMPACTOR = { ...noCompactor, preventCollision: true },
+  COMPACT_COMPACTOR = { ...verticalCompactor, preventCollision: false },
+  clampLayoutToCols = (items: Layout, cols: number): Layout =>
+    items.map(item => {
+      const w = Math.min(item.w, cols),
+        x = Math.min(item.x, cols - w)
+      return w !== item.w || x !== item.x ? { ...item, w, x } : item
+    }),
+  computeLayoutWithCols = (items: Layout, cols: number): Layout => {
+    const colBottoms = Array.from({ length: cols }, () => 0),
+      result: LayoutItem[] = []
+    for (const item of items) {
+      const w = Math.min(item.w, cols)
+      let bestY = Number.POSITIVE_INFINITY,
+        bestX = item.x
+      for (let x = 0; x <= cols - w; x += 1) {
+        let maxY = 0
+        for (let col = x; col < x + w; col += 1) maxY = Math.max(maxY, colBottoms[col] ?? 0)
+        if (maxY < bestY) {
+          bestY = maxY
+          bestX = x
+        }
+      }
+      const placed = { ...item, w, x: bestX, y: bestY }
+      result.push(placed)
+      for (let col = bestX; col < bestX + placed.w; col += 1) colBottoms[col] = bestY + placed.h
+    }
+    return result
+  },
   Page = () => {
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
@@ -83,8 +113,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       transitionFrameRef = useRef(new Map<string, number>()),
       positionedIdsRef = useRef(new Set<string>()),
       resizedIdsRef = useRef(new Set<string>()),
+      freeformLayoutRef = useRef<Layout>([]),
+      compactModeRef = useRef(false),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
+      [compact, setCompact] = useState(false),
+      [cols, setCols] = useState(DEFAULT_COLS),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
       [itemKeys, setItemKeys] = useState<string[]>(() => INITIAL_ITEMS.map(i => i.i)),
@@ -98,26 +132,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           y: 0
         }))
       ),
-      computeLayout = useCallback((items: Layout): Layout => {
-        const colBottoms = Array.from({ length: COLS }, () => 0),
-          result: LayoutItem[] = []
-        for (const item of items) {
-          let bestY = Number.POSITIVE_INFINITY,
-            bestX = item.x
-          for (let x = 0; x <= COLS - item.w; x += 1) {
-            let maxY = 0
-            for (let col = x; col < x + item.w; col += 1) maxY = Math.max(maxY, colBottoms[col] ?? 0)
-            if (maxY < bestY) {
-              bestY = maxY
-              bestX = x
-            }
-          }
-          const placed = { ...item, x: bestX, y: bestY }
-          result.push(placed)
-          for (let col = bestX; col < bestX + placed.w; col += 1) colBottoms[col] = bestY + placed.h
-        }
-        return result
-      }, []),
+      computeLayout = useCallback((items: Layout): Layout => computeLayoutWithCols(items, cols), [cols]),
       closeMeasureWindow = useCallback(() => {
         const mw = measureWindowRef.current
         if (mw.phase === 'done') return
@@ -136,10 +151,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             }
             return { ...item, h: Math.max(item.h, minH), minH }
           })
-          return computeLayout(final)
+          const placed = computeLayoutWithCols(final, cols)
+          freeformLayoutRef.current = placed
+          return placed
         })
         setPhase('done')
-      }, [computeLayout]),
+      }, [cols]),
       resetIdleTimer = useCallback(() => {
         const mw = measureWindowRef.current
         if (mw.phase === 'done') return
@@ -170,9 +187,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     useLayoutEffect(() => {
       const el = containerRef.current
       if (!el) return
-      setWidth(el.getBoundingClientRect().width)
+      const updateWidth = (w: number) => {
+        setWidth(w)
+        const isCompact = w < RESPONSIVE_BREAKPOINT
+        compactModeRef.current = isCompact
+        setCompact(isCompact)
+      }
+      updateWidth(el.getBoundingClientRect().width)
       const widthObserver = new ResizeObserver(entries => {
-        for (const entry of entries) setWidth(entry.contentRect.width)
+        for (const entry of entries) updateWidth(entry.contentRect.width)
       })
       widthObserver.observe(el)
       return () => widthObserver.disconnect()
@@ -257,13 +280,16 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       ),
       handleLayoutChange = useCallback(
         (newLayout: Layout) => {
+          if (compactModeRef.current) return
           const enforced = newLayout.map(item => {
             if (FILL_ITEMS.has(item.i)) return item
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
               h = Math.max(item.h, minH)
             return { ...item, h, minH }
           })
-          setLayout(measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced)
+          const result = measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced
+          freeformLayoutRef.current = result
+          setLayout(result)
         },
         [computeLayout]
       ),
@@ -277,6 +303,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         positionedIdsRef.current.clear()
         resizedIdsRef.current.clear()
         minHRef.current.clear()
+        freeformLayoutRef.current = []
         measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: setTimeout(closeMeasureWindow, MAX_TIMEOUT) }
         setPhase('measuring')
         setLayout(
@@ -290,16 +317,30 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         )
         setItemKeys(INITIAL_ITEMS.map(i => i.i))
       }, [closeMeasureWindow]),
+      handleColsChange = useCallback(
+        (newCols: number) => {
+          setCols(newCols)
+          setLayout(prev => {
+            const clamped = clampLayoutToCols(prev, newCols),
+              placed = computeLayoutWithCols(clamped, newCols)
+            freeformLayoutRef.current = placed
+            return placed
+          })
+        },
+        []
+      ),
       handleAddItem = useCallback(() => {
         const widgetKey = ADDABLE_WIDGETS[addCountRef.current % ADDABLE_WIDGETS.length]
         addCountRef.current += 1
         const newKey = `${widgetKey}-${String(addCountRef.current)}`
         setItemKeys(prev => [...prev, newKey])
         setLayout(prev => {
-          const newItem: LayoutItem = { h: FALLBACK_H, i: newKey, w: 12, x: 0, y: 0 }
-          return computeLayout([...prev, newItem])
+          const newItem: LayoutItem = { h: FALLBACK_H, i: newKey, w: Math.min(12, cols), x: 0, y: 0 }
+          const placed = computeLayout([...prev, newItem])
+          freeformLayoutRef.current = placed
+          return placed
         })
-      }, [computeLayout]),
+      }, [computeLayout, cols]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
@@ -311,12 +352,17 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         const base = key.replace(/-\d+$/, '')
         if (ITEM_CONTENT[base]) return ITEM_CONTENT[base]
         return <span className='text-sm text-muted-foreground'>{key}</span>
-      }, [])
+      }, []),
+      isFreeform = phase === 'done' && !compact,
+      effectiveLayout = compact ? clampLayoutToCols(freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout, cols) : layout,
+      effectiveCompactor = compact ? COMPACT_COMPACTOR : FREEFORM_COMPACTOR
     return (
       <div className='flex flex-col gap-4 p-4'>
-        <div className='flex items-center gap-4'>
-          <span className='text-sm font-medium'>ogrid POC — Phase B</span>
-          {phase === 'done' && (
+        <div className='flex flex-wrap items-center gap-4'>
+          <span className='text-sm font-medium'>
+            ogrid POC — Phase B {compact && '(compact mode)'}
+          </span>
+          {phase === 'done' && !compact && (
             <>
               <Button onClick={handleAddItem} size='sm' variant='outline'>
                 Add Item
@@ -324,6 +370,18 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               <Button onClick={handleReset} size='sm' variant='outline'>
                 Reset
               </Button>
+              <div className='flex items-center gap-1'>
+                <span className='text-xs text-muted-foreground'>Cols:</span>
+                {COL_OPTIONS.map(c => (
+                  <Button
+                    key={c}
+                    onClick={() => handleColsChange(c)}
+                    size='sm'
+                    variant={c === cols ? 'default' : 'outline'}>
+                    {c}
+                  </Button>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -333,21 +391,21 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               className={phase === 'measuring' ? 'opacity-0' : 'opacity-100 transition-opacity duration-150'}
               style={phase === 'measuring' ? { pointerEvents: 'none' } : undefined}>
               <GridLayout
-                compactor={COMPACTOR}
-                constraints={[contentMinConstraint]}
-                dragConfig={{ bounded: false, enabled: phase === 'done', handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
+                compactor={effectiveCompactor}
+                constraints={compact ? undefined : [contentMinConstraint]}
+                dragConfig={{ bounded: false, enabled: isFreeform, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
                 gridConfig={{
-                  cols: COLS,
+                  cols,
                   containerPadding: null,
                   margin: MARGIN,
                   maxRows: Number.POSITIVE_INFINITY,
                   rowHeight: ROW_HEIGHT
                 }}
-                layout={layout}
+                layout={effectiveLayout}
                 onDragStop={handleDragStop}
                 onLayoutChange={handleLayoutChange}
                 onResizeStop={handleResizeStop}
-                resizeConfig={{ enabled: phase === 'done', handles: ['se'] }}
+                resizeConfig={{ enabled: isFreeform, handles: ['se'] }}
                 style={phase === 'measuring' ? { transition: 'none' } : undefined}
                 width={width}>
                 {itemKeys.map(key => (
