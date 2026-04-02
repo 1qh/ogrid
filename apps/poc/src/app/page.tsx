@@ -13,10 +13,12 @@ import Accordion from '~/widgets/accordion'
 import Badges from '~/widgets/badges'
 import DataTableWidget from '~/widgets/data-table'
 import KpiCard from '~/widgets/kpi-card'
+import LayoutSwitch from '~/widgets/layout-switch'
 import ProgressBars from '~/widgets/progress-bars'
 import Prose from '~/widgets/prose'
 import ScrollContent from '~/widgets/scroll-content'
 import StatsGrid from '~/widgets/stats-grid'
+import TextWidget from '~/widgets/text-widget'
 import Timeline from '~/widgets/timeline'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
   SparklineWidget = dynamic(async () => import('~/widgets/sparkline'), { ssr: false }),
@@ -38,7 +40,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     { i: 'stats', w: 12 },
     { i: 'scroll', w: 12 },
     { i: 'timeline', w: 8 },
-    { i: 'sparkline', w: 8 }
+    { i: 'sparkline', w: 8 },
+    { i: 'text', w: 12 },
+    { i: 'layoutswitch', w: 12 }
   ] as const,
   ADDABLE_WIDGETS = ['badges', 'accordion', 'prose'] as const,
   ITEM_CLASS: Record<string, string> = {
@@ -56,12 +60,14 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     badges: <Badges />,
     chart: <BarChartWidget />,
     kpi: <KpiCard />,
+    layoutswitch: <LayoutSwitch />,
     progress: <ProgressBars />,
     prose: <Prose />,
     scroll: <ScrollContent />,
     sparkline: <SparklineWidget />,
     stats: <StatsGrid />,
     table: <DataTableWidget />,
+    text: <TextWidget />,
     timeline: <Timeline />
   },
   COMPACTOR = { ...noCompactor, preventCollision: true },
@@ -69,6 +75,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
+      lastKnownWRef = useRef(new Map<string, number>()),
+      previousMinHRef = useRef(new Map<string, number>()),
+      transitionFrameRef = useRef(new Map<string, number>()),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       rafRef = useRef(0),
@@ -215,8 +224,27 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             if (FILL_ITEMS.has(_item.i)) return { h, w }
             const el = cardRef.current.get(_item.i)
             if (!el) return { h, w }
-            const minH = pxToGridH(measureNaturalHeight(el))
-            return { h: Math.max(h, minH), w }
+            const currentMinH = pxToGridH(measureNaturalHeight(el)),
+              lastW = lastKnownWRef.current.get(_item.i),
+              MAX_GUARD_FRAMES = 10
+            let effectiveMinH = currentMinH
+            if (lastW !== undefined && lastW !== w) {
+              previousMinHRef.current.set(_item.i, currentMinH)
+              transitionFrameRef.current.set(_item.i, 0)
+              lastKnownWRef.current.set(_item.i, w)
+            } else {
+              lastKnownWRef.current.set(_item.i, w)
+              const prevMinH = previousMinHRef.current.get(_item.i)
+              if (prevMinH !== undefined) {
+                const frames = (transitionFrameRef.current.get(_item.i) ?? 0) + 1
+                transitionFrameRef.current.set(_item.i, frames)
+                if (frames >= MAX_GUARD_FRAMES) {
+                  previousMinHRef.current.delete(_item.i)
+                  transitionFrameRef.current.delete(_item.i)
+                } else effectiveMinH = Math.max(currentMinH, prevMinH)
+              }
+            }
+            return { h: Math.max(h, effectiveMinH), w }
           },
           name: 'content-min'
         }),
