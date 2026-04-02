@@ -98,10 +98,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               resizeConfig={{ enabled: true, handles: ['se'] }}
               width={width}>
               {Object.entries(items).map(([key, { content }]) => (
-                <div className='flex h-full flex-col rounded-lg border bg-card p-3' key={key}>
-                  <div className='flex min-h-0 flex-1 items-start gap-2'>
+                <div className='flex h-full flex-col justify-center rounded-lg border bg-card p-3' key={key}>
+                  <div className='flex max-h-full items-start gap-2'>
                     <DragHandle />
-                    <div className='min-w-0 flex-1 self-stretch overflow-auto'>{content}</div>
+                    <div className='min-w-0 flex-1 overflow-auto'>{content}</div>
                   </div>
                 </div>
               ))}
