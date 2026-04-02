@@ -1,6 +1,6 @@
 ## Dependencies & Scripts
 
-- All deps use `latest` tag in package.json — no pinned versions during development (exception: `react-grid-layout@2.2.3` pinned for POC stability)
+- All deps use `latest` tag in package.json — no pinned versions during development
 - `bun clean` — removes node_modules, lockfile, dist, .cache, .next, .turbo — like a fresh clone
 - `bun install` after clean always resolves latest upstream
 - `q` wrapper for all scripts — silent on success, verbose on failure
