@@ -25,7 +25,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   hardcodedMinH: Record<string, number> = {
     kpi: 7,
     scroll: 4,
-    table: 8
+    table: 12
   },
   contentMinConstraint = {
     constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
