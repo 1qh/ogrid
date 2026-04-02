@@ -448,12 +448,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                 {itemKeys.map(key => (
                   <div className='group h-full rounded-lg ring-1 ring-transparent transition-shadow hover:ring-ring' key={key}>
                     <div
-                      className={`flex flex-col rounded-lg border bg-card p-3 ${phase === 'done' ? 'h-full overflow-auto' : 'min-h-full'} ${ITEM_CLASS[key] ?? ''}`}
+                      className={`relative rounded-lg border bg-card p-3 ${phase === 'done' ? 'h-full overflow-auto' : 'min-h-full'} ${ITEM_CLASS[key] ?? ''}`}
                       ref={el => setCardRef(key, el)}>
-                      <div className='flex min-h-0 flex-1 items-start gap-2'>
+                      <div className='absolute right-1 top-1 z-10'>
                         <DragHandle />
-                        <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{getContent(key)}</div>
                       </div>
+                      <div className='min-h-0 overflow-hidden'>{getContent(key)}</div>
                     </div>
                   </div>
                 ))}
