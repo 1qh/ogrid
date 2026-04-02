@@ -151,6 +151,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         (newLayout: Layout) => {
           setLayout(prev => {
             const measured = newLayout.map(item => {
+              if (FILL_ITEMS.has(item.i)) return item
               const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
                 prevItem = prev.find(p => p.i === item.i),
                 h = Math.max(item.h, minH, prevItem?.minH ?? 1)
