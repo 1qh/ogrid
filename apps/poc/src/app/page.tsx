@@ -162,17 +162,20 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }),
         [measureNaturalHeight]
       ),
-      handleLayoutChange = useCallback((newLayout: Layout) => {
-        setLayout(prev => {
-          const next = newLayout.map(item => {
-            const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
-              prevItem = prev.find(p => p.i === item.i),
-              h = Math.max(item.h, minH, prevItem?.minH ?? 1)
-            return { ...item, h, minH }
+      handleLayoutChange = useCallback(
+        (newLayout: Layout) => {
+          setLayout(prev => {
+            const measured = newLayout.map(item => {
+              const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
+                prevItem = prev.find(p => p.i === item.i),
+                h = Math.max(item.h, minH, prevItem?.minH ?? 1)
+              return { ...item, h, minH }
+            })
+            return computeLayout(measured)
           })
-          return next
-        })
-      }, []),
+        },
+        [computeLayout]
+      ),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
