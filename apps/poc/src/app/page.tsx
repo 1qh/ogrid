@@ -1,5 +1,6 @@
+/** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-console, @typescript-eslint/max-params, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console, no-continue, @typescript-eslint/max-params, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/no-unused-vars */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { cn } from '@a/ui'
@@ -65,14 +66,14 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         let changed = false
         for (const entry of entries) {
           const el = entry.target
-          if (!(el instanceof HTMLDivElement)) break
+          if (!(el instanceof HTMLDivElement)) continue
           const key = el.dataset.itemKey
-          if (!key || FILL_ITEMS.has(key)) break
+          if (!key || FILL_ITEMS.has(key)) continue
           const prev = callbackCountRef.current.get(key) ?? 0
           callbackCountRef.current.set(key, prev + 1)
-          const contentH = entry.contentRect.height,
+          const contentH = el.scrollHeight,
             prevPx = measureRef.current.get(key)
-          if (prevPx !== undefined && Math.abs(contentH - prevPx) < 1) break
+          if (prevPx !== undefined && Math.abs(contentH - prevPx) < 1) continue
           measureRef.current.set(key, contentH)
           changed = true
           console.log(
@@ -85,21 +86,24 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             setLayout(prev => {
               const next: LayoutItem[] = []
               let layoutChanged = false
-              for (const item of prev)
-                if (FILL_ITEMS.has(item.i)) next.push(item)
-                else {
-                  const px = measureRef.current.get(item.i)
-                  if (px === undefined) next.push(item)
-                  else {
-                    const gridH = pxToGridH(px)
-                    if (gridH === item.h) next.push(item)
-                    else {
-                      layoutChanged = true
-                      next.push({ ...item, h: gridH })
-                    }
-                  }
+              for (const item of prev) {
+                if (FILL_ITEMS.has(item.i)) {
+                  next.push(item)
+                  continue
                 }
-
+                const px = measureRef.current.get(item.i)
+                if (px === undefined) {
+                  next.push(item)
+                  continue
+                }
+                const gridH = pxToGridH(px)
+                if (gridH === item.h) {
+                  next.push(item)
+                  continue
+                }
+                layoutChanged = true
+                next.push({ ...item, h: gridH })
+              }
               if (!layoutChanged) return prev
               stateCountRef.current += 1
               console.log(`[measurement] setState #${String(stateCountRef.current)}`)
@@ -114,16 +118,14 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     const contentMinConstraint = useMemo(
         () => ({
           constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
-            if (FILL_ITEMS.has(_item.i)) {
-              console.log(`[constrainSize] ${_item.i}: w=${String(w)} h=${String(h)} (fill, unclamped)`)
-              return { h, w }
-            }
-            const px = measureRef.current.get(_item.i)
-            if (px === undefined) return { h, w }
-            const minH = pxToGridH(px),
+            if (FILL_ITEMS.has(_item.i)) return { h, w }
+            const el = contentRef.current.get(_item.i)
+            if (!el) return { h, w }
+            const naturalH = el.scrollHeight,
+              minH = pxToGridH(naturalH),
               clamped = Math.max(h, minH)
             console.log(
-              `[constrainSize] ${_item.i}: proposed h=${String(h)}, measured=${String(Math.round(px))}px → minH=${String(minH)}, returned h=${String(clamped)}`
+              `[constrainSize] ${_item.i}: proposed h=${String(h)}, scrollHeight=${String(naturalH)}px → minH=${String(minH)}, returned h=${String(clamped)}`
             )
             return { h: clamped, w }
           },
@@ -135,7 +137,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         setLayout(newLayout)
       }, []),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
-      setRef = useCallback((key: string, el: HTMLDivElement | null) => {
+      setItemRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
           contentRef.current.set(key, el)
@@ -176,7 +178,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                       <DragHandle />
                       <div
                         className={cn('min-w-0 flex-1 self-stretch', fill ? 'overflow-hidden' : 'overflow-y-auto')}
-                        ref={el => setRef(key, el)}>
+                        ref={el => setItemRef(key, el)}>
                         {itemContent[key]}
                       </div>
                     </div>
