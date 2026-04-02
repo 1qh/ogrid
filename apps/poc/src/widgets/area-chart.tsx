@@ -24,7 +24,7 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Sessions & Users Over Time</span>
       <span className='text-xs text-muted-foreground'>12-month trend with peak season highlighted</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <AreaChart data={data}>
           <defs>
             <linearGradient id='gradSessions' x1='0' x2='0' y1='0' y2='1'>

@@ -29,7 +29,7 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Sparkline Trend</span>
       <span className='text-xs text-muted-foreground'>17-day DAU with average line</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <AreaChart data={data}>
           <defs>
             <linearGradient id='sparkGrad' x1='0' x2='0' y1='0' y2='1'>

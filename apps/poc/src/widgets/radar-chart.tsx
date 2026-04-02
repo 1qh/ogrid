@@ -21,7 +21,7 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Student Comparison</span>
       <span className='text-xs text-muted-foreground'>3 students across 8 subjects</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <RadarChart data={data}>
           <PolarGrid gridType='polygon' />
           <PolarAngleAxis dataKey='subject' tick={{ fontSize: 11 }} />

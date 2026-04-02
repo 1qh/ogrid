@@ -25,7 +25,7 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Revenue, Profit & CAC</span>
       <span className='text-xs text-muted-foreground'>3 metrics with dual Y-axes and annotations</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray='3 3' />
           <XAxis dataKey='month' tick={{ fontSize: 12 }} />

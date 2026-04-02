@@ -17,7 +17,7 @@ const POLAR_DOMAIN = [0, 100] as const,
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>System Health</span>
       <span className='text-xs text-muted-foreground'>Multi-ring radial with axis and tooltip</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <RadialBarChart cx='50%' cy='50%' data={data} innerRadius={30} outerRadius={100}>
           <PolarAngleAxis angleAxisId={0} domain={POLAR_DOMAIN} tick={false} type='number' />
           <PolarRadiusAxis angle={90} tick={{ fontSize: 10 }} type='category' />

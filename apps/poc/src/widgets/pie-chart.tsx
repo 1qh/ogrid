@@ -29,7 +29,7 @@ const outerData = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Browser & Device Share</span>
       <span className='text-xs text-muted-foreground'>Nested donut with total center label</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent nameKey='name' />} />
           <ChartLegend content={<ChartLegendContent nameKey='name' />} />

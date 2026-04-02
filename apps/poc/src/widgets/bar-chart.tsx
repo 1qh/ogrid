@@ -24,7 +24,7 @@ const data = [
     <div className='flex h-full flex-col gap-2'>
       <span className='text-sm font-medium'>Desktop vs Mobile Traffic</span>
       <span className='text-xs text-muted-foreground'>Monthly visitors with target zone</span>
-      <ChartContainer className='min-h-0 flex-1' config={config}>
+      <ChartContainer className='aspect-auto min-h-0 flex-1' config={config}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray='3 3' vertical={false} />
           <XAxis dataKey='month' tick={{ fontSize: 12 }} />
