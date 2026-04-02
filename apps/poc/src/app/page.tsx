@@ -161,7 +161,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             preventCollision: {String(preventCollision)}
           </button>
         </div>
-        <div className={measured ? 'opacity-100' : 'opacity-0'} ref={containerRef}>
+        <div ref={containerRef}>
           {width > 0 && (
             <GridLayout
               compactor={compactor}
@@ -182,7 +182,11 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                 const fill = FILL_ITEMS.has(key)
                 return (
                   <div
-                    className={cn('flex h-full flex-col rounded-lg border bg-card p-3', fill ? '' : 'justify-center')}
+                    className={cn(
+                      'flex h-full flex-col rounded-lg border bg-card p-3',
+                      fill ? '' : 'justify-center',
+                      measured ? '' : 'invisible'
+                    )}
                     key={key}
                     ref={el => setCardRef(key, el)}>
                     <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
