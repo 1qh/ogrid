@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable import/no-unassigned-import, react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-console, no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
+/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { cn } from '@a/ui'
@@ -33,12 +33,12 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     scroll: <ScrollContent />,
     table: <DataTableWidget />
   },
+  COMPACTOR = { ...noCompactor, preventCollision: true },
   Page = () => {
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
       rafRef = useRef(0),
-      stateCountRef = useRef(0),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
@@ -49,7 +49,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           y: 0
         }))
       ),
-      [preventCollision, setPreventCollision] = useState(true),
       computeLayout = useCallback((items: Layout): Layout => {
         const colBottoms = Array.from({ length: COLS }, () => 0),
           result: LayoutItem[] = []
@@ -87,8 +86,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
             })
           if (!changed) return prev
-          stateCountRef.current += 1
-          console.log(`[measurement] setState #${String(stateCountRef.current)}`)
           return placed
         })
       }, [computeLayout])
@@ -120,7 +117,6 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           if (prevMinH === gridH) continue
           minHRef.current.set(key, gridH)
           changed = true
-          console.log(`[observer] ${key}: scrollHeight=${String(el.scrollHeight)}px → minH=${String(gridH)}`)
         }
         if (changed) {
           cancelAnimationFrame(rafRef.current)
@@ -142,20 +138,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       contentMinConstraint = useMemo(
         () => ({
           constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
-            console.log(
-              `[constrainSize CALLED] ${_item.i}: w=${String(w)} h=${String(h)}, cardRef has keys: [${[...cardRef.current.keys()].join(', ')}]`
-            )
             if (FILL_ITEMS.has(_item.i)) return { h, w }
             const el = cardRef.current.get(_item.i)
-            if (!el) {
-              console.log(`[constrainSize] ${_item.i}: NO REF FOUND`)
-              return { h, w }
-            }
-            const natural = measureNaturalHeight(el),
-              minH = pxToGridH(natural)
-            console.log(
-              `[constrainSize] ${_item.i}: proposed h=${String(h)}, natural=${String(natural)}px, minH=${String(minH)}, returning h=${String(Math.max(h, minH))}`
-            )
+            if (!el) return { h, w }
+            const minH = pxToGridH(measureNaturalHeight(el))
             return { h: Math.max(h, minH), w }
           },
           name: 'content-min'
@@ -176,29 +162,19 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         },
         [computeLayout]
       ),
-      compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
           cardRef.current.set(key, el)
-          console.log(`[ref] SET ${key}, map size=${String(cardRef.current.size)}`)
-        } else {
-          cardRef.current.delete(key)
-          console.log(`[ref] DELETE ${key}, map size=${String(cardRef.current.size)}`)
-        }
+        } else cardRef.current.delete(key)
       }, [])
     return (
       <div className='flex flex-col gap-4 p-4'>
-        <div className='flex items-center gap-4'>
-          <span className='text-sm font-medium'>ogrid POC — Phase A</span>
-          <button className='rounded border px-3 py-1 text-sm' onClick={() => setPreventCollision(p => !p)} type='button'>
-            preventCollision: {String(preventCollision)}
-          </button>
-        </div>
+        <span className='text-sm font-medium'>ogrid POC — Phase A</span>
         <div ref={containerRef}>
           {width > 0 && (
             <GridLayout
-              compactor={compactor}
+              compactor={COMPACTOR}
               constraints={[contentMinConstraint]}
               dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
               gridConfig={{
@@ -222,7 +198,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                         fill ? '' : 'justify-center'
                       )}
                       ref={el => setCardRef(key, el)}>
-                      <div className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full')}>
+                      <div
+                        className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full overflow-y-auto')}>
                         <DragHandle />
                         <div className={cn('min-w-0 flex-1 self-stretch', fill ? 'overflow-hidden' : '')}>
                           {itemContent[key]}
