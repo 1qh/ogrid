@@ -304,7 +304,7 @@ const extractKeys = (children: ReactNode): string[] => {
                 <div className='group h-full rounded-lg ring-ring/0 ring-1 transition-shadow hover:ring-ring' key={key}>
                   <div
                     className={twMerge(
-                      'relative flex flex-col rounded-lg border p-3',
+                      'relative flex flex-col',
                       phase === 'done' ? 'h-full overflow-auto' : 'min-h-full',
                       classNameMap.get(key)
                     )}
