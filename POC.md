@@ -128,7 +128,7 @@ The gap: no library combines a proven grid layout engine with content-aware auto
 
 The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/paste. Just the layout engine + content-aware behavior. Each point below is a potential showstopper — if any fails, we rethink before investing further.
 
-### 1. Content-driven auto-sizing on first render
+### Content-driven auto-sizing on first render
 
 **What:** Items size to their content on mount with no explicit `w`/`h` in the config.
 
@@ -136,7 +136,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Render a table, a chart, and a KPI card with no layout config. They should appear at their natural content size.
 
-### 2. Content minimum resize clamping
+### Content minimum resize clamping
 
 **What:** Dragging a resize handle, the cell stops shrinking at the content's natural size. A table can't be crushed. A chart can shrink (it adapts).
 
@@ -144,7 +144,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Resize a table widget smaller — it should stop at the table's natural width/height. Resize a chart widget smaller — it should shrink freely (chart adapts via ResponsiveContainer).
 
-### 3. Row spanning
+### Row spanning
 
 **What:** A tall chart occupies 2 rows while two KPI cards stack beside it in the same 2 rows.
 
@@ -152,7 +152,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a chart with `rowSpan: 2` next to two KPI cards each with `rowSpan: 1`. All three should render correctly with the chart spanning both rows.
 
-### 4. Freeform placement with gaps
+### Freeform placement with gaps
 
 **What:** Items stay where you put them. Empty cells between items are preserved. No auto-compaction.
 
@@ -160,7 +160,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place items with intentional empty cells between them. Reload the page. Gaps should persist.
 
-### 5. Drag to any empty cell
+### Drag to any empty cell
 
 **What:** Pick up an item, drop it in an empty area of the grid. It stays there.
 
@@ -168,7 +168,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Drag a KPI card to an empty area several rows below. It should land there and stay.
 
-### 6. Drag reorder
+### Drag reorder
 
 **What:** Drag an item onto another. The other item moves out of the way.
 
@@ -176,7 +176,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Drag one item directly onto another. The displaced item should move to a sensible position without overlapping.
 
-### 7. Drag handle
+### Drag handle
 
 **What:** Dragging only works from a grip icon, not from content. Buttons, inputs, and links inside widgets remain interactive.
 
@@ -184,7 +184,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a widget with a button inside. Click the button — it should fire. Drag from the grip icon — it should drag.
 
-### 8. Smooth transitions
+### Smooth transitions
 
 **What:** When one item is dragged or resized, other items animate smoothly to their new positions.
 
@@ -192,7 +192,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Resize an item. Watch neighboring items — they should slide smoothly, not teleport.
 
-### 9. Responsive behavior
+### Responsive behavior
 
 **What:** When the browser window gets narrower, items reflow sensibly. Items with `w` larger than available columns are capped.
 
@@ -200,7 +200,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Render the grid at 1920px width. Narrow the window to 800px. Items should reflow or scale without overlapping or overflowing.
 
-### 10. Cell className
+### Cell className
 
 **What:** A layout entry can have an optional `className` (e.g., `'bg-muted rounded-lg'`) applied to the cell container. Content is centered inside.
 
@@ -208,7 +208,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Give one item `className: 'bg-muted rounded-lg'`. It should have a muted background with rounded corners filling the entire cell. Content should be centered inside.
 
-### 11. Content centered in cell
+### Content centered in cell
 
 **What:** By default, a widget's content sits centered (both axes) within its grid cell. No extra config needed.
 
@@ -216,7 +216,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a small KPI card in a large cell. It should be centered. Place a chart that fills the cell — it should fill, not be constrained by centering.
 
-### 12. Fill vs center — inner wrapper default behavior
+### Fill vs center — inner wrapper default behavior
 
 **What:** Some content should FILL the cell (charts use ResponsiveContainer at 100% width/height). Some content should CENTER in the cell (a small KPI card in a large cell). The default inner wrapper behavior determines which works out of the box.
 
@@ -224,7 +224,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a chart that should fill its cell AND a small KPI card in a larger cell. Both should look correct. The developer controls the behavior via `className` on the layout entry — `className: 'flex items-center justify-center'` for centering, no className (or `className: 'h-full w-full'`) for filling.
 
-### 13. Dynamic minH after width resize
+### Dynamic minH after width resize
 
 **What:** Resize an item wider. Content reflows (text unwraps, table columns spread). The minimum height changes. The item can now be made shorter because the content is shorter at the wider width.
 
@@ -232,7 +232,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a widget with wrapping text. Resize it wider — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height.
 
-### 14. Constraint API works for content clamping
+### Constraint API works for content clamping
 
 **What:** react-grid-layout v2's `constrainSize` function runs before layout updates and can enforce minimum sizes based on content measurement.
 
@@ -240,7 +240,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Add a constraint that logs every call. Resize an item. Confirm the constraint fires with correct parameters. Then add content-based minimum logic and confirm it prevents shrinking below content.
 
-### 14. Auto-placement with compactType: null
+### Auto-placement with compactType: null
 
 **What:** When items have no explicit `x, y` position, they auto-place in a sensible grid pattern (row by row, left to right) even with `compactType: null`.
 
@@ -248,7 +248,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Render 6 items in a 3-column grid with no explicit positions. They should arrange in a 3×2 pattern, not overlap.
 
-### 15. Overlap prevention with compactType: null
+### Overlap prevention with compactType: null
 
 **What:** When dragging an item onto an occupied cell, the other item moves out of the way. No overlap.
 
@@ -256,7 +256,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Drag item A directly onto item B. Observe what happens. Both items should be visible with no overlap.
 
-### 16. Ring on outer div follows resize
+### Ring on outer div follows resize
 
 **What:** The hover outline (ring) is on react-grid-layout's item wrapper div. When the user resizes, the ring follows the resize in real-time because react-grid-layout updates that same div's dimensions.
 
@@ -264,7 +264,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Hover an item (ring appears). Drag the resize handle. The ring should grow/shrink in real-time with the resize.
 
-### 17. Dynamic column count
+### Dynamic column count
 
 **What:** Changing the column count (e.g., 4 → 3) reflows the entire grid. Items at positions that no longer exist (e.g., `x: 3` in a 3-column grid) are handled gracefully.
 
@@ -272,7 +272,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Render a 4-column grid with items. Change to 3 columns. All items should be visible, none off-screen or overlapping.
 
-### 18. New item auto-placement in existing freeform layout
+### New item auto-placement in existing freeform layout
 
 **What:** A dashboard has 5 items arranged by the user. A 6th widget is added dynamically. It auto-places in the first available empty cell without disrupting existing items.
 
@@ -280,7 +280,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Arrange 5 items with gaps. Add a 6th item with no position. It should appear in an empty cell, not overlap existing items.
 
-### 19. Transition from auto-placed to user-edited
+### Transition from auto-placed to user-edited
 
 **What:** First render uses auto-placement (no positions in config). User drags an item. Now positions are "user-edited." On page reload, the user-edited positions persist (via localStorage or config), not the auto-placed defaults.
 
@@ -288,7 +288,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Render with auto-placement. Drag one item. Reload the page. The dragged item should be at its new position, not the auto-placed position.
 
-### 20. Grid unit conversion accuracy
+### Grid unit conversion accuracy
 
 **What:** Content is measured in pixels. react-grid-layout uses grid units. The conversion `minH = Math.ceil(contentPixelHeight / rowHeight)` must be accurate. Rounding errors could make cells one row too small (content clipped) or one row too large (excessive slack).
 
@@ -334,7 +334,7 @@ These are all proven in flexity. The POC only proves the layout engine integrati
 
 ## Success criteria
 
-All 22 points verified. If any point fails, we document why and decide whether to:
+All points verified. If any point fails, we document why and decide whether to:
 1. Work around it (acceptable tradeoff)
 2. Choose a different approach (CSS Grid, different library)
 3. Accept the limitation and document it
