@@ -92,6 +92,45 @@ Before writing any new code, verify:
 
 ---
 
+## Linters & Lintmax
+
+**lintmax** is our own max-strict lint/format orchestrator. Source at `~/z/lintmax`. We own it — read the source code to understand the pipeline. Adopt from the beginning of the project.
+
+### Ignore syntax
+
+| Linter | File-level                                           | Per-line                                         |
+| ------ | ---------------------------------------------------- | ------------------------------------------------ |
+| oxlint | `/* oxlint-disable rule-name */`                     | `// oxlint-disable-next-line rule-name`          |
+| eslint | `/* eslint-disable rule-name */`                     | `// eslint-disable-next-line rule-name`          |
+| biome  | `/** biome-ignore-all lint/category/rule: reason */` | `/** biome-ignore lint/category/rule: reason */` |
+
+### Ignore strategy
+
+1. **Fix the code** — always first choice
+2. **File-level disable** — when a file has many unavoidable violations of the same rule
+3. **Per-line ignore** — isolated unavoidable violations
+4. **Consolidate** — if file-level `biome-ignore-all` exists, remove redundant per-line `biome-ignore` for the same rule
+5. NEVER 5+ per-line ignores for the same rule — use file-level
+
+- File-level directives go at absolute file top, above any imports/code (including `'use client'`).
+- Remove duplicate directives; keep one canonical directive block.
+- Use one top `eslint-disable` line per file; combine multiple rules with commas.
+
+### Cross-linter rules
+
+- 2 linters with the same rule = double enforcement, NOT a conflict. Never disable one because the other covers it.
+- To suppress a shared eslint/oxlint rule: suppress eslint's version — oxlint auto-picks up eslint rules and is faster.
+
+### Safe-to-ignore rules
+
+**oxlint:** `promise/prefer-await-to-then` (Promise.race, ky chaining)
+
+**eslint:** `no-await-in-loop`, `max-statements`, `max-depth`, `complexity` (sequential ops) · `@typescript-eslint/no-unnecessary-condition` (type narrowing) · `@typescript-eslint/promise-function-async` (thenable returns) · `@typescript-eslint/max-params` · `@next/next/no-img-element` (external images) · `react-hooks/refs`
+
+**biome:** `style/noProcessEnv` (env files) · `performance/noAwaitInLoops` (sequential ops) · `nursery/noForIn` · `performance/noImgElement` · `suspicious/noExplicitAny` (generic boundaries)
+
+---
+
 ## Minimal DOM (React + Tailwind)
 
 Same UI, fewest DOM nodes. Every element must earn its place. If you can delete it and nothing breaks → it shouldn't exist.
@@ -112,6 +151,8 @@ Same UI, fewest DOM nodes. Every element must earn its place. If you can delete 
 - JSX grouping → `<>...</>` (Fragment), not `<div>`
 
 **No IIFEs in JSX** — extract to a named component instead.
+
+**No raw HTML elements when shadcn has a component** — use `Button` not `<button>`, `Table` not `<table>`, `Progress` not nested divs.
 
 **Review checklist:** Can I delete this node? → delete. Can `gap/space/divide` replace it? → do it. Can I pass `className`? → do it. Can `[&>...]:` remove repetition? → do it.
 
