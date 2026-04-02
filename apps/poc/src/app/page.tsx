@@ -38,6 +38,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       cardRef = useRef(new Map<string, HTMLDivElement>()),
       minHRef = useRef(new Map<string, number>()),
       initializedRef = useRef(false),
+      [initialized, setInitialized] = useState(false),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
@@ -87,6 +88,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             })
           if (!changed) return prev
           initializedRef.current = true
+          setInitialized(true)
           return placed
         })
       }, [computeLayout])
@@ -149,10 +151,18 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         }),
         [measureNaturalHeight]
       ),
-      handleLayoutChange = useCallback((newLayout: Layout) => {
-        console.log(`[handleLayoutChange] scroll h=${String(newLayout.find(i => i.i === 'scroll')?.h)}`)
-        setLayout(newLayout)
-      }, []),
+      handleLayoutChange = useCallback(
+        (newLayout: Layout) => {
+          const enforced = newLayout.map(item => {
+            if (FILL_ITEMS.has(item.i)) return item
+            const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
+              h = Math.max(item.h, minH)
+            return { ...item, h, minH }
+          })
+          setLayout(initializedRef.current ? enforced : computeLayout(enforced))
+        },
+        [computeLayout]
+      ),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
@@ -166,6 +176,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           {width > 0 && (
             <GridLayout
               compactor={COMPACTOR}
+              constraints={[contentMinConstraint]}
               dragConfig={{ bounded: false, enabled: true, handle: `.${DRAG_HANDLE_CLASS}`, threshold: 3 }}
               gridConfig={{
                 cols: COLS,
@@ -183,7 +194,9 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               width={width}>
               {itemKeys.map(key => (
                 <div className='h-full' key={key}>
-                  <div className='flex min-h-full flex-col rounded-lg border bg-card p-3' ref={el => setCardRef(key, el)}>
+                  <div
+                    className={`flex flex-col rounded-lg border bg-card p-3 ${initialized ? 'h-full overflow-hidden' : 'min-h-full'}`}
+                    ref={el => setCardRef(key, el)}>
                     <div className='flex min-h-0 flex-1 items-start gap-2'>
                       <DragHandle />
                       <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{itemContent[key]}</div>
