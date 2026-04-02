@@ -1,3 +1,4 @@
+/* oxlint-disable import/no-unassigned-import */
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
