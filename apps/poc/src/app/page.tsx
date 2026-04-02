@@ -3,7 +3,6 @@
 /* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
-import { cn } from '@a/ui'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -19,7 +18,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
   DRAG_HANDLE_CLASS = 'ogrid-drag-handle',
   pxToGridH = (px: number) => Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)),
-  FILL_ITEMS = new Set(['chart', 'scroll']),
+  FILL_ITEMS = new Set(['chart']),
   itemKeys = ['kpi', 'chart', 'table', 'scroll'] as const,
   DragHandle = () => (
     <div
@@ -188,27 +187,16 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               onLayoutChange={handleLayoutChange}
               resizeConfig={{ enabled: true, handles: ['se'] }}
               width={width}>
-              {itemKeys.map(key => {
-                const fill = FILL_ITEMS.has(key)
-                return (
-                  <div key={key}>
-                    <div
-                      className={cn(
-                        'flex min-h-full flex-col rounded-lg border bg-card p-3',
-                        fill ? '' : 'justify-center'
-                      )}
-                      ref={el => setCardRef(key, el)}>
-                      <div
-                        className={cn('flex items-start gap-2', fill ? 'min-h-0 flex-1' : 'max-h-full overflow-y-auto')}>
-                        <DragHandle />
-                        <div className={cn('min-w-0 flex-1', fill ? 'self-stretch overflow-hidden' : '')}>
-                          {itemContent[key]}
-                        </div>
-                      </div>
+              {itemKeys.map(key => (
+                <div key={key}>
+                  <div className='flex min-h-full flex-col rounded-lg border bg-card p-3' ref={el => setCardRef(key, el)}>
+                    <div className='flex min-h-0 flex-1 items-start gap-2'>
+                      <DragHandle />
+                      <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{itemContent[key]}</div>
                     </div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </GridLayout>
           )}
         </div>
