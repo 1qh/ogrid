@@ -42,11 +42,11 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
-          h: 1,
+          h: FILL_ITEMS.has(key) ? 8 : 1,
           i: key,
           w: 2,
           x: (idx % 2) * 2,
-          y: Math.floor(idx / 2) * 20
+          y: 0
         }))
       ),
       [preventCollision, setPreventCollision] = useState(true),
@@ -158,13 +158,15 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         [measureNaturalHeight]
       ),
       handleLayoutChange = useCallback((newLayout: Layout) => {
-        setLayout(
-          newLayout.map(item => {
+        setLayout(prev => {
+          const next = newLayout.map(item => {
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
-              h = Math.max(item.h, minH)
+              prevItem = prev.find(p => p.i === item.i),
+              h = Math.max(item.h, minH, prevItem?.minH ?? 1)
             return { ...item, h, minH }
           })
-        )
+          return next
+        })
       }, []),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
