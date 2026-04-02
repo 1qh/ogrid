@@ -29,7 +29,7 @@ ogrid wraps react-grid-layout with the missing pieces: auto-sizing, content-awar
 
 - **Zero config works** — drop items in, they arrange themselves sensibly
 - **Content is sacred** — the grid respects content boundaries, never clips or crushes
-- **Fill by default** — items fill their cell (`h-full w-full`). Charts, tables, and most dashboard content should stretch to fill. Small content that wants centering opts in via `className: 'flex items-center justify-center'` on the layout entry
+- **Fill by default** — the inner cell div is `h-full w-full` so it fills the RGL positioning div. The component inside renders at natural flow — it is NOT given `h-full`. During measurement, the inner div has `height: auto` (not `h-full`) so content renders at natural height for measurement. After the measurement window closes, the inner div switches to `h-full` so it fills the cell. Components that want to stretch vertically (charts) use `h-full` on themselves. Components with fixed content (tables, text) render at natural height and get centered or top-aligned inside the cell via `className`. Small content that wants centering opts in via `className: 'flex items-center justify-center'` on the layout entry
 - **Android home screen UX** — items snap to grid cells, freeform placement, configurable columns
 - **One source of truth** — layout config is the single place all placement/sizing lives
 - **Fail fast** — wrong config caught immediately
@@ -94,7 +94,7 @@ recharts v3's `ResponsiveContainer` warns about width(-1)/height(-1) during SSR 
 - **Visual tuning** — hover to see cell boundaries, drag to reposition, drag edges to resize
 - **One copy-paste** — click copy, paste config into code, TypeScript validates
 - **Cell styling** — optional `className` on layout entries for cell background/border/rounded
-- **Fill by default** — items fill their cell (`h-full w-full`). Centering is opt-in via className
+- **Fill by default** — inner cell div fills the cell. Components render at natural flow. Charts opt into stretch via their own `h-full`. Centering is opt-in via className
 - **Android home screen UX** — configurable column count, freeform placement, snap to cells
 - **Dev toolbar** — gap, column count, debug toggles, reset, copy
 - **Per-item settings** — click a button on each item to configure its placement/styling
@@ -123,7 +123,7 @@ recharts v3's `ResponsiveContainer` warns about width(-1)/height(-1) during SSR 
 - **No pixel-level width control** — width is column spans, not pixels. A 4-column grid on a 1200px viewport gives 300px columns. You get 300, 600, 900, 1200 — not 437px.
 - **No keyboard drag** — react-grid-layout does not support keyboard-driven drag/reposition. Mouse and touch only. Keyboard resize may be added as a custom feature later.
 - **Touch interactions** — react-grid-layout supports touch drag/resize, but with draggableHandle and compactType:null, the mobile UX is not validated in this POC. Touch is out of scope.
-- **No auto-growth after measurement window** — cells auto-size during the initial measurement window (500ms idle or 2s max, allowing async data to load). After the window closes, the layout is locked. Dynamic content growth scrolls, doesn't expand the cell. This prevents overlap in freeform layouts.
+- **No auto-growth after measurement window** — cells auto-size during the initial measurement window (200ms idle or 2s max, allowing async data to load). After the window closes, the layout is locked. Dynamic content growth scrolls, doesn't expand the cell. This prevents overlap in freeform layouts.
 
 ## Why no one has solved this
 
@@ -215,6 +215,8 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Mode switch behavior:** Freeform layout is canonical. Compact layout is DERIVED on every render from freeformLayout using vertical compaction (react-grid-layout's built-in compact function) — no separate compactedLayout state variable. Switching back above 1200px restores freeformLayout as-is. Drag and resize are DISABLED in compact mode (`isDraggable={false}` `isResizable={false}`) — this is a read-only responsive view. Users see the compacted layout but cannot edit it. This avoids the confusion of edits "disappearing" when switching back to freeform. If users need to edit layout on mobile, that's a future feature (separate mobile layout config), not a POC concern.
 
+**Compact mode column count:** Stays at the developer-configured column count. Items with `w` larger than available space are capped to `cols`. The vertical compaction algorithm handles repositioning — items keep their `w` but get new `x`/`y` to eliminate gaps and resolve overlaps. The column count does NOT change at the breakpoint — only the compaction mode changes.
+
 **Item addition/removal:** When items are added or removed, freeformLayout is updated. New items get auto-placed via `computeLayout`. Removed items are filtered out. CompactedLayout is always re-derived from freeformLayout — no sync needed.
 
 **RGL component:** The POC uses `<GridLayout>` (not `<ResponsiveGridLayout>`), with manual width detection via ResizeObserver on the grid container. This gives full control over the compactType toggle without fighting RGL's breakpoint system.
@@ -243,7 +245,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Place a widget with wrapping text. Resize it from 1 column to 2 columns — text unwraps, content gets shorter. Then resize it shorter (height). It should allow shrinking to the new, shorter content height. Recalculation happens on span change (discrete events), not every frame — zero wasted work. The grid measures the component's rendered height as-is (including any internal padding the component has). Cell styling from `className` is for the cell container only (bg, rounded, border) — not padding. Interior spacing is the component's responsibility. Timing: when column span changes, the grid updates w in the layout. React re-renders the item at the new width. ResizeObserver fires (content reflowed at new width). The observer updates the measurement ref. The NEXT constrainSize call reads the fresh ref. This is a multi-frame sequence: frame 1 (width change + re-render), frame 2 (browser reflow + observer fires + ref updated), frame 3+ (constraint reads fresh data). The one-frame lag is safe for MOST content: when width increases, content typically gets shorter (text unwraps), so the OLD minH is larger than the new minH — stale data over-constrains, never under-constrains. When width decreases, content gets taller, but the user is narrowing — the next constrainSize call gets the fresh (larger) minH.
 
-**Edge case — non-monotonic height:** Components with CSS breakpoints or layout switches (e.g., switching from single-column to two-column at a width threshold) could get TALLER when wider. For one frame, the stale minH would be too small. Mitigation: `constrainSize` uses `Math.max(currentMinH, previousMinH)` during the transition frame — always pick the larger of the two. Once the fresh measurement arrives, the constraint updates. Also test diagonal resize (both width and height simultaneously). Confirm content is never visibly clipped, even with non-monotonic height components.
+**Edge case — non-monotonic height:** Components with CSS breakpoints or layout switches (e.g., switching from single-column to two-column at a width threshold) could get TALLER when wider. For one frame, the stale minH would be too small. Mitigation: `constrainSize` uses `Math.max(currentMinH, previousMinH)` during the transition frame — always pick the larger of the two. `previousMinH` is a one-frame guard: it is set when width changes, and cleared when the next ResizeObserver measurement commits (fresh data replaces the guard). This prevents items from getting permanently stuck at a larger-than-necessary minH. Also test diagonal resize (both width and height simultaneously). Confirm content is never visibly clipped, even with non-monotonic height components.
 
 ### Constraint API works for content clamping
 
@@ -263,7 +265,9 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** This is potentially contradictory. `compactType: null` means "don't move items." But items with no position need to be placed somewhere. react-grid-layout might pile them all at `(0,0)` and overlap. We might need our own auto-placement algorithm that runs once on first render, then freeform after.
 
-**How to verify:** Render 6 uniform items in a 3-column grid with no explicit positions. They should arrange in a 3×2 pattern, not overlap. Also test with mixed sizes: one `w:2, h:2` item and four `w:1, h:1` items in a 3-column grid. Confirm the auto-placement handles non-uniform sizes without overlap.
+**computeLayout algorithm:** Simple row-by-row scan with a 2D occupancy grid. For each unpositioned item (in config order): scan cells left-to-right, top-to-bottom, find the first position where the item fits (w×h block is unoccupied), place it there. If no position fits in existing rows, extend the grid downward. This handles variable-height items correctly — a tall item occupies multiple rows in the occupancy grid, and subsequent items flow around it. Same algorithm used in the monitor repo.
+
+**How to verify:** Render 6 uniform items in a 3-column grid with no explicit positions. They should arrange in a 3×2 pattern, not overlap. Also test with mixed sizes: one `w:2, h:2` item and four `w:1, h:1` items in a 3-column grid. Confirm the auto-placement handles non-uniform sizes without overlap or dead space.
 
 ### Overlap prevention with compactType: null
 
@@ -287,7 +291,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** The toolbar will let developers change column count. If items go off-grid or overlap after a column change, the feature is broken.
 
-**How to verify:** Render a 4-column grid with items. Change to 3 columns. All items should be visible, none off-screen or overlapping.
+**How to verify:** Render a 4-column grid with an item at `x: 3`. Change to 3 columns. RGL's `correctBounds` should clamp `x` to fit. Verify the clamped item doesn't overlap others. If `correctBounds` with `compactType: null` causes overlaps, we need a custom reflow that runs `computeLayout` on all out-of-bounds items. Test with multiple items at the boundary to confirm no overlaps.
 
 ### New item auto-placement in existing freeform layout
 
@@ -295,7 +299,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** Freeform layout means existing items have explicit positions. A new item with no position needs to find an empty cell. This requires scanning the grid for the first available space.
 
-**How to verify:** Arrange 5 items with gaps. Add a 6th item with no position. It should appear in an empty cell, not overlap existing items.
+**How to verify:** Arrange 5 items with gaps. Add a 6th item with no position. It should appear in an empty cell, not overlap existing items. Also test in a dense grid with no gaps — the new item should be placed in a new row below the existing items (the grid extends downward, never overlaps).
 
 ### Transition from auto-placed to user-edited
 
@@ -378,6 +382,8 @@ In either case: no overlap, no freeze, no content clipping.
 
 **Edge case — boundary oscillation:** Content at exactly a grid-unit boundary (e.g., 90.0px with rowHeight=30) could oscillate between 3 and 4 rows if sub-pixel rendering shifts it between 89.9px and 90.1px. Mitigation: add a 1px tolerance buffer — `Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))`. This ensures content right at the boundary rounds up consistently. The 1px buffer is cheaper than the alternative (infinite loop).
 
+**Safety net:** Hard cap of 3 re-measurements per item. If an item's grid-unit size is still changing after 3 measurements, lock it at the last computed size and log a warning. This prevents infinite loops even if quantization fails to converge for edge-case content.
+
 **How to verify:** Place a text widget that reflows at different widths. Log ResizeObserver callback count. Must stabilize within 3 callbacks. No infinite re-renders. Also test with content height exactly at a row boundary (e.g., exactly 90px with rowHeight=30) — must not oscillate.
 
 ### Tailwind v4 and react-grid-layout CSS compatibility
@@ -390,15 +396,15 @@ In either case: no overlap, no freeze, no content clipping.
 
 ### Stale layout on load (user-sized vs auto-sized)
 
-**What:** The grid tracks a single `userEdited` flag per item. An item becomes `userEdited: true` when the user drags (changes position) OR resizes (changes size) it. On load, only non-userEdited items are auto-sized. UserEdited items retain their saved position AND size — if content doesn't fit, it scrolls internally.
+**What:** The grid tracks two flags per item: `userPositioned` (user dragged it) and `userResized` (user resized it). On load: items with `userResized: true` retain their saved size — if content doesn't fit, it scrolls internally. Items with `userPositioned: true` but NOT `userResized` retain their position but get auto-sized height. Items with neither flag get both auto-placed and auto-sized.
 
-**Why:** The monitor repo uses a similar pattern (`userResized` Set). We generalize to `userEdited` covering both drag and resize — once a user touches an item, auto-sizing is disabled for that item. This respects user intent — a user who made an item small intentionally shouldn't have the grid expand it on every load.
+**Why:** The monitor repo uses `userResized` (Set). We extend with `userPositioned` to track position intent separately from size intent. A user who only drags an item hasn't expressed intent about its size — height should still auto-size on reload. This respects user intent — a user who made an item small intentionally shouldn't have the grid expand it on every load.
 
 **How to verify:** Auto-size an item, save layout, change content to be taller, reload — item should grow. Then manually resize that item smaller, save, change content again, reload — item should stay at user's size and content scrolls.
 
 ### Dynamic content after mount
 
-**What:** Auto-sizing happens during the INITIAL MEASUREMENT WINDOW only — not just the first synchronous render. The measurement window stays open until content stabilizes (ResizeObserver stops firing for 500ms) or a maximum timeout (2 seconds) elapses, whichever comes first. After the window closes, the layout is locked. If content grows later, it scrolls inside the cell. The cell does NOT auto-grow.
+**What:** Auto-sizing happens during the INITIAL MEASUREMENT WINDOW only — not just the first synchronous render. The measurement window stays open until content stabilizes (ResizeObserver stops firing for 200ms) or a maximum timeout (2 seconds) elapses, whichever comes first. After the window closes, the layout is locked. If content grows later, it scrolls inside the cell. The cell does NOT auto-grow.
 
 **Why:** Real widgets load data asynchronously (API calls, lazy imports). A strict "first render only" rule would measure empty loading states and produce wrong sizes. The measurement window allows async content to load and stabilize before locking the layout. The timeout prevents indefinitely-loading widgets from blocking the grid.
 
@@ -407,9 +413,9 @@ In either case: no overlap, no freeze, no content clipping.
 2. Render a widget that fetches data after 200ms. After data loads AND the measurement window closes, add 10 more rows. Confirm the cell does NOT grow — extra rows are scrollable inside the cell.
 3. Render a widget that takes 5 seconds to load. Confirm the grid locks at the 2-second timeout and doesn't wait forever. The slow widget gets the size measured at timeout.
 
-**Edge case — userSized items:** If a user has already manually resized an item (userEdited: true), the measurement window does NOT apply. The user's explicit size is always respected, even on reload with new content.
+**Edge case — userSized items:** If a user has already manually resized an item (userResized: true), the measurement window does NOT apply. The user's explicit size is always respected, even on reload with new content.
 
-**Edge case — user interaction during measurement window:** If the user drags or resizes an item while the measurement window is still open, that item is immediately marked `userEdited: true` and excluded from further auto-sizing. The measurement window continues for other items. This prevents the auto-sizer from overwriting the user's explicit action.
+**Edge case — user interaction during measurement window:** If the user drags or resizes an item while the measurement window is still open, that item is immediately marked `userResized: true` and excluded from further auto-sizing. The measurement window continues for other items. This prevents the auto-sizer from overwriting the user's explicit action.
 
 ### onLayoutChange reliability
 
@@ -451,13 +457,13 @@ In either case: no overlap, no freeze, no content clipping.
 
 **Strategy — single-pass measurement:**
 
-Render all items with `opacity: 0`, auto-placed via `computeLayout` at `w: cols` (full grid width), `h: 1`. Each item gets the full container width, so content renders at its natural layout. ResizeObserver measures each item's content height. Height is converted to grid units: `h = Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))` (the +1 is the stabilization buffer). Then `computeLayout` runs again with final `w`/`h` to assign `x`/`y` positions.
+Render all items with `opacity: 0`, auto-placed via `computeLayout` at each item's configured `w` (falling back to `cols` if unspecified), `h: 1`. Items with explicit `w` render at that width so height measurement is accurate for the final width. ResizeObserver measures each item's content height. Height is converted to grid units: `h = Math.ceil((contentHeight + 1 + marginY) / (rowHeight + marginY))` (the +1 is the stabilization buffer). Then `computeLayout` runs again with final `w`/`h` to assign `x`/`y` positions.
 
 **Width is NOT auto-sized.** Width defaults to `w: cols` (full grid width). Developers set explicit `w` in the layout config for narrower items. This is intentionally simple — width auto-sizing requires content-dependent heuristics that are fragile and add an extra render pass. Height auto-sizing is the hard problem worth solving. Width is a developer choice.
 
-**Measurement window:** stays open until content stabilizes (ResizeObserver stops firing for 500ms) or 2s max. When the window closes, set `opacity: 1`. Disable CSS transitions during measurement to prevent animation from placeholder to final sizes. Re-enable after. This is a single render pass (not two) — no width changes means no re-measurement needed.
+**Measurement window:** stays open until content stabilizes (ResizeObserver stops firing for 200ms) or 2s max. When the window closes, the inner div switches from `height: auto` to `h-full`, `overflow: auto` is applied (enabling scroll for oversized content), `opacity` is set to 1. Disable CSS transitions during measurement to prevent animation from placeholder to final sizes. Re-enable after. This is a single render pass (not two) — no width changes means no re-measurement needed. The 200ms idle timer resets on every ResizeObserver callback (NOT on RAF batched updates — the timer tracks content changes, not rendering).
 
-Monitor CLS — if grid container height changes dramatically between measurement and reveal, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 500ms for 5 items (including async data loading), under 2s for 25 items (matching the measurement window timeout). If the opacity:0 phase feels too long, show a skeleton placeholder instead of blank space.
+Monitor CLS — if grid container height changes dramatically between measurement and reveal, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 200ms for 5 items with synchronous content (no async data). For items with async data, the grid becomes visible after data loads + 200ms idle stabilization (the idle timeout). The 500ms idle timeout from the measurement window is the MAX idle wait — the grid reveals as soon as ResizeObserver is idle for 200ms, not 500ms. The 2s hard cap is the absolute maximum. If the opacity:0 phase feels too long, show a skeleton placeholder instead of blank space (see SSR sequence).
 
 **How to verify:** Load the POC page with no layout config. Items should appear at full width with correct heights. No visible flicker or layout shift.
 
@@ -470,7 +476,7 @@ Monitor CLS — if grid container height changes dramatically between measuremen
 **Full SSR sequence:**
 1. Server renders a skeleton placeholder (or empty container with min-height matching expected grid height).
 2. Client hydrates. The skeleton remains visible (no blank flash).
-3. Measurement pass begins — the component renders a wrapper with `position: relative`. Inside: the skeleton (normal flow, visible) and the grid (`position: absolute; inset: 0; opacity: 0` — overlaid but invisible). The grid measures content behind the visible skeleton.
+3. Measurement pass begins — the component renders a wrapper with `position: relative; width: 100%`. Inside: the skeleton (normal flow, visible, establishes the wrapper's height) and the grid (`position: absolute; inset: 0; opacity: 0` — overlaid but invisible, takes full width from the wrapper). The grid measures content behind the visible skeleton.
 4. Measurement window completes. Grid sets `opacity: 1`, skeleton conditionally rendered away (`{!ready && <Skeleton />}`). Single visual transition from skeleton to final grid.
 
 **How to verify:** Server-rendered HTML shows a placeholder. Client hydration adds the grid without mismatch warnings. The skeleton remains visible until the grid is fully measured and ready. No blank flash between skeleton and grid.
