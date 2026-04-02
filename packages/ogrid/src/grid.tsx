@@ -86,8 +86,11 @@ const extractKeys = (children: ReactNode): string[] => {
         if (config?.layout) for (const item of config.layout) m.set(item.i, item)
         return m
       }, [config?.layout]),
+      colsRef = useRef(cols),
+      gapRef = useRef(gap),
+      rowHeightRef = useRef(rowHeight),
       [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols)),
-      computeLayout = useCallback((items: Layout): Layout => computeLayoutWithCols(items, cols), [cols]),
+      computeLayout = useCallback((items: Layout): Layout => computeLayoutWithCols(items, colsRef.current), []),
       closeMeasureWindow = useCallback(() => {
         const mw = measureWindowRef.current
         if (mw.phase === 'done') return
@@ -106,12 +109,12 @@ const extractKeys = (children: ReactNode): string[] => {
             }
             return { ...item, h: Math.max(item.h, minH), minH }
           })
-          const placed = computeLayoutWithCols(final, cols)
+          const placed = computeLayoutWithCols(final, colsRef.current)
           freeformLayoutRef.current = placed
           return placed
         })
         setPhase('done')
-      }, [cols, fillSet]),
+      }, [fillSet]),
       resetIdleTimer = useCallback(() => {
         const mw = measureWindowRef.current
         if (mw.phase === 'done') return
@@ -139,6 +142,9 @@ const extractKeys = (children: ReactNode): string[] => {
         })
         resetIdleTimer()
       }, [computeLayout, fillSet, gap, resetIdleTimer, rowHeight])
+    colsRef.current = cols
+    gapRef.current = gap
+    rowHeightRef.current = rowHeight
     useLayoutEffect(() => {
       const originalWarn = console.warn
       console.warn = (...args: unknown[]) => {
