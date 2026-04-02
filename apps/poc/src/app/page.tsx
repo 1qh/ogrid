@@ -13,7 +13,7 @@ import DataTableWidget from '~/widgets/data-table'
 import KpiCard from '~/widgets/kpi-card'
 import ScrollContent from '~/widgets/scroll-content'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
-  COLS = 4,
+  COLS = 12,
   ROW_HEIGHT = 30,
   MARGIN_Y = 16,
   MARGIN: readonly [number, number] = [16, MARGIN_Y],
@@ -44,8 +44,8 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         itemKeys.map((key, idx) => ({
           h: FILL_ITEMS.has(key) ? 8 : 1,
           i: key,
-          w: 2,
-          x: (idx % 2) * 2,
+          w: 6,
+          x: (idx % 2) * 6,
           y: 0
         }))
       ),
