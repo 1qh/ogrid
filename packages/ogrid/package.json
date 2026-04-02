@@ -21,8 +21,12 @@
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "dist/index.mjs",
   "types": "dist/index.d.mts",
   "files": [
@@ -30,7 +34,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && cp src/styles.css dist/styles.css",
     "test": "bun test"
   },
   "dependencies": {
