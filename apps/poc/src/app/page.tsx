@@ -39,6 +39,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       rafRef = useRef(0),
       stateCountRef = useRef(0),
       callbackCountRef = useRef(new Map<string, number>()),
+      [measured, setMeasured] = useState(false),
       [width, setWidth] = useState(0),
       [layout, setLayout] = useState<Layout>(() =>
         itemKeys.map((key, idx) => ({
@@ -85,6 +86,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         if (!layoutChanged) return prev
         stateCountRef.current += 1
         console.log(`[measurement] setState #${String(stateCountRef.current)}`)
+        setMeasured(true)
         return next
       })
     }, [])
@@ -133,7 +135,16 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         []
       ),
       handleLayoutChange = useCallback((newLayout: Layout) => {
-        setLayout(newLayout)
+        setLayout(
+          newLayout.map(item => {
+            if (FILL_ITEMS.has(item.i)) return item
+            const el = cardRef.current.get(item.i)
+            if (!el) return item
+            const minH = pxToGridH(el.scrollHeight)
+            if (item.h >= minH) return item
+            return { ...item, h: minH }
+          })
+        )
       }, []),
       compactor = useMemo(() => ({ ...noCompactor, preventCollision }), [preventCollision]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
@@ -150,7 +161,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
             preventCollision: {String(preventCollision)}
           </button>
         </div>
-        <div ref={containerRef}>
+        <div className={measured ? 'opacity-100' : 'opacity-0'} ref={containerRef}>
           {width > 0 && (
             <GridLayout
               compactor={compactor}
