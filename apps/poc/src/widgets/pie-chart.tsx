@@ -30,7 +30,7 @@ const outerData = [
       <span className='text-sm font-medium'>Browser & Device Share</span>
       <span className='text-xs text-muted-foreground'>Nested donut with total center label</span>
       <div className='min-h-0 flex-1'>
-        <ChartContainer className='h-full w-full' config={config}>
+        <ChartContainer className='h-full w-full' style={{ aspectRatio: 'auto' }} config={config}>
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent nameKey='name' />} />
             <ChartLegend content={<ChartLegendContent nameKey='name' />} />

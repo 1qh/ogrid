@@ -25,7 +25,7 @@ const data = [
       <span className='text-sm font-medium'>Sessions & Users Over Time</span>
       <span className='text-xs text-muted-foreground'>12-month trend with peak season highlighted</span>
       <div className='min-h-0 flex-1'>
-        <ChartContainer className='h-full w-full' config={config}>
+        <ChartContainer className='h-full w-full' style={{ aspectRatio: 'auto' }} config={config}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id='gradSessions' x1='0' x2='0' y1='0' y2='1'>

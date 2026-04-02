@@ -26,7 +26,7 @@ const data = [
       <span className='text-sm font-medium'>Revenue, Profit & CAC</span>
       <span className='text-xs text-muted-foreground'>3 metrics with dual Y-axes and annotations</span>
       <div className='min-h-0 flex-1'>
-        <ChartContainer className='h-full w-full' config={config}>
+        <ChartContainer className='h-full w-full' style={{ aspectRatio: 'auto' }} config={config}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray='3 3' />
             <XAxis dataKey='month' tick={{ fontSize: 12 }} />
