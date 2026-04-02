@@ -21,12 +21,19 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     { h: 12, i: 'table', w: 3, x: 0, y: 8 },
     { h: 8, i: 'scroll', w: 1, x: 3, y: 8 }
   ],
-  MIN_H_TABLE = 8,
+  hardcodedMinH: Record<string, number> = {
+    kpi: 7,
+    scroll: 4,
+    table: 8
+  },
   contentMinConstraint = {
     constrainSize: (_item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
-      if (_item.i === 'table') {
-        const clamped = Math.max(h, MIN_H_TABLE)
-        console.log(`[constrainSize] ${_item.i}: proposed h=${String(h)}, returned h=${String(clamped)}`)
+      const minH = hardcodedMinH[_item.i]
+      if (minH) {
+        const clamped = Math.max(h, minH)
+        console.log(
+          `[constrainSize] ${_item.i}: proposed h=${String(h)}, min=${String(minH)}, returned h=${String(clamped)}`
+        )
         return { h: clamped, w }
       }
       console.log(`[constrainSize] ${_item.i}: proposed w=${String(w)} h=${String(h)} (unclamped)`)
@@ -91,10 +98,10 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
               resizeConfig={{ enabled: true, handles: ['se'] }}
               width={width}>
               {Object.entries(items).map(([key, { content }]) => (
-                <div className='rounded-lg border bg-card p-3' key={key}>
-                  <div className='flex items-start gap-2'>
+                <div className='flex h-full flex-col rounded-lg border bg-card p-3' key={key}>
+                  <div className='flex min-h-0 flex-1 items-start gap-2'>
                     <DragHandle />
-                    <div className='min-w-0 flex-1 overflow-auto'>{content}</div>
+                    <div className='min-w-0 flex-1 self-stretch overflow-auto'>{content}</div>
                   </div>
                 </div>
               ))}
