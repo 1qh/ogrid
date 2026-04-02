@@ -32,7 +32,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
     scroll: <ScrollContent />,
     table: <DataTableWidget />
   },
-  COMPACTOR = noCompactor,
+  COMPACTOR = { ...noCompactor, preventCollision: true },
   Page = () => {
     const containerRef = useRef<HTMLDivElement>(null),
       cardRef = useRef(new Map<string, HTMLDivElement>()),
@@ -119,7 +119,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
           minHRef.current.set(key, gridH)
           changed = true
         }
-        if (changed) {
+        if (changed && !initializedRef.current) {
           cancelAnimationFrame(rafRef.current)
           rafRef.current = requestAnimationFrame(measureAndUpdate)
         }
