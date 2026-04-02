@@ -122,6 +122,7 @@ recharts v3's `ResponsiveContainer` warns about width(-1)/height(-1) during SSR 
 - **No pixel-level width control** — width is column spans, not pixels. A 4-column grid on a 1200px viewport gives 300px columns. You get 300, 600, 900, 1200 — not 437px.
 - **No keyboard drag** — react-grid-layout does not support keyboard-driven drag/reposition. Mouse and touch only. Keyboard resize may be added as a custom feature later.
 - **Touch interactions** — react-grid-layout supports touch drag/resize, but with draggableHandle and compactType:null, the mobile UX is not validated in this POC. Touch is out of scope.
+- **No auto-growth after mount** — cells auto-size on first render only. Dynamic content growth scrolls, doesn't expand the cell. This prevents overlap in freeform layouts.
 
 ## Why no one has solved this
 
@@ -321,21 +322,55 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **How to verify:** Fill a 4-column grid with 12 items (3 rows, no gaps). Drag one item onto another. Confirm the drop is rejected gracefully or items push predictably without going off-grid.
 
-### Stale layout on load
+### Constraint + collision deadlock
 
-**What:** Load a saved layout where an item's w/h is smaller than its current content.
+**What:** Drag item A onto item B where B is at its content minimum size and surrounded by other items. The constraint prevents B from shrinking, and compactType:null means B has nowhere to be pushed.
 
-**Why:** Content changes between sessions (table gets more columns, text changes). A saved layout from yesterday might not fit today's content. The grid must correct undersized items on mount, not just during resize.
+**Why:** The content-minimum constraint and freeform placement can deadlock in dense layouts. If collision resolution needs to shrink or move B, but constraints prevent shrinking and no-compaction prevents pushing, the system must fail gracefully.
 
-**How to verify:** Hardcode a layout where an item's h is 1 row but the content needs 3 rows. Confirm the grid expands the item to fit content on load.
+**How to verify:** Create a fully packed grid. Drag one item onto a content-minimum-constrained item. Confirm the drop is rejected (item snaps back) rather than causing overlap or freezing.
+
+### Content measurement inside absolute-positioned container
+
+**What:** The height:auto measurement technique must produce correct results inside react-grid-layout's absolutely-positioned item wrappers.
+
+**Why:** flexity measured content in flexbox containers. react-grid-layout uses `position: absolute` with explicit width/height. Setting height:auto on a child inside an absolutely-positioned, explicitly-sized container might not produce the natural content height.
+
+**How to verify:** Measure a table's natural height using the height:auto technique inside an RGL wrapper. Compare against the table's known height. They must match.
+
+### ResizeObserver stabilization (no infinite loops)
+
+**What:** Auto-sizing via ResizeObserver must stabilize and not cause infinite re-render loops.
+
+**Why:** The same class of bug that burned us in flexity. Flow: observer fires → update layout w/h → RGL re-renders → content reflows slightly differently → observer fires again → loop.
+
+**Strategy:** Measurements are snapped to grid units. The loop stops when the grid-unit size doesn't change, even if pixel size shifted slightly within the same unit. Grid units act as a natural quantization boundary.
+
+**How to verify:** Place a text widget that reflows at different widths. Log ResizeObserver callback count. Must stabilize within 3 callbacks. No infinite re-renders.
+
+### Tailwind v4 and react-grid-layout CSS compatibility
+
+**What:** react-grid-layout's built-in CSS (resize handles, drag placeholder, transition animations) renders correctly with Tailwind v4's preflight reset enabled.
+
+**Why:** Tailwind's preflight resets margins, padding, borders. RGL's CSS uses specific class names for handles and placeholders. CSS specificity conflicts could break the visual interaction layer.
+
+**How to verify:** Import RGL's CSS alongside Tailwind v4. Confirm resize handles are visible, drag placeholder appears correctly, and transition animations work.
+
+### Stale layout on load (user-sized vs auto-sized)
+
+**What:** The grid distinguishes between items the user explicitly resized (`userSized: true`) and items that were auto-sized. On load, only auto-sized items are corrected if their saved size is smaller than current content. User-sized items are respected — if content doesn't fit, it scrolls internally.
+
+**Why:** The monitor repo uses this exact pattern (`userResized` Set). Once a user manually resizes an item, auto-sizing is disabled for that item. This respects user intent — a user who made an item small intentionally shouldn't have the grid expand it on every load.
+
+**How to verify:** Auto-size an item, save layout, change content to be taller, reload — item should grow. Then manually resize that item smaller, save, change content again, reload — item should stay at user's size and content scrolls.
 
 ### Dynamic content after mount
 
-**What:** After initial render, content inside a widget changes (table gets more rows, text updates). The grid cell should grow to accommodate.
+**What:** Auto-sizing happens on FIRST RENDER only. After mount, the layout is locked. If content grows (table loads more rows, API returns more data), it scrolls inside the cell. The cell does NOT auto-grow.
 
-**Why:** Dashboard widgets load data asynchronously. Content size changes post-mount. If the grid doesn't re-measure, content clips silently.
+**Why:** With compactType:null, auto-growing a cell would push into occupied space, causing overlap. The developer controls cell size via resize. Dynamic content that exceeds the cell scrolls internally. This is how the monitor repo works — auto-size on mount, respect user resize after.
 
-**How to verify:** Render a table with 3 rows. After 2 seconds, add 10 more rows programmatically. Confirm the grid cell grows.
+**How to verify:** Render a table with 3 rows. After 2 seconds, add 10 more rows. Confirm the cell does NOT grow — extra rows are scrollable inside the cell. The layout stays stable.
 
 ### onLayoutChange reliability
 
@@ -367,7 +402,7 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **Why this must be proven:** Chicken-and-egg problem — react-grid-layout needs `w`/`h` to position items, but we need the DOM to exist to measure content. The first render must handle this gracefully.
 
-**Strategy:** Render the grid with `opacity: 0` and default sizes (e.g., w:1, h:1 per item). On mount, ResizeObserver measures each item's content, computes correct w/h in grid units, updates layout, then sets opacity to 1. The measurement pass is invisible — user sees the final layout only. Disable CSS transitions during the measurement pass to prevent items animating from placeholder sizes to measured sizes. Re-enable after final layout is computed. Monitor CLS — if grid container height changes dramatically between passes, set a min-height on the container. **How to verify:** Load the POC page with no layout config. Items should appear at correct sizes with no visible flicker or layout shift.
+**Strategy:** Render the grid with `opacity: 0` and default sizes (e.g., w:1, h:1 per item). On mount, ResizeObserver measures each item's content, computes correct w/h in grid units, updates layout, then sets opacity to 1. The measurement pass is invisible — user sees the final layout only. Disable CSS transitions during the measurement pass to prevent items animating from placeholder sizes to measured sizes. Re-enable after final layout is computed. Monitor CLS — if grid container height changes dramatically between passes, set a min-height on the container. Performance budget: time from navigation to visible grid must be under 100ms for 5 items, under 300ms for 25 items. If the opacity:0 measurement pass takes too long, consider skeleton placeholders at approximate sizes instead of blank flash. **How to verify:** Load the POC page with no layout config. Items should appear at correct sizes with no visible flicker or layout shift.
 
 ### SSR and hydration
 
@@ -389,9 +424,11 @@ The POC is a single page with ~5 widgets. No dev tools, no toolbar, no copy/past
 
 **constrainSize API — VERIFIED:** react-grid-layout v2.2.3 (stable). `constrainSize` fires on every resize event (start, during, stop), receives item + proposed w/h in grid units + resize handle + full context (cols, containerWidth, rowHeight, margin, layout), returns constrained `{ w, h }`. Constraints compose: grid-level first, then per-item. The built-in `aspectRatio` constraint demonstrates the exact pattern we'll use for content minimum clamping.
 
-**Auto-placement with compactType:null — RESOLVED:** Items do NOT pile at (0,0). The monitor repo uses a `computeLayout` function that assigns positions row-by-row (left-to-right, wrap at column boundary) BEFORE passing to react-grid-layout. `noCompactor` is a no-op that preserves these positions. We need our own equivalent `computeLayout` — straightforward cursor-based placement.
+**Auto-placement with compactType:null — RESOLVED:** Items do NOT pile at (0,0). The monitor repo uses a `computeLayout` function that assigns positions row-by-row (left-to-right, wrap at column boundary) BEFORE passing to react-grid-layout. `noCompactor` is a no-op that preserves these positions. Note: `compactType={null}` and `compactor={noCompactor}` are equivalent — react-grid-layout v2 internally uses noCompactor when compactType is null. The POC uses `compactType={null}` (the public API). We need our own equivalent `computeLayout` — straightforward cursor-based placement.
 
 **react-grid-layout version — CONFIRMED:** v2.2.3, the official `latest` on npm (published 2026-03-24). Not a fork — the original STRML/react-grid-layout repo. Actively maintained. All APIs we need (`constrainSize`, `noCompactor`, `preventCollision`, per-item constraints) exist and are documented.
+
+The POC pins react-grid-layout@2.2.3 exactly. If constrainSize has bugs in this release, fallback: implement constraint behavior via onResize callback + setState to reject undersized layouts. This is less clean but achievable.
 
 ## POC structure
 
