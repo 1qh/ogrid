@@ -3,15 +3,23 @@
 /* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, @typescript-eslint/no-unused-vars, max-statements */
 'use client'
 import type { Layout, LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
+import { Button } from '@a/ui/button'
 import { GripVertical } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import 'react-grid-layout/css/styles.css'
 import { GridLayout, noCompactor } from 'react-grid-layout'
+import Accordion from '~/widgets/accordion'
+import Badges from '~/widgets/badges'
 import DataTableWidget from '~/widgets/data-table'
 import KpiCard from '~/widgets/kpi-card'
+import ProgressBars from '~/widgets/progress-bars'
+import Prose from '~/widgets/prose'
 import ScrollContent from '~/widgets/scroll-content'
+import StatsGrid from '~/widgets/stats-grid'
+import Timeline from '~/widgets/timeline'
 const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr: false }),
+  SparklineWidget = dynamic(async () => import('~/widgets/sparkline'), { ssr: false }),
   COLS = 24,
   ROW_HEIGHT = 50,
   MARGIN_Y = 16,
@@ -21,19 +29,36 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   MAX_TIMEOUT = 2000,
   FALLBACK_H = 4,
   pxToGridH = (px: number) => Math.ceil((px + 1 + MARGIN_Y) / (ROW_HEIGHT + MARGIN_Y)),
-  FILL_ITEMS = new Set(['chart', 'scroll']),
-  itemKeys = ['kpi', 'chart', 'table', 'scroll'] as const,
+  FILL_ITEMS = new Set(['chart', 'scroll', 'sparkline']),
+  INITIAL_ITEMS = [
+    { i: 'chart', w: 12 },
+    { i: 'kpi', w: 12 },
+    { i: 'progress', w: 12 },
+    { i: 'table', w: 16 },
+    { i: 'stats', w: 12 },
+    { i: 'scroll', w: 12 },
+    { i: 'timeline', w: 8 },
+    { i: 'sparkline', w: 8 }
+  ] as const,
+  ADDABLE_WIDGETS = ['badges', 'accordion', 'prose'] as const,
   DragHandle = () => (
     <div
       className={`${DRAG_HANDLE_CLASS} flex cursor-grab items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing`}>
       <GripVertical className='size-4' />
     </div>
   ),
-  itemContent: Record<string, React.ReactNode> = {
+  ITEM_CONTENT: Record<string, React.ReactNode> = {
+    accordion: <Accordion />,
+    badges: <Badges />,
     chart: <BarChartWidget />,
     kpi: <KpiCard />,
+    progress: <ProgressBars />,
+    prose: <Prose />,
     scroll: <ScrollContent />,
-    table: <DataTableWidget />
+    sparkline: <SparklineWidget />,
+    stats: <StatsGrid />,
+    table: <DataTableWidget />,
+    timeline: <Timeline />
   },
   COMPACTOR = { ...noCompactor, preventCollision: true },
   Page = () => {
@@ -44,12 +69,14 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
+      [itemKeys, setItemKeys] = useState<string[]>(() => INITIAL_ITEMS.map(i => i.i)),
+      addCountRef = useRef(0),
       [layout, setLayout] = useState<Layout>(() =>
-        itemKeys.map((key, idx) => ({
-          h: FILL_ITEMS.has(key) ? 8 : 1,
-          i: key,
-          w: 12,
-          x: (idx % 2) * 12,
+        INITIAL_ITEMS.map(item => ({
+          h: FILL_ITEMS.has(item.i) ? 8 : 1,
+          i: item.i,
+          w: item.w,
+          x: 0,
           y: 0
         }))
       ),
@@ -203,15 +230,38 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
         },
         [computeLayout]
       ),
+      handleAddItem = useCallback(() => {
+        const widgetKey = ADDABLE_WIDGETS[addCountRef.current % ADDABLE_WIDGETS.length]
+        addCountRef.current += 1
+        const newKey = `${widgetKey}-${String(addCountRef.current)}`
+        setItemKeys(prev => [...prev, newKey])
+        setLayout(prev => {
+          const newItem: LayoutItem = { h: FALLBACK_H, i: newKey, w: 12, x: 0, y: 0 }
+          return computeLayout([...prev, newItem])
+        })
+      }, [computeLayout]),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
         if (el) {
           el.dataset.itemKey = key
           cardRef.current.set(key, el)
         } else cardRef.current.delete(key)
+      }, []),
+      getContent = useCallback((key: string): React.ReactNode => {
+        if (ITEM_CONTENT[key]) return ITEM_CONTENT[key]
+        const base = key.replace(/-\d+$/, '')
+        if (ITEM_CONTENT[base]) return ITEM_CONTENT[base]
+        return <span className='text-sm text-muted-foreground'>{key}</span>
       }, [])
     return (
       <div className='flex flex-col gap-4 p-4'>
-        <span className='text-sm font-medium'>ogrid POC — Phase B</span>
+        <div className='flex items-center gap-4'>
+          <span className='text-sm font-medium'>ogrid POC — Phase B</span>
+          {phase === 'done' && (
+            <Button onClick={handleAddItem} size='sm' variant='outline'>
+              Add Item
+            </Button>
+          )}
+        </div>
         <div ref={containerRef}>
           {width > 0 && (
             <div
@@ -240,7 +290,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
                       ref={el => setCardRef(key, el)}>
                       <div className='flex min-h-0 flex-1 items-start gap-2'>
                         <DragHandle />
-                        <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{itemContent[key]}</div>
+                        <div className='min-w-0 flex-1 self-stretch overflow-hidden'>{getContent(key)}</div>
                       </div>
                     </div>
                   </div>
