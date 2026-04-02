@@ -296,8 +296,8 @@ const extractKeys = (children: ReactNode): string[] => {
                 <div className='group h-full rounded-lg ring-1 ring-transparent transition-shadow hover:ring-blue-500' key={key}>
                   <div
                     className={twMerge(
-                      'relative flex h-full flex-col overflow-auto rounded-lg border p-3',
-                      phase !== 'done' && 'min-h-full',
+                      'relative flex flex-col rounded-lg border p-3',
+                      phase === 'done' ? 'h-full overflow-auto' : 'min-h-full',
                       classNameMap.get(key)
                     )}
                     ref={el => setCardRef(key, el)}>
