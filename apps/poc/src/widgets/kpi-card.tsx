@@ -40,7 +40,7 @@ const kpis = [
     </div>
   ),
   KpiCard = () => (
-    <div className='flex h-full flex-col gap-2'>
+    <div className='flex flex-col gap-2'>
       <span className='text-sm font-medium'>Key Metrics</span>
       <div className='flex flex-col gap-4'>
         {kpis.map(k => (
