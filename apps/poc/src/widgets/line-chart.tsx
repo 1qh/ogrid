@@ -19,7 +19,7 @@ const data = [
       <span className='text-sm font-medium'>Revenue, Profit & CAC</span>
       <span className='text-xs text-muted-foreground'>3 metrics with dual Y-axes and annotations</span>
       <div className='min-h-0 flex-1'>
-        <ResponsiveContainer height='100%' width='100%'>
+        <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray='3 3' />
             <XAxis dataKey='month' tick={{ fontSize: 12 }} />

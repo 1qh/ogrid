@@ -25,7 +25,7 @@ const kpis = [
   ],
   MiniChart = ({ data }: { data: { v: number }[] }) => (
     <div className='h-8 w-16'>
-      <ResponsiveContainer height='100%' width='100%'>
+      <ResponsiveContainer height='100%' minHeight={0} minWidth={0} width='100%'>
         <AreaChart data={data}>
           <Area
             dataKey='v'
