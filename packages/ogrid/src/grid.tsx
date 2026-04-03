@@ -61,6 +61,7 @@ const extractKeys = (children: ReactNode): string[] => {
       lastKnownWRef = useRef(new Map<string, number>()),
       previousMinHRef = useRef(new Map<string, number>()),
       transitionFrameRef = useRef(new Map<string, number>()),
+      settingLayoutRef = useRef(false),
       positionedIdsRef = useRef(new Set<string>()),
       resizedIdsRef = useRef(new Set<string>()),
       freeformLayoutRef = useRef<Layout>([]),
@@ -126,6 +127,7 @@ const extractKeys = (children: ReactNode): string[] => {
           if (fillSet.has(key)) continue
           minHRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
         }
+        settingLayoutRef.current = true
         setLayout(prev => {
           const measured = prev.map(item => {
               const minH = minHRef.current.get(item.i) ?? 1,
@@ -137,7 +139,7 @@ const extractKeys = (children: ReactNode): string[] => {
               const p = placed[idx]
               return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
             })
-          if (!changed) return prev
+          if (!changed) { settingLayoutRef.current = false; return prev }
           return placed
         })
         resetIdleTimer()
@@ -238,7 +240,7 @@ const extractKeys = (children: ReactNode): string[] => {
       handleLayoutChange = useCallback(
         (newLayout: Layout) => {
           if (compactModeRef.current) return
-          if (measureWindowRef.current.phase === 'measuring') return
+          if (settingLayoutRef.current) { settingLayoutRef.current = false; return }
           const enforced = newLayout.map(item => {
             if (fillSet.has(item.i)) return item
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1, h = Math.max(item.h, minH)
