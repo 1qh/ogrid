@@ -238,6 +238,7 @@ const extractKeys = (children: ReactNode): string[] => {
       handleLayoutChange = useCallback(
         (newLayout: Layout) => {
           if (compactModeRef.current) return
+          if (measureWindowRef.current.phase === 'measuring') return
           const enforced = newLayout.map(item => {
             if (fillSet.has(item.i)) return item
             const minH = minHRef.current.get(item.i) ?? item.minH ?? 1, h = Math.max(item.h, minH)
