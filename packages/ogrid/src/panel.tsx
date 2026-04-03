@@ -1,9 +1,16 @@
 'use client'
 import { useSyncExternalStore } from 'react'
-import { COL_OPTIONS, DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
+import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
 
-const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
+const darkSubscribe = (cb: () => void) => {
+    const observer = new MutationObserver(cb)
+    observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
+    return () => observer.disconnect()
+  },
+  getDark = () => document.documentElement.classList.contains('dark'),
+  toggleDark = () => document.documentElement.classList.toggle('dark'),
+  generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
     const lines: string[] = []
     lines.push('const grid = {')
     if (state.cols !== DEFAULT_COLS) lines.push(`  cols: ${String(state.cols)},`)
@@ -24,11 +31,11 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
     return lines.join('\n')
   },
   Panel = () => {
-    const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
+    const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null),
+      dark = useSyncExternalStore(darkSubscribe, getDark, () => false)
     if (!state) return null
     return (
-      <div className='flex flex-wrap items-center gap-3 rounded-lg border bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur dark:bg-gray-900/80'>
-        <span className='font-medium'>ogrid</span>
+      <div className='flex flex-wrap items-center gap-3 bg-white/80 px-3 py-2 text-sm dark:bg-gray-900/80'>
         <span className='text-gray-500'>{String(state.layout.length)} items</span>
         <label className='flex items-center gap-1 text-xs text-gray-500'>
           Cols: {String(state.cols)}
@@ -47,6 +54,12 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
           onClick={state.toggleRings}
           type='button'>
           Rings
+        </button>
+        <button
+          className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
+          onClick={toggleDark}
+          type='button'>
+          {dark ? '☀️' : '🌙'}
         </button>
         {state.phase === 'done' && (
           <>
