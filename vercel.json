@@ -1,0 +1,6 @@
+{
+  "buildCommand": "turbo build",
+  "framework": "nextjs",
+  "installCommand": "bun i",
+  "outputDirectory": "apps/poc/.next"
+}
