@@ -221,16 +221,21 @@ const extractKeys = (children: ReactNode): string[] => {
         setGap,
         setRowHeight,
         reset: () => {
-          setCols(config?.cols ?? DEFAULT_COLS)
+          const resetCols = config?.cols ?? DEFAULT_COLS
+          setCols(resetCols)
           setGap(config?.gap ?? DEFAULT_GAP)
           setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
           positionedIdsRef.current.clear()
           resizedIdsRef.current.clear()
-          minHRef.current.clear()
           freeformLayoutRef.current = []
-          measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: null }
-          setPhase('measuring')
-          setLayout(buildLayout(itemKeys, configMap, fillSet, config?.cols ?? DEFAULT_COLS))
+          const restored = buildLayout(itemKeys, configMap, fillSet, resetCols).map(item => {
+            const minH = minHRef.current.get(item.i)
+            if (fillSet.has(item.i) || !minH) return item
+            return { ...item, h: Math.max(item.h, minH), minH }
+          })
+          const placed = computeLayoutWithCols(restored, resetCols)
+          freeformLayoutRef.current = placed
+          setLayout(placed)
         },
         toggleRings: () => setShowRings(prev => !prev)
       })
