@@ -65,6 +65,7 @@ const extractKeys = (children: ReactNode): string[] => {
       positionedIdsRef = useRef(new Set<string>()),
       resizedIdsRef = useRef(new Set<string>()),
       freeformLayoutRef = useRef<Layout>([]),
+      initialLayoutRef = useRef<Layout>([]),
       compactModeRef = useRef(false),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
@@ -113,6 +114,7 @@ const extractKeys = (children: ReactNode): string[] => {
           })
           const placed = computeLayoutWithCols(final, colsRef.current)
           freeformLayoutRef.current = placed
+          if (initialLayoutRef.current.length === 0) initialLayoutRef.current = placed
           return placed
         })
         setPhase('done')
@@ -221,27 +223,13 @@ const extractKeys = (children: ReactNode): string[] => {
         setGap,
         setRowHeight,
         reset: () => {
-          const resetCols = config?.cols ?? DEFAULT_COLS,
-            resetGap = config?.gap ?? DEFAULT_GAP,
-            resetRowHeight = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
-          setCols(resetCols)
-          setGap(resetGap)
-          setRowHeight(resetRowHeight)
+          setCols(config?.cols ?? DEFAULT_COLS)
+          setGap(config?.gap ?? DEFAULT_GAP)
+          setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
           positionedIdsRef.current.clear()
           resizedIdsRef.current.clear()
-          freeformLayoutRef.current = []
-          for (const [key, el] of cardRef.current.entries()) {
-            if (fillSet.has(key)) continue
-            minHRef.current.set(key, pxToGridH(el.scrollHeight, resetRowHeight, resetGap))
-          }
-          const restored = buildLayout(itemKeys, configMap, fillSet, resetCols).map(item => {
-            const minH = minHRef.current.get(item.i)
-            if (fillSet.has(item.i) || !minH) return item
-            return { ...item, h: Math.max(item.h, minH), minH }
-          })
-          const placed = computeLayoutWithCols(restored, resetCols)
-          freeformLayoutRef.current = placed
-          setLayout(placed)
+          freeformLayoutRef.current = initialLayoutRef.current
+          setLayout(initialLayoutRef.current)
         },
         toggleRings: () => setShowRings(prev => !prev)
       })
