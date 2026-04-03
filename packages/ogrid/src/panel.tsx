@@ -1,17 +1,20 @@
+/** biome-ignore-all lint/suspicious/noEmptyBlockStatements: intentional empty catch */
+/* eslint-disable @typescript-eslint/strict-void-return, no-empty */
 'use client'
 import { useSyncExternalStore } from 'react'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
-const darkSubscribe = (cb: () => void) => {
-  const observer = new MutationObserver(cb)
+const darkSubscribe = (onStoreChange: () => void) => {
+  const observer = new MutationObserver(onStoreChange)
   observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
   return () => observer.disconnect()
 }
 const getDark = () => document.documentElement.classList.contains('dark')
-const toggleDark = () => document.documentElement.classList.toggle('dark')
+const toggleDark = () => {
+  document.documentElement.classList.toggle('dark')
+}
 const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
-  const lines: string[] = []
-  lines.push('const grid = {')
+  const lines: string[] = ['const grid = {']
   if (state.cols !== DEFAULT_COLS) lines.push(`  cols: ${String(state.cols)},`)
   if (state.gap !== DEFAULT_GAP) lines.push(`  gap: ${String(state.gap)},`)
   if (state.rowHeight !== DEFAULT_ROW_HEIGHT) lines.push(`  rowHeight: ${String(state.rowHeight)},`)
@@ -73,7 +76,7 @@ const Panel = () => {
       </label>
       <button
         className={`px-2 py-0.5 text-xs ${state.showRings ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-        onClick={state.toggleRings}
+        onClick={() => state.toggleRings()}
         type='button'>
         Rings
       </button>
@@ -81,16 +84,18 @@ const Panel = () => {
         <>
           <button
             className='px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
-            onClick={() => {
+            onClick={async () => {
               const code = generateConfig(state)
-              navigator.clipboard.writeText(code).catch(() => {})
+              try {
+                await navigator.clipboard.writeText(code)
+              } catch {}
             }}
             type='button'>
             Copy
           </button>
           <button
             className='px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
-            onClick={state.reset}
+            onClick={() => state.reset()}
             type='button'>
             Reset
           </button>
@@ -98,7 +103,7 @@ const Panel = () => {
       )}
       <p className='grow' />
       <span className='text-gray-500'>{String(state.layout.length)} items</span>
-      <button onClick={toggleDark} type='button'>
+      <button onClick={() => toggleDark()} type='button'>
         {dark ? '☀️' : '🌙'}
       </button>
     </div>

@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
+/** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params */
+/* eslint-disable no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, @typescript-eslint/no-unsafe-argument, react-hooks/refs */
 'use client'
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
-import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
 import { twMerge } from 'tailwind-merge'
 import type { GridConfig } from './types'
@@ -27,11 +28,18 @@ interface GridProps {
   children: ReactNode
   config?: GridConfig
 }
+const KEY_PREFIX_RE = /^\.\$/u
+const flatChildren = (children: ReactNode): ReactElement[] => {
+  const result: ReactElement[] = []
+  for (const child of Array.isArray(children) ? children : [children])
+    if (Array.isArray(child)) result.push(...flatChildren(child))
+    else if (isValidElement(child)) result.push(child)
+  return result
+}
 const extractKeys = (children: ReactNode): string[] => {
   const keys: string[] = []
-  for (const child of Children.toArray(children)) {
-    if (!isValidElement(child)) continue
-    const key = (child as ReactElement).key?.replace(/^\.\$/u, '')
+  for (const child of flatChildren(children)) {
+    const key = child.key?.replace(KEY_PREFIX_RE, '')
     if (key) keys.push(key)
   }
   return keys
@@ -49,6 +57,7 @@ const DragHandle = () => (
       strokeLinejoin='round'
       strokeWidth='2'
       viewBox='0 0 24 24'>
+      <title>Drag handle</title>
       <circle cx='9' cy='5' r='1' />
       <circle cx='9' cy='12' r='1' />
       <circle cx='9' cy='19' r='1' />
@@ -254,6 +263,7 @@ const Grid = ({ children, config }: GridProps) => {
     for (const el of cardRef.current.values()) observer.observe(el)
     return () => observer.disconnect()
   }, [fillSet, gap, measureAndUpdate, rowHeight])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: gridStore sync uses all relevant state
   useEffect(() => {
     gridStore.setState({
       cols,
@@ -340,9 +350,8 @@ const Grid = ({ children, config }: GridProps) => {
   const effectiveCompactor = compact ? COMPACT : FREEFORM
   const childMap = useMemo(() => {
     const m = new Map<string, ReactNode>()
-    for (const child of Children.toArray(children)) {
-      if (!isValidElement(child)) continue
-      const key = (child as ReactElement).key?.replace(/^\.\$/u, '')
+    for (const child of flatChildren(children)) {
+      const key = child.key?.replace(KEY_PREFIX_RE, '')
       if (key) m.set(key, child)
     }
     return m

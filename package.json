@@ -10,10 +10,14 @@
   "scripts": {
     "build": "turbo build",
     "check": "lintmax check",
-    "clean": "rm -rf node_modules bun.lock .cache .turbo packages/*/node_modules apps/*/node_modules readonly/*/node_modules packages/*/dist apps/*/dist apps/*/.next",
+    "clean": "sh clean.sh",
     "dev": "turbo dev",
     "fix": "turbo build && lintmax fix",
+    "prepare": "bunx simple-git-hooks",
     "test": "turbo test"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "sh up.sh && git add -u"
   },
   "devDependencies": {
     "@types/bun": "latest",

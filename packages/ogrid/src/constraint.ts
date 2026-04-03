@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/max-params, @typescript-eslint/no-unused-vars */
 import type { LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { MAX_GUARD_FRAMES } from './constants'
 import { measureNaturalHeight, pxToGridH } from './measurement'

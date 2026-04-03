@@ -1,5 +1,5 @@
 'use client'
-import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 const outerData = [
   { fill: 'var(--chart-1)', name: 'Chrome', value: 275 },
   { fill: 'var(--chart-2)', name: 'Safari', value: 200 },
@@ -22,15 +22,8 @@ const PieChartWidget = () => (
         <PieChart>
           <Tooltip />
           <Legend />
-          <Pie data={innerData} dataKey='value' innerRadius={30} nameKey='name' outerRadius={55}>
-            {innerData.map(entry => (
-              <Cell fill={entry.fill} key={entry.name} />
-            ))}
-          </Pie>
+          <Pie data={innerData} dataKey='value' innerRadius={30} nameKey='name' outerRadius={55} />
           <Pie data={outerData} dataKey='value' innerRadius={65} label nameKey='name' outerRadius={90}>
-            {outerData.map(entry => (
-              <Cell fill={entry.fill} key={entry.name} />
-            ))}
             <Label className='fill-foreground text-2xl font-bold' position='center' value={String(TOTAL)} />
           </Pie>
         </PieChart>
