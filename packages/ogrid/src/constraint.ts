@@ -15,8 +15,8 @@ const createContentMinConstraint = (refs: ConstraintRefs) => ({
     if (refs.fillSet.has(item.i)) return { h, w }
     const el = refs.cardRef.get(item.i)
     if (!el) return { h, w }
-    const currentMinH = pxToGridH(measureNaturalHeight(el), refs.rowHeight, refs.marginY),
-      lastW = refs.lastKnownWRef.get(item.i)
+    const currentMinH = pxToGridH(measureNaturalHeight(el), refs.rowHeight, refs.marginY)
+    const lastW = refs.lastKnownWRef.get(item.i)
     let effectiveMinH = currentMinH
     if (lastW !== undefined && lastW !== w) {
       refs.previousMinHRef.set(item.i, currentMinH)

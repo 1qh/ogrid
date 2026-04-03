@@ -5,12 +5,12 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "lib/*"
+    "readonly/*"
   ],
   "scripts": {
     "build": "turbo build",
     "check": "lintmax check",
-    "clean": "rm -rf node_modules bun.lock .cache .turbo packages/*/node_modules apps/*/node_modules lib/*/node_modules packages/*/dist apps/*/dist apps/*/.next",
+    "clean": "rm -rf node_modules bun.lock .cache .turbo packages/*/node_modules apps/*/node_modules readonly/*/node_modules packages/*/dist apps/*/dist apps/*/.next",
     "dev": "turbo dev",
     "fix": "turbo build && lintmax fix",
     "test": "turbo test"

@@ -4,47 +4,47 @@ import { Input } from '@a/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@a/ui/table'
 import { useState } from 'react'
 const allRows = [
-    { email: 'alice@example.com', id: 1, name: 'Alice Johnson', role: 'Admin', status: 'Active' },
-    { email: 'bob@example.com', id: 2, name: 'Bob Smith', role: 'Editor', status: 'Active' },
-    { email: 'carol@example.com', id: 3, name: 'Carol White', role: 'Viewer', status: 'Inactive' },
-    { email: 'dave@example.com', id: 4, name: 'Dave Brown', role: 'Editor', status: 'Active' },
-    { email: 'eve@example.com', id: 5, name: 'Eve Davis', role: 'Admin', status: 'Active' },
-    { email: 'frank@example.com', id: 6, name: 'Frank Wilson', role: 'Viewer', status: 'Pending' },
-    { email: 'grace@example.com', id: 7, name: 'Grace Lee', role: 'Editor', status: 'Active' },
-    { email: 'henry@example.com', id: 8, name: 'Henry Clark', role: 'Viewer', status: 'Inactive' },
-    { email: 'ivy@example.com', id: 9, name: 'Ivy Martin', role: 'Admin', status: 'Active' },
-    { email: 'jack@example.com', id: 10, name: 'Jack Turner', role: 'Editor', status: 'Pending' }
-  ],
-  PAGE_SIZE = 5,
-  sortKeys = ['name', 'email', 'role', 'status'] as const
+  { email: 'alice@example.com', id: 1, name: 'Alice Johnson', role: 'Admin', status: 'Active' },
+  { email: 'bob@example.com', id: 2, name: 'Bob Smith', role: 'Editor', status: 'Active' },
+  { email: 'carol@example.com', id: 3, name: 'Carol White', role: 'Viewer', status: 'Inactive' },
+  { email: 'dave@example.com', id: 4, name: 'Dave Brown', role: 'Editor', status: 'Active' },
+  { email: 'eve@example.com', id: 5, name: 'Eve Davis', role: 'Admin', status: 'Active' },
+  { email: 'frank@example.com', id: 6, name: 'Frank Wilson', role: 'Viewer', status: 'Pending' },
+  { email: 'grace@example.com', id: 7, name: 'Grace Lee', role: 'Editor', status: 'Active' },
+  { email: 'henry@example.com', id: 8, name: 'Henry Clark', role: 'Viewer', status: 'Inactive' },
+  { email: 'ivy@example.com', id: 9, name: 'Ivy Martin', role: 'Admin', status: 'Active' },
+  { email: 'jack@example.com', id: 10, name: 'Jack Turner', role: 'Editor', status: 'Pending' }
+]
+const PAGE_SIZE = 5
+const sortKeys = ['name', 'email', 'role', 'status'] as const
 type SortDir = 'asc' | 'desc'
 type SortKey = (typeof sortKeys)[number]
 const DataTableWidget = () => {
-  const [filter, setFilter] = useState(''),
-    [page, setPage] = useState(0),
-    [sortKey, setSortKey] = useState<SortKey>('name'),
-    [sortDir, setSortDir] = useState<SortDir>('asc'),
-    filtered = allRows.filter(
-      r =>
-        r.name.toLowerCase().includes(filter.toLowerCase()) ||
-        r.email.toLowerCase().includes(filter.toLowerCase()) ||
-        r.role.toLowerCase().includes(filter.toLowerCase())
-    ),
-    sorted = [...filtered].toSorted((a, b) => {
-      const av = a[sortKey],
-        bv = b[sortKey]
-      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
-    }),
-    paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-    totalPages = Math.ceil(sorted.length / PAGE_SIZE),
-    handleSort = (key: SortKey) => {
-      if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-      else {
-        setSortKey(key)
-        setSortDir('asc')
-      }
-      setPage(0)
+  const [filter, setFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const filtered = allRows.filter(
+    r =>
+      r.name.toLowerCase().includes(filter.toLowerCase()) ||
+      r.email.toLowerCase().includes(filter.toLowerCase()) ||
+      r.role.toLowerCase().includes(filter.toLowerCase())
+  )
+  const sorted = [...filtered].toSorted((a, b) => {
+    const av = a[sortKey]
+    const bv = b[sortKey]
+    return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+  })
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    else {
+      setSortKey(key)
+      setSortDir('asc')
     }
+    setPage(0)
+  }
   return (
     <>
       <span className='text-sm font-medium'>Users</span>
