@@ -1,5 +1,17 @@
 'use client'
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  Legend,
+  ReferenceArea,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts'
 const data = [
     { desktop: 186, mobile: 80, month: 'Jan' },
     { desktop: 305, mobile: 200, month: 'Feb' },

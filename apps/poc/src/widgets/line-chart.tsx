@@ -1,5 +1,17 @@
 'use client'
-import { CartesianGrid, Legend, Line, LineChart, ReferenceArea, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts'
 const data = [
     { cac: 42, month: 'Jan', profit: 2400, revenue: 4000 },
     { cac: 38, month: 'Feb', profit: 1398, revenue: 3000 },
@@ -27,12 +39,43 @@ const data = [
             <YAxis orientation='right' tick={{ fontSize: 12 }} yAxisId='right' />
             <ReferenceArea fill='var(--chart-3)' fillOpacity={0.08} label='Danger' y1={0} y2={2000} yAxisId='left' />
             <ReferenceLine label='Target' stroke='var(--chart-3)' strokeDasharray='3 3' y={4000} yAxisId='left' />
-            <ReferenceDot fill='var(--chart-4)' label='Peak' r={6} stroke='var(--chart-4)' x='Mar' y={9800} yAxisId='left' />
+            <ReferenceDot
+              fill='var(--chart-4)'
+              label='Peak'
+              r={6}
+              stroke='var(--chart-4)'
+              x='Mar'
+              y={9800}
+              yAxisId='left'
+            />
             <Tooltip />
             <Legend />
-            <Line activeDot={{ r: 6 }} dataKey='revenue' dot={{ r: 3 }} stroke='var(--chart-1)' strokeWidth={2} type='monotone' yAxisId='left' />
-            <Line activeDot={{ r: 6 }} dataKey='profit' dot={{ r: 3 }} stroke='var(--chart-2)' strokeWidth={2} type='monotone' yAxisId='left' />
-            <Line dataKey='cac' stroke='var(--chart-4)' strokeDasharray='5 5' strokeWidth={1.5} type='monotone' yAxisId='right' />
+            <Line
+              activeDot={{ r: 6 }}
+              dataKey='revenue'
+              dot={{ r: 3 }}
+              stroke='var(--chart-1)'
+              strokeWidth={2}
+              type='monotone'
+              yAxisId='left'
+            />
+            <Line
+              activeDot={{ r: 6 }}
+              dataKey='profit'
+              dot={{ r: 3 }}
+              stroke='var(--chart-2)'
+              strokeWidth={2}
+              type='monotone'
+              yAxisId='left'
+            />
+            <Line
+              dataKey='cac'
+              stroke='var(--chart-4)'
+              strokeDasharray='5 5'
+              strokeWidth={1.5}
+              type='monotone'
+              yAxisId='right'
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

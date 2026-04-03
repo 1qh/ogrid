@@ -31,17 +31,17 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
   RadialChartWidget = dynamic(async () => import('~/widgets/radial-chart'), { ssr: false }),
   grid: GridConfig = {
     layout: [
-      { i: 'chart', w: 12, fill: true },
+      { fill: true, i: 'chart', w: 12 },
       { i: 'kpi', w: 12 },
-      { i: 'areachart', w: 12, fill: true },
+      { fill: true, i: 'areachart', w: 12 },
       { i: 'progress', w: 12 },
       { i: 'table', w: 16 },
       { i: 'stats', w: 8 },
-      { i: 'scroll', w: 12, fill: true },
+      { fill: true, i: 'scroll', w: 12 },
       { i: 'timeline', w: 12 },
-      { i: 'sparkline', w: 8, fill: true },
-      { i: 'linechart', w: 8, fill: true },
-      { i: 'piechart', w: 8, fill: true },
+      { fill: true, i: 'sparkline', w: 8 },
+      { fill: true, i: 'linechart', w: 8 },
+      { fill: true, i: 'piechart', w: 8 },
       { i: 'text', w: 12 },
       { i: 'layoutswitch', w: 12 },
       { i: 'async', w: 12 },
@@ -54,7 +54,7 @@ const BarChartWidget = dynamic(async () => import('~/widgets/bar-chart'), { ssr:
       { i: 'tabs', w: 12 },
       { i: 'toggles', w: 8 },
       { i: 'avatars', w: 8 },
-      { i: 'radialchart', w: 8, fill: true },
+      { fill: true, i: 'radialchart', w: 8 },
       { i: 'prose', w: 12 }
     ]
   },

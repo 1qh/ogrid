@@ -1,17 +1,15 @@
 import type { LayoutItem, ResizeHandleAxis } from 'react-grid-layout'
 import { MAX_GUARD_FRAMES } from './constants'
 import { measureNaturalHeight, pxToGridH } from './measurement'
-
-type ConstraintRefs = {
+interface ConstraintRefs {
   cardRef: Map<string, HTMLDivElement>
   fillSet: Set<string>
   lastKnownWRef: Map<string, number>
+  marginY: number
   previousMinHRef: Map<string, number>
   rowHeight: number
-  marginY: number
   transitionFrameRef: Map<string, number>
 }
-
 const createContentMinConstraint = (refs: ConstraintRefs) => ({
   constrainSize: (item: LayoutItem, w: number, h: number, _handle: ResizeHandleAxis) => {
     if (refs.fillSet.has(item.i)) return { h, w }

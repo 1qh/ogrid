@@ -1,5 +1,16 @@
 'use client'
-import { Area, AreaChart, CartesianGrid, Legend, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  ReferenceArea,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts'
 const data = [
     { month: 'Jan', sessions: 4000, users: 2400 },
     { month: 'Feb', sessions: 3000, users: 1398 },
@@ -38,8 +49,22 @@ const data = [
             <ReferenceLine label='Avg' stroke='var(--chart-5)' strokeDasharray='5 5' y={3000} />
             <Tooltip />
             <Legend />
-            <Area dataKey='sessions' fill='url(#gradSessions)' fillOpacity={1} stroke='var(--chart-1)' strokeWidth={2} type='monotone' />
-            <Area dataKey='users' fill='url(#gradUsers)' fillOpacity={1} stroke='var(--chart-2)' strokeWidth={2} type='monotone' />
+            <Area
+              dataKey='sessions'
+              fill='url(#gradSessions)'
+              fillOpacity={1}
+              stroke='var(--chart-1)'
+              strokeWidth={2}
+              type='monotone'
+            />
+            <Area
+              dataKey='users'
+              fill='url(#gradUsers)'
+              fillOpacity={1}
+              stroke='var(--chart-2)'
+              strokeWidth={2}
+              type='monotone'
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

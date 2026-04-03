@@ -628,12 +628,12 @@ The POC is built in 4 phases across 4 sessions. Each phase is one session. After
 
 ### Phase tracker
 
-| Phase | Description           | Status      |
-| ----- | --------------------- | ----------- |
-| 0     | Project scaffold      | done        |
-| A     | Go/no-go tests        | done        |
-| B     | All remaining tests   | done        |
-| C     | Scale test (25 items) | done        |
+| Phase | Description           | Status |
+| ----- | --------------------- | ------ |
+| 0     | Project scaffold      | done   |
+| A     | Go/no-go tests        | done   |
+| B     | All remaining tests   | done   |
+| C     | Scale test (25 items) | done   |
 
 ### Phase 0 — Project scaffold (done)
 
@@ -683,9 +683,10 @@ Scaffold copied from flexity. Monorepo with turbo, lintmax, Tailwind v4, lib/ui 
 - A4 Collision: preventCollision:true is the right default. Drag rejected (snap back). Resize works (including shrink). preventCollision:false pushes items unpredictably.
 
 **Key implementation details for Phase B (learned in Phase A):**
+
 - RGL v2 API: `compactor` prop (not `compactType`), `dragConfig.handle` (not `draggableHandle`), `constraints` array
 - Refs must be on inner div (RGL clones direct children via React.cloneElement, steals refs)
-- Don't use `dynamic()` for components that need initial measurement (resolves async, measurement captures near-zero height)
+- Don’t use `dynamic()` for components that need initial measurement (resolves async, measurement captures near-zero height)
 - Card div: `min-h-full` during measurement (content overflows for accurate scrollHeight), `h-full overflow-hidden` after init (clips to RGL wrapper for resize)
 - Observer stops re-measuring after initialization (`initializedRef`)
 - `handleLayoutChange` runs `computeLayout` only before init, passes through after

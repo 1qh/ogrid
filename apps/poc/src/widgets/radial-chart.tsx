@@ -16,7 +16,11 @@ const POLAR_DOMAIN = [0, 100] as const,
             <PolarAngleAxis angleAxisId={0} domain={POLAR_DOMAIN} tick={false} type='number' />
             <PolarRadiusAxis angle={90} tick={{ fontSize: 10 }} type='category' />
             <Tooltip />
-            <RadialBar cornerRadius={6} dataKey='value' label={{ fill: 'var(--foreground)', fontSize: 11, position: 'insideStart' }} />
+            <RadialBar
+              cornerRadius={6}
+              dataKey='value'
+              label={{ fill: 'var(--foreground)', fontSize: 11, position: 'insideStart' }}
+            />
             <text
               className='fill-foreground text-lg font-bold'
               dominantBaseline='middle'

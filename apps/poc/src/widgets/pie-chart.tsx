@@ -31,11 +31,7 @@ const outerData = [
               {outerData.map(entry => (
                 <Cell fill={entry.fill} key={entry.name} />
               ))}
-              <Label
-                className='fill-foreground text-2xl font-bold'
-                position='center'
-                value={String(TOTAL)}
-              />
+              <Label className='fill-foreground text-2xl font-bold' position='center' value={String(TOTAL)} />
             </Pie>
           </PieChart>
         </ResponsiveContainer>

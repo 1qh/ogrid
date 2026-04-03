@@ -1,5 +1,14 @@
 'use client'
-import { Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts'
+import {
+  Legend,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip
+} from 'recharts'
 const data = [
     { a: 120, b: 110, c: 90, subject: 'Math' },
     { a: 98, b: 130, c: 85, subject: 'Chinese' },
@@ -22,9 +31,31 @@ const data = [
             <PolarRadiusAxis angle={90} domain={[0, 140]} tick={{ fontSize: 10 }} />
             <Tooltip />
             <Legend />
-            <Radar dataKey='a' fill='var(--chart-1)' fillOpacity={0.4} name='Alice' stroke='var(--chart-1)' strokeWidth={2} />
-            <Radar dataKey='b' fill='var(--chart-2)' fillOpacity={0.4} name='Bob' stroke='var(--chart-2)' strokeWidth={2} />
-            <Radar dataKey='c' fill='var(--chart-3)' fillOpacity={0.3} name='Carol' stroke='var(--chart-3)' strokeDasharray='5 5' strokeWidth={1.5} />
+            <Radar
+              dataKey='a'
+              fill='var(--chart-1)'
+              fillOpacity={0.4}
+              name='Alice'
+              stroke='var(--chart-1)'
+              strokeWidth={2}
+            />
+            <Radar
+              dataKey='b'
+              fill='var(--chart-2)'
+              fillOpacity={0.4}
+              name='Bob'
+              stroke='var(--chart-2)'
+              strokeWidth={2}
+            />
+            <Radar
+              dataKey='c'
+              fill='var(--chart-3)'
+              fillOpacity={0.3}
+              name='Carol'
+              stroke='var(--chart-3)'
+              strokeDasharray='5 5'
+              strokeWidth={1.5}
+            />
           </RadarChart>
         </ResponsiveContainer>
       </div>

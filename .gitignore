@@ -1,7 +1,8 @@
-node_modules
-dist
+.cache
 .next
 .turbo
-.cache
-test-results
+bun.lock
+dist
 next-env.d.ts
+node_modules
+test-results

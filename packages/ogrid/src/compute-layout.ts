@@ -1,5 +1,4 @@
 import type { Layout, LayoutItem } from 'react-grid-layout'
-
 const computeLayoutWithCols = (items: Layout, cols: number): Layout => {
     const colBottoms = Array.from({ length: cols }, () => 0),
       result: LayoutItem[] = []

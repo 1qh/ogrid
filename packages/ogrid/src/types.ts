@@ -1,22 +1,19 @@
-type LayoutItem = {
-  i: string
-  w?: number
-  h?: number
-  x?: number
-  y?: number
-  minH?: number
-  minW?: number
-  className?: string
-  fill?: boolean
-}
-
-type GridLayout = readonly LayoutItem[]
-
-type GridConfig = {
+interface GridConfig {
   cols?: number
   gap?: number
-  rowHeight?: number
   layout?: GridLayout
+  rowHeight?: number
 }
-
+type GridLayout = readonly LayoutItem[]
+interface LayoutItem {
+  className?: string
+  fill?: boolean
+  h?: number
+  i: string
+  minH?: number
+  minW?: number
+  w?: number
+  x?: number
+  y?: number
+}
 export type { GridConfig, GridLayout, LayoutItem }

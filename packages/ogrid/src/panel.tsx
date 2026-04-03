@@ -2,7 +2,6 @@
 import { useSyncExternalStore } from 'react'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
-
 const darkSubscribe = (cb: () => void) => {
     const observer = new MutationObserver(cb)
     observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
@@ -35,36 +34,53 @@ const darkSubscribe = (cb: () => void) => {
       dark = useSyncExternalStore(darkSubscribe, getDark, () => false)
     if (!state) return null
     return (
-      <div className='flex flex-wrap items-center gap-3 bg-white/80 px-3 py-2 text-sm dark:bg-gray-900/80'>
-        <span className='text-gray-500'>{String(state.layout.length)} items</span>
+      <div className='flex flex-wrap items-center gap-3 px-3 py-2 text-sm'>
         <label className='flex items-center gap-1 text-xs text-gray-500'>
-          Cols: {String(state.cols)}
-          <input className='w-20' max='48' min='1' onChange={e => state.setCols(Number(e.target.value))} step='1' type='range' value={state.cols} />
+          Cols {String(state.cols)}
+          <input
+            className='w-20'
+            max='48'
+            min='1'
+            onChange={e => state.setCols(Number(e.target.value))}
+            step='1'
+            type='range'
+            value={state.cols}
+          />
         </label>
         <label className='flex items-center gap-1 text-xs text-gray-500'>
-          Gap: {String(state.gap)}
-          <input className='w-20' max='48' min='0' onChange={e => state.setGap(Number(e.target.value))} step='1' type='range' value={state.gap} />
+          Gap {String(state.gap)}
+          <input
+            className='w-20'
+            max='48'
+            min='0'
+            onChange={e => state.setGap(Number(e.target.value))}
+            step='1'
+            type='range'
+            value={state.gap}
+          />
         </label>
         <label className='flex items-center gap-1 text-xs text-gray-500'>
-          Row: {String(state.rowHeight)}
-          <input className='w-20' max='120' min='10' onChange={e => state.setRowHeight(Number(e.target.value))} step='1' type='range' value={state.rowHeight} />
+          Row {String(state.rowHeight)}
+          <input
+            className='w-20'
+            max='120'
+            min='10'
+            onChange={e => state.setRowHeight(Number(e.target.value))}
+            step='1'
+            type='range'
+            value={state.rowHeight}
+          />
         </label>
         <button
-          className={`rounded px-2 py-0.5 text-xs ${state.showRings ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+          className={`px-2 py-0.5 text-xs ${state.showRings ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           onClick={state.toggleRings}
           type='button'>
           Rings
         </button>
-        <button
-          className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
-          onClick={toggleDark}
-          type='button'>
-          {dark ? '☀️' : '🌙'}
-        </button>
         {state.phase === 'done' && (
           <>
             <button
-              className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
+              className='px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
               onClick={() => {
                 const code = generateConfig(state)
                 navigator.clipboard.writeText(code).catch(() => {})
@@ -73,13 +89,18 @@ const darkSubscribe = (cb: () => void) => {
               Copy
             </button>
             <button
-              className='rounded border px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
+              className='px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
               onClick={state.reset}
               type='button'>
               Reset
             </button>
           </>
         )}
+        <p className='grow' />
+        <span className='text-gray-500'>{String(state.layout.length)} items</span>
+        <button onClick={toggleDark} type='button'>
+          {dark ? '☀️' : '🌙'}
+        </button>
       </div>
     )
   }

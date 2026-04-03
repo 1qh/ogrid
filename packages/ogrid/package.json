@@ -16,6 +16,9 @@
   },
   "license": "MIT",
   "author": "1qh",
+  "sideEffects": [
+    "*.css"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -24,9 +27,6 @@
     },
     "./styles.css": "./dist/styles.css"
   },
-  "sideEffects": [
-    "*.css"
-  ],
   "main": "dist/index.mjs",
   "types": "dist/index.d.mts",
   "files": [

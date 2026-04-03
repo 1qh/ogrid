@@ -1,29 +1,37 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-unnecessary-use-callback, @typescript-eslint/max-params, max-statements */
+/* eslint-disable no-continue, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params */
 'use client'
+import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
-import type { GridConfig } from './types'
-import { Children, type ReactElement, type ReactNode, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
 import { twMerge } from 'tailwind-merge'
+import type { GridConfig } from './types'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
-import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT, DRAG_HANDLE_CLASS, FALLBACK_H, IDLE_TIMEOUT, MAX_TIMEOUT, RESPONSIVE_BREAKPOINT } from './constants'
+import {
+  DEFAULT_COLS,
+  DEFAULT_GAP,
+  DEFAULT_ROW_HEIGHT,
+  DRAG_HANDLE_CLASS,
+  FALLBACK_H,
+  IDLE_TIMEOUT,
+  MAX_TIMEOUT,
+  RESPONSIVE_BREAKPOINT
+} from './constants'
 import { createContentMinConstraint } from './constraint'
 import { gridStore } from './context'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
-
-type GridProps = {
+interface GridProps {
   children: ReactNode
   config?: GridConfig
 }
-
 const extractKeys = (children: ReactNode): string[] => {
     const keys: string[] = []
     for (const child of Children.toArray(children)) {
       if (!isValidElement(child)) continue
-      const key = (child as ReactElement).key?.replace(/^\.\$/, '')
+      const key = (child as ReactElement).key?.replace(/^\.\$/u, '')
       if (key) keys.push(key)
     }
     return keys
@@ -31,8 +39,16 @@ const extractKeys = (children: ReactNode): string[] => {
   FREEFORM = { ...noCompactor, preventCollision: true },
   COMPACT = { ...verticalCompactor, preventCollision: false },
   DragHandle = () => (
-    <div className={`${DRAG_HANDLE_CLASS} flex items-center justify-center rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800`}>
-      <svg className='size-4' fill='none' stroke='currentColor' strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' viewBox='0 0 24 24'>
+    <div
+      className={`${DRAG_HANDLE_CLASS} flex items-center justify-center rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800`}>
+      <svg
+        className='size-4'
+        fill='none'
+        stroke='currentColor'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        strokeWidth='2'
+        viewBox='0 0 24 24'>
         <circle cx='9' cy='5' r='1' />
         <circle cx='9' cy='12' r='1' />
         <circle cx='9' cy='19' r='1' />
@@ -42,11 +58,24 @@ const extractKeys = (children: ReactNode): string[] => {
       </svg>
     </div>
   ),
-  buildLayout = (itemKeys: string[], configMap: Map<string, { h?: number; minH?: number; minW?: number; w?: number; x?: number; y?: number }>, fillSet: Set<string>, cols: number): Layout => {
+  buildLayout = (
+    itemKeys: string[],
+    configMap: Map<string, { h?: number; minH?: number; minW?: number; w?: number; x?: number; y?: number }>,
+    fillSet: Set<string>,
+    cols: number
+  ): Layout => {
     const result: RGLLayoutItem[] = []
     for (const key of itemKeys) {
       const c = configMap.get(key)
-      result.push({ h: c?.h ?? (fillSet.has(key) ? 8 : 1), i: key, minH: c?.minH, minW: c?.minW, w: c?.w ?? cols, x: c?.x ?? 0, y: c?.y ?? 0 })
+      result.push({
+        h: c?.h ?? (fillSet.has(key) ? 8 : 1),
+        i: key,
+        minH: c?.minH,
+        minW: c?.minW,
+        w: c?.w ?? cols,
+        x: c?.x ?? 0,
+        y: c?.y ?? 0
+      })
     }
     return result
   },
@@ -68,8 +97,13 @@ const extractKeys = (children: ReactNode): string[] => {
       initialLayoutRef = useRef<Layout>([]),
       initialMinHRef = useRef(new Map<string, number>()),
       compactModeRef = useRef(false),
-      measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
-      [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
+      measureWindowRef = useRef({
+        capTimer: null as null | ReturnType<typeof setTimeout>,
+        idleTimer: null as null | ReturnType<typeof setTimeout>,
+        openedAt: 0,
+        phase: 'measuring' as 'done' | 'measuring'
+      }),
+      [phase, setPhase] = useState<'done' | 'measuring'>('measuring'),
       [compact, setCompact] = useState(false),
       [showRings, setShowRings] = useState(false),
       rafRef = useRef(0),
@@ -105,15 +139,15 @@ const extractKeys = (children: ReactNode): string[] => {
         mw.capTimer = null
         setLayout(prev => {
           const final = prev.map(item => {
-            if (fillSet.has(item.i)) return item
-            const minH = minHRef.current.get(item.i)
-            if (minH === undefined || minH <= 0) {
-              console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
-              return { ...item, h: FALLBACK_H, minH: 1 }
-            }
-            return { ...item, h: Math.max(item.h, minH), minH }
-          })
-          const placed = computeLayoutWithCols(final, colsRef.current)
+              if (fillSet.has(item.i)) return item
+              const minH = minHRef.current.get(item.i)
+              if (minH === undefined || minH <= 0) {
+                console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
+                return { ...item, h: FALLBACK_H, minH: 1 }
+              }
+              return { ...item, h: Math.max(item.h, minH), minH }
+            }),
+            placed = computeLayoutWithCols(final, colsRef.current)
           freeformLayoutRef.current = placed
           if (initialLayoutRef.current.length === 0) {
             initialLayoutRef.current = placed
@@ -146,7 +180,10 @@ const extractKeys = (children: ReactNode): string[] => {
               const p = placed[idx]
               return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
             })
-          if (!changed) { settingLayoutRef.current = false; return prev }
+          if (!changed) {
+            settingLayoutRef.current = false
+            return prev
+          }
           return placed
         })
         resetIdleTimer()
@@ -160,7 +197,9 @@ const extractKeys = (children: ReactNode): string[] => {
         if (typeof args[0] === 'string' && args[0].includes('width(-1)')) return
         originalWarn.apply(console, args)
       }
-      return () => { console.warn = originalWarn }
+      return () => {
+        console.warn = originalWarn
+      }
     }, [])
     useLayoutEffect(() => {
       const el = containerRef.current
@@ -193,39 +232,36 @@ const extractKeys = (children: ReactNode): string[] => {
       measureAndUpdate()
     }, [measureAndUpdate, width])
     useLayoutEffect(() => {
-      const mw = measureWindowRef.current
-      const observer = new ResizeObserver(entries => {
-        let changed = false
-        for (const entry of entries) {
-          const el = entry.target
-          if (!(el instanceof HTMLDivElement)) continue
-          const key = el.dataset.ogridKey
-          if (!key || fillSet.has(key)) continue
-          const gridH = pxToGridH(el.scrollHeight, rowHeight, gap),
-            prevMinH = minHRef.current.get(key)
-          if (prevMinH === gridH) continue
-          minHRef.current.set(key, gridH)
-          changed = true
-        }
-        if (changed && mw.phase === 'measuring') {
-          cancelAnimationFrame(rafRef.current)
-          rafRef.current = requestAnimationFrame(measureAndUpdate)
-        }
-      })
+      const mw = measureWindowRef.current,
+        observer = new ResizeObserver(entries => {
+          let changed = false
+          for (const entry of entries) {
+            const el = entry.target
+            if (!(el instanceof HTMLDivElement)) continue
+            const key = el.dataset.ogridKey
+            if (!key || fillSet.has(key)) continue
+            const gridH = pxToGridH(el.scrollHeight, rowHeight, gap),
+              prevMinH = minHRef.current.get(key)
+            if (prevMinH === gridH) continue
+            minHRef.current.set(key, gridH)
+            changed = true
+          }
+          if (changed && mw.phase === 'measuring') {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = requestAnimationFrame(measureAndUpdate)
+          }
+        })
       for (const el of cardRef.current.values()) observer.observe(el)
       return () => observer.disconnect()
     }, [fillSet, gap, measureAndUpdate, rowHeight])
     useEffect(() => {
       gridStore.setState({
-        cols, compact, gap, layout, phase, rowHeight, showRings,
+        cols,
+        compact,
+        gap,
+        layout,
+        phase,
         positionedIds: positionedIdsRef.current,
-        resizedIds: resizedIdsRef.current,
-        setCols: (c: number) => {
-          setCols(c)
-          setLayout(prev => computeLayoutWithCols(clampLayoutToCols(prev, c), c))
-        },
-        setGap,
-        setRowHeight,
         reset: () => {
           setCols(config?.cols ?? DEFAULT_COLS)
           setGap(config?.gap ?? DEFAULT_GAP)
@@ -237,46 +273,73 @@ const extractKeys = (children: ReactNode): string[] => {
           settingLayoutRef.current = true
           setLayout(initialLayoutRef.current)
         },
+        resizedIds: resizedIdsRef.current,
+        rowHeight,
+        setCols: (c: number) => {
+          setCols(c)
+          setLayout(prev => computeLayoutWithCols(clampLayoutToCols(prev, c), c))
+        },
+        setGap,
+        setRowHeight,
+        showRings,
         toggleRings: () => setShowRings(prev => !prev)
       })
     }, [closeMeasureWindow, cols, compact, config, configMap, fillSet, gap, itemKeys, layout, phase, rowHeight, showRings])
     const contentMinConstraint = useMemo(
-        () => createContentMinConstraint({ cardRef: cardRef.current, fillSet, lastKnownWRef: lastKnownWRef.current, marginY: gap, previousMinHRef: previousMinHRef.current, rowHeight, transitionFrameRef: transitionFrameRef.current }),
+        () =>
+          createContentMinConstraint({
+            cardRef: cardRef.current,
+            fillSet,
+            lastKnownWRef: lastKnownWRef.current,
+            marginY: gap,
+            previousMinHRef: previousMinHRef.current,
+            rowHeight,
+            transitionFrameRef: transitionFrameRef.current
+          }),
         [fillSet, gap, rowHeight]
       ),
       handleLayoutChange = useCallback(
         (newLayout: Layout) => {
           if (compactModeRef.current) return
-          if (settingLayoutRef.current) { settingLayoutRef.current = false; return }
+          if (settingLayoutRef.current) {
+            settingLayoutRef.current = false
+            return
+          }
           const enforced = newLayout.map(item => {
-            if (fillSet.has(item.i)) return item
-            const minH = minHRef.current.get(item.i) ?? item.minH ?? 1, h = Math.max(item.h, minH)
-            return { ...item, h, minH }
-          })
-          const result = measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced
+              if (fillSet.has(item.i)) return item
+              const minH = minHRef.current.get(item.i) ?? item.minH ?? 1,
+                h = Math.max(item.h, minH)
+              return { ...item, h, minH }
+            }),
+            result = measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced
           checkOverlaps(result)
           freeformLayoutRef.current = result
           setLayout(result)
         },
         [computeLayout, fillSet]
       ),
-      handleDragStop = useCallback((_layout: Layout, _oldItem: RGLLayoutItem | null, newItem: RGLLayoutItem | null) => {
+      handleDragStop = useCallback((_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
         if (newItem) positionedIdsRef.current.add(newItem.i)
       }, []),
-      handleResizeStop = useCallback((_layout: Layout, _oldItem: RGLLayoutItem | null, newItem: RGLLayoutItem | null) => {
+      handleResizeStop = useCallback((_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
         if (newItem) resizedIdsRef.current.add(newItem.i)
       }, []),
       setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
-        if (el) { el.dataset.ogridKey = key; cardRef.current.set(key, el) } else cardRef.current.delete(key)
+        if (el) {
+          el.dataset.ogridKey = key
+          cardRef.current.set(key, el)
+        } else cardRef.current.delete(key)
       }, []),
       isFreeform = phase === 'done' && !compact,
-      effectiveLayout = compact ? clampLayoutToCols(freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout, cols) : layout,
+      effectiveLayout = compact
+        ? clampLayoutToCols(freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout, cols)
+        : layout,
       effectiveCompactor = compact ? COMPACT : FREEFORM,
       childMap = useMemo(() => {
         const m = new Map<string, ReactNode>()
         for (const child of Children.toArray(children)) {
           if (!isValidElement(child)) continue
-          const key = (child as ReactElement).key?.replace(/^\.\$/, '')
+          const key = (child as ReactElement).key?.replace(/^\.\$/u, '')
           if (key) m.set(key, child)
         }
         return m
@@ -300,9 +363,15 @@ const extractKeys = (children: ReactNode): string[] => {
               style={phase === 'measuring' ? { transition: 'none' } : undefined}
               width={width}>
               {itemKeys.map(key => (
-                <div className={`h-full rounded-lg ring-1 transition-shadow ${showRings ? 'ring-ring' : 'ring-ring/0 hover:ring-ring'}`} key={key}>
+                <div
+                  className={`h-full rounded-lg ring-1 transition-shadow ${showRings ? 'ring-ring' : 'ring-ring/0 hover:ring-ring'}`}
+                  key={key}>
                   <div
-                    className={twMerge('relative flex flex-col', phase === 'done' ? 'h-full overflow-auto' : 'min-h-full', classNameMap.get(key))}
+                    className={twMerge(
+                      'relative flex flex-col',
+                      phase === 'done' ? 'h-full overflow-auto' : 'min-h-full',
+                      classNameMap.get(key)
+                    )}
                     ref={el => setCardRef(key, el)}>
                     <div className='absolute right-1 top-1 z-10'>
                       <DragHandle />
