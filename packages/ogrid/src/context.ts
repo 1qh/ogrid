@@ -9,10 +9,12 @@ type GridStoreState = {
   positionedIds: ReadonlySet<string>
   resizedIds: ReadonlySet<string>
   rowHeight: number
+  showRings: boolean
   setCols: (cols: number) => void
   setGap: (gap: number) => void
   setRowHeight: (rowHeight: number) => void
   reset: () => void
+  toggleRings: () => void
 }
 
 let state: GridStoreState | null = null

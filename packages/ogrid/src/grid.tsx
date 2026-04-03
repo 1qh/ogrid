@@ -69,6 +69,7 @@ const extractKeys = (children: ReactNode): string[] => {
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
       [compact, setCompact] = useState(false),
+      [showRings, setShowRings] = useState(false),
       rafRef = useRef(0),
       [width, setWidth] = useState(0),
       itemKeys = useMemo(() => extractKeys(children), [children]),
@@ -210,7 +211,7 @@ const extractKeys = (children: ReactNode): string[] => {
     }, [fillSet, gap, measureAndUpdate, rowHeight])
     useEffect(() => {
       gridStore.setState({
-        cols, compact, gap, layout, phase, rowHeight,
+        cols, compact, gap, layout, phase, rowHeight, showRings,
         positionedIds: positionedIdsRef.current,
         resizedIds: resizedIdsRef.current,
         setCols: (c: number) => {
@@ -230,9 +231,10 @@ const extractKeys = (children: ReactNode): string[] => {
           measureWindowRef.current = { phase: 'measuring', openedAt: performance.now(), idleTimer: null, capTimer: null }
           setPhase('measuring')
           setLayout(buildLayout(itemKeys, configMap, fillSet, config?.cols ?? DEFAULT_COLS))
-        }
+        },
+        toggleRings: () => setShowRings(prev => !prev)
       })
-    }, [closeMeasureWindow, cols, compact, config, configMap, fillSet, gap, itemKeys, layout, phase, rowHeight])
+    }, [closeMeasureWindow, cols, compact, config, configMap, fillSet, gap, itemKeys, layout, phase, rowHeight, showRings])
     const contentMinConstraint = useMemo(
         () => createContentMinConstraint({ cardRef: cardRef.current, fillSet, lastKnownWRef: lastKnownWRef.current, marginY: gap, previousMinHRef: previousMinHRef.current, rowHeight, transitionFrameRef: transitionFrameRef.current }),
         [fillSet, gap, rowHeight]
@@ -293,7 +295,7 @@ const extractKeys = (children: ReactNode): string[] => {
               style={phase === 'measuring' ? { transition: 'none' } : undefined}
               width={width}>
               {itemKeys.map(key => (
-                <div className='h-full rounded-lg ring-ring/0 ring-1 transition-shadow hover:ring-ring' key={key}>
+                <div className={`h-full rounded-lg ring-1 transition-shadow ${showRings ? 'ring-ring' : 'ring-ring/0 hover:ring-ring'}`} key={key}>
                   <div
                     className={twMerge('relative flex flex-col', phase === 'done' ? 'h-full overflow-auto' : 'min-h-full', classNameMap.get(key))}
                     ref={el => setCardRef(key, el)}>

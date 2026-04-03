@@ -66,6 +66,12 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
             value={state.rowHeight}
           />
         </label>
+        <button
+          className={`rounded px-2 py-0.5 text-xs ${state.showRings ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+          onClick={state.toggleRings}
+          type='button'>
+          Rings
+        </button>
         {state.phase === 'done' && (
           <>
             <button
