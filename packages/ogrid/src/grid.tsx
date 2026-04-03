@@ -66,6 +66,7 @@ const extractKeys = (children: ReactNode): string[] => {
       resizedIdsRef = useRef(new Set<string>()),
       freeformLayoutRef = useRef<Layout>([]),
       initialLayoutRef = useRef<Layout>([]),
+      initialMinHRef = useRef(new Map<string, number>()),
       compactModeRef = useRef(false),
       measureWindowRef = useRef({ phase: 'measuring' as 'measuring' | 'done', openedAt: 0, idleTimer: null as ReturnType<typeof setTimeout> | null, capTimer: null as ReturnType<typeof setTimeout> | null }),
       [phase, setPhase] = useState<'measuring' | 'done'>('measuring'),
@@ -114,7 +115,10 @@ const extractKeys = (children: ReactNode): string[] => {
           })
           const placed = computeLayoutWithCols(final, colsRef.current)
           freeformLayoutRef.current = placed
-          if (initialLayoutRef.current.length === 0) initialLayoutRef.current = placed
+          if (initialLayoutRef.current.length === 0) {
+            initialLayoutRef.current = placed
+            initialMinHRef.current = new Map(minHRef.current)
+          }
           return placed
         })
         setPhase('done')
@@ -228,7 +232,9 @@ const extractKeys = (children: ReactNode): string[] => {
           setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
           positionedIdsRef.current.clear()
           resizedIdsRef.current.clear()
+          minHRef.current = new Map(initialMinHRef.current)
           freeformLayoutRef.current = initialLayoutRef.current
+          settingLayoutRef.current = true
           setLayout(initialLayoutRef.current)
         },
         toggleRings: () => setShowRings(prev => !prev)
