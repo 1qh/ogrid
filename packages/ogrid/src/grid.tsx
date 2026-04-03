@@ -221,13 +221,19 @@ const extractKeys = (children: ReactNode): string[] => {
         setGap,
         setRowHeight,
         reset: () => {
-          const resetCols = config?.cols ?? DEFAULT_COLS
+          const resetCols = config?.cols ?? DEFAULT_COLS,
+            resetGap = config?.gap ?? DEFAULT_GAP,
+            resetRowHeight = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
           setCols(resetCols)
-          setGap(config?.gap ?? DEFAULT_GAP)
-          setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
+          setGap(resetGap)
+          setRowHeight(resetRowHeight)
           positionedIdsRef.current.clear()
           resizedIdsRef.current.clear()
           freeformLayoutRef.current = []
+          for (const [key, el] of cardRef.current.entries()) {
+            if (fillSet.has(key)) continue
+            minHRef.current.set(key, pxToGridH(el.scrollHeight, resetRowHeight, resetGap))
+          }
           const restored = buildLayout(itemKeys, configMap, fillSet, resetCols).map(item => {
             const minH = minHRef.current.get(item.i)
             if (fillSet.has(item.i) || !minH) return item
