@@ -8,11 +8,11 @@
     "readonly/*"
   ],
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --output-logs=errors-only",
     "check": "lintmax check",
     "clean": "sh clean.sh",
     "dev": "turbo dev",
-    "fix": "turbo build && lintmax fix",
+    "fix": "turbo build --output-logs=errors-only && lintmax fix",
     "prepare": "bunx simple-git-hooks",
     "test": "turbo test"
   },
