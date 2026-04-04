@@ -41,15 +41,6 @@
     "react-grid-layout": "latest",
     "tailwind-merge": "latest"
   },
-  "devDependencies": {
-    "@happy-dom/global-registrator": "latest",
-    "@testing-library/react": "latest",
-    "bun-types": "latest",
-    "happy-dom": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tsdown": "latest"
-  },
   "peerDependencies": {
     "react": ">=19",
     "react-dom": ">=19",

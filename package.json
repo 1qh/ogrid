@@ -13,6 +13,7 @@
     "clean": "sh clean.sh",
     "dev": "turbo dev",
     "fix": "turbo build --output-logs=errors-only && lintmax fix",
+    "postinstall": "sherif",
     "prepare": "bunx simple-git-hooks",
     "test": "turbo test"
   },
@@ -20,8 +21,16 @@
     "pre-commit": "sh up.sh && git add -u"
   },
   "devDependencies": {
+    "@happy-dom/global-registrator": "latest",
+    "@testing-library/react": "latest",
     "@types/bun": "latest",
+    "bun-types": "latest",
+    "happy-dom": "latest",
     "lintmax": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "sherif": "latest",
+    "tsdown": "latest",
     "turbo": "latest",
     "typescript": "latest"
   },
