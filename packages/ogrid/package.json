@@ -1,6 +1,6 @@
 {
   "name": "ogrid",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A content-aware dashboard grid for React. Zero config. Full control.",
   "keywords": [
     "react",
