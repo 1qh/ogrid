@@ -7,8 +7,8 @@ import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
 import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
-import { twMerge } from 'tailwind-merge'
 import type { GridConfig } from './types'
+import { cn } from './cn'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
 import {
   DEFAULT_COLS,
@@ -416,10 +416,13 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
             width={width}>
             {itemKeys.map(key => (
               <div
-                className={`h-full rounded-lg ring-1 transition-shadow ${showRings && editable ? 'ring-ring' : editable ? 'ring-ring/0 hover:ring-ring' : 'ring-ring/0'}`}
+                className={cn(
+                  'h-full rounded-lg ring-1 transition-shadow',
+                  showRings && editable ? 'ring-ring' : editable ? 'ring-ring/0 hover:ring-ring' : 'ring-ring/0'
+                )}
                 key={key}>
                 <div
-                  className={twMerge(
+                  className={cn(
                     'relative flex flex-col',
                     phase === 'done' ? 'h-full overflow-auto' : 'min-h-full',
                     classNameMap.get(key)

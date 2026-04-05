@@ -3,6 +3,7 @@
 'use client'
 import type { ReactNode } from 'react'
 import { useSyncExternalStore } from 'react'
+import { cn } from './cn'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
 const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
@@ -70,7 +71,12 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             />
           </label>
           <button
-            className={`px-2 py-0.5 text-xs ${state.showRings ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'border hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+            className={cn(
+              'px-2 py-0.5 text-xs',
+              state.showRings
+                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                : 'border hover:bg-gray-100 dark:hover:bg-gray-800'
+            )}
             onClick={() => state.toggleRings()}
             type='button'>
             Rings

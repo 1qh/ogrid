@@ -40,6 +40,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "clsx": "latest",
     "react-grid-layout": "latest",
     "tailwind-merge": "latest"
   },
