@@ -7,6 +7,7 @@ interface GridStoreState {
   layout: Layout
   phase: 'done' | 'measuring'
   positionedIds: ReadonlySet<string>
+  reset: () => void
   resizedIds: ReadonlySet<string>
   rowHeight: number
   setCols: (cols: number) => void

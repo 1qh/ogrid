@@ -25,11 +25,15 @@ import { gridStore } from './context'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
 import { toGridConfig } from './use-grid-config'
-interface GridProps {
+interface GridInnerProps {
   children: ReactNode
   config?: GridConfig
   editable?: boolean
   onConfigChange?: (config: GridConfig) => void
+}
+interface GridProps extends GridInnerProps {
+  id?: string
+  persist?: boolean
 }
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
@@ -91,7 +95,7 @@ const buildLayout = (
   }
   return result
 }
-const Grid = ({ children, config, editable = false, onConfigChange }: GridProps) => {
+const GridInner = ({ children, config, editable = false, onConfigChange }: GridInnerProps) => {
   const [cols, setCols] = useState(config?.cols ?? DEFAULT_COLS)
   const [gap, setGap] = useState(config?.gap ?? DEFAULT_GAP)
   const [rowHeight, setRowHeight] = useState(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
@@ -436,6 +440,55 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
         </div>
       )}
     </div>
+  )
+}
+const STORAGE_PREFIX = 'ogrid:'
+const readStorage = (id: string): GridConfig | null => {
+  try {
+    const raw = globalThis.localStorage.getItem(STORAGE_PREFIX + id)
+    return raw ? (JSON.parse(raw) as GridConfig) : null
+  } catch {
+    return null
+  }
+}
+const writeStorage = (id: string, config: GridConfig) => {
+  try {
+    globalThis.localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(config))
+  } catch {
+    /* SSR */
+  }
+}
+const clearStorage = (id: string) => {
+  try {
+    globalThis.localStorage.removeItem(STORAGE_PREFIX + id)
+  } catch {
+    /* SSR */
+  }
+}
+const Grid = ({ children, config, editable = false, id, onConfigChange, persist = false }: GridProps) => {
+  const [resetCount, setResetCount] = useState(0)
+  const saved = persist && id ? readStorage(id) : null
+  const effectiveConfig = saved ?? config
+  const handleConfigChange = useCallback(
+    (c: GridConfig) => {
+      if (persist && id) writeStorage(id, c)
+      onConfigChange?.(c)
+    },
+    [id, onConfigChange, persist]
+  )
+  const resetRef = useRef<() => void>(undefined)
+  resetRef.current = () => {
+    if (persist && id) clearStorage(id)
+    setResetCount(c => c + 1)
+  }
+  useEffect(() => {
+    const prev = gridStore.getSnapshot()
+    if (prev) gridStore.setState({ ...prev, reset: () => resetRef.current?.() })
+  }, [])
+  return (
+    <GridInner config={effectiveConfig} editable={editable} key={resetCount} onConfigChange={handleConfigChange}>
+      {children}
+    </GridInner>
   )
 }
 Grid.Panel = Panel

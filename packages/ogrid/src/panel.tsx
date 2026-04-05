@@ -88,6 +88,12 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
               Copy
             </button>
           ) : null}
+          <button
+            className='px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800'
+            onClick={() => state.reset()}
+            type='button'>
+            Reset
+          </button>
           <p className='grow' />
           {trailing}
           <span className='text-gray-500'>{String(state.layout.length)} items</span>

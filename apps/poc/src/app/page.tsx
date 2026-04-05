@@ -1,14 +1,14 @@
-/* oxlint-disable import/no-unassigned-import */
+/** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG */
+/* oxlint-disable import/no-unassigned-import, jsx-no-jsx-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Switch } from '@a/ui/switch'
-import { atom, useAtom } from 'jotai'
-import { atomWithStorage } from 'jotai/utils'
-import { Moon, RotateCcw, Sun } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Grid } from 'ogrid'
 import 'ogrid/styles.css'
+import { useState } from 'react'
 import Accordion from '~/widgets/accordion'
 import AsyncTable from '~/widgets/async-table'
 import Avatars from '~/widgets/avatars'
@@ -34,7 +34,7 @@ const AreaChartWidget = dynamic(async () => import('~/widgets/area-chart'), { ss
 const LineChartWidget = dynamic(async () => import('~/widgets/line-chart'), { ssr: false })
 const PieChartWidget = dynamic(async () => import('~/widgets/pie-chart'), { ssr: false })
 const RadialChartWidget = dynamic(async () => import('~/widgets/radial-chart'), { ssr: false })
-const defaultConfig: GridConfig = {
+const config: GridConfig = {
   layout: [
     { fill: true, i: 'chart', w: 12 },
     { i: 'kpi', w: 12 },
@@ -63,44 +63,25 @@ const defaultConfig: GridConfig = {
     { i: 'prose', w: 12 }
   ]
 }
-const editingAtom = atom(false)
-const savedConfigAtom = atomWithStorage<GridConfig | null>('ogrid-poc-config', null)
-const resetCountAtom = atom(0)
 const Page = () => {
-  const [editing, setEditing] = useAtom(editingAtom)
-  const [savedConfig, setSavedConfig] = useAtom(savedConfigAtom)
-  const [resetCount, setResetCount] = useAtom(resetCountAtom)
+  const [editing, setEditing] = useState(false)
   const { setTheme, theme } = useTheme()
-  const config = savedConfig ?? defaultConfig
   return (
     <>
       <Grid.Panel
         trailing={
-          <>
-            {editing && savedConfig ? (
-              <button
-                className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
-                onClick={() => {
-                  setSavedConfig(null)
-                  setResetCount(c => c + 1)
-                }}
-                type='button'>
-                <RotateCcw className='size-4' />
-              </button>
-            ) : null}
-            <button
-              className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              type='button'>
-              {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
-            </button>
-          </>
+          <button
+            className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            type='button'>
+            {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
+          </button>
         }>
         <Switch checked={editing} onCheckedChange={setEditing} />
         <span className='text-sm text-muted-foreground'>{editing ? 'Editing' : 'Viewing'}</span>
       </Grid.Panel>
       <div className='px-4'>
-        <Grid config={config} editable={editing} key={resetCount} onConfigChange={setSavedConfig}>
+        <Grid config={config} editable={editing} id='poc' persist>
           <BarChartWidget key='chart' />
           <KpiCard key='kpi' />
           <AreaChartWidget key='areachart' />
