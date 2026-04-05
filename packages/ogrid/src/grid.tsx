@@ -29,7 +29,7 @@ interface GridProps {
   children: ReactNode
   config?: GridConfig
   editable?: boolean
-  onConfigChange?: (config: GridConfig) => void
+  onConfigChange?: (config: GridConfig | null) => void
 }
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
@@ -142,27 +142,13 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
   const [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols))
-  const prevConfigRef = useRef(config)
-  useEffect(() => {
-    if (prevConfigRef.current === config) return
-    prevConfigRef.current = config
-    const c = config?.cols ?? DEFAULT_COLS
-    const g = config?.gap ?? DEFAULT_GAP
-    const rh = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
-    setCols(c)
-    setGap(g)
-    setRowHeight(rh)
-    const newLayout = buildLayout(itemKeys, configMap, fillSet, c)
-    const placed = computeLayoutWithCols(newLayout, c)
-    freeformLayoutRef.current = placed
-    settingLayoutRef.current = true
-    setLayout(placed)
-  }, [config, configMap, fillSet, itemKeys])
   const emitConfigChange = useCallback(
     (l: Layout) => {
-      onConfigChangeRef.current?.(
-        toGridConfig({ cols: colsRef.current, fillSet, gap: gapRef.current, layout: l, rowHeight: rowHeightRef.current })
-      )
+      queueMicrotask(() => {
+        onConfigChangeRef.current?.(
+          toGridConfig({ cols: colsRef.current, fillSet, gap: gapRef.current, layout: l, rowHeight: rowHeightRef.current })
+        )
+      })
     },
     [fillSet]
   )
@@ -303,21 +289,15 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
       phase,
       positionedIds: positionedIdsRef.current,
       reset: () => {
-        const c = config?.cols ?? DEFAULT_COLS
-        const g = config?.gap ?? DEFAULT_GAP
-        const rh = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
-        setCols(c)
-        setGap(g)
-        setRowHeight(rh)
+        setCols(config?.cols ?? DEFAULT_COLS)
+        setGap(config?.gap ?? DEFAULT_GAP)
+        setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
         positionedIdsRef.current.clear()
         resizedIdsRef.current.clear()
         minHRef.current = new Map(initialMinHRef.current)
         freeformLayoutRef.current = initialLayoutRef.current
         settingLayoutRef.current = true
         setLayout(initialLayoutRef.current)
-        onConfigChangeRef.current?.(
-          toGridConfig({ cols: c, fillSet, gap: g, layout: initialLayoutRef.current, rowHeight: rh })
-        )
       },
       resizedIds: resizedIdsRef.current,
       rowHeight,
@@ -325,35 +305,18 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
         setCols(c)
         setLayout(prev => {
           const next = computeLayoutWithCols(clampLayoutToCols(prev, c), c)
-          onConfigChangeRef.current?.(
-            toGridConfig({ cols: c, fillSet, gap: gapRef.current, layout: next, rowHeight: rowHeightRef.current })
-          )
+          freeformLayoutRef.current = next
+          emitConfigChange(next)
           return next
         })
       },
       setGap: (g: number) => {
         setGap(g)
-        onConfigChangeRef.current?.(
-          toGridConfig({
-            cols: colsRef.current,
-            fillSet,
-            gap: g,
-            layout: freeformLayoutRef.current,
-            rowHeight: rowHeightRef.current
-          })
-        )
+        emitConfigChange(freeformLayoutRef.current)
       },
       setRowHeight: (rh: number) => {
         setRowHeight(rh)
-        onConfigChangeRef.current?.(
-          toGridConfig({
-            cols: colsRef.current,
-            fillSet,
-            gap: gapRef.current,
-            layout: freeformLayoutRef.current,
-            rowHeight: rh
-          })
-        )
+        emitConfigChange(freeformLayoutRef.current)
       },
       showRings,
       toggleRings: () => setShowRings(prev => !prev)
@@ -365,6 +328,7 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
     config,
     configMap,
     editable,
+    emitConfigChange,
     fillSet,
     gap,
     itemKeys,

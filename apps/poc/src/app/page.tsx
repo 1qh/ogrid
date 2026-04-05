@@ -1,15 +1,14 @@
-/** biome-ignore-all lint/suspicious/noEmptyBlockStatements: intentional empty catch */
 /* oxlint-disable import/no-unassigned-import */
 'use client'
 import type { GridConfig } from 'ogrid'
-import { Button } from '@a/ui/button'
-import { ToggleGroup, ToggleGroupItem } from '@a/ui/toggle-group'
+import { Switch } from '@a/ui/switch'
 import { atom, useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
+import { Moon, RotateCcw, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
-import { Grid, useGridConfig, useGridReset } from 'ogrid'
+import { Grid } from 'ogrid'
 import 'ogrid/styles.css'
-import { useMemo } from 'react'
 import Accordion from '~/widgets/accordion'
 import AsyncTable from '~/widgets/async-table'
 import Avatars from '~/widgets/avatars'
@@ -64,123 +63,72 @@ const defaultConfig: GridConfig = {
     { i: 'prose', w: 12 }
   ]
 }
-const chartsOnlyConfig: GridConfig = {
-  cols: 12,
-  gap: 24,
-  layout: [
-    { fill: true, i: 'chart', w: 6 },
-    { fill: true, i: 'areachart', w: 6 },
-    { fill: true, i: 'sparkline', w: 4 },
-    { fill: true, i: 'linechart', w: 4 },
-    { fill: true, i: 'piechart', w: 4 },
-    { fill: true, i: 'radialchart', w: 6 },
-    { i: 'kpi', w: 6 }
-  ]
-}
-const compactConfig: GridConfig = {
-  cols: 12,
-  gap: 8,
-  layout: [
-    { i: 'kpi', w: 12 },
-    { i: 'stats', w: 12 },
-    { i: 'progress', w: 6 },
-    { i: 'badges', w: 6 },
-    { i: 'timeline', w: 12 },
-    { i: 'table', w: 12 },
-    { i: 'accordion', w: 12 }
-  ],
-  rowHeight: 40
-}
-const presets: Record<string, GridConfig> = {
-  charts: chartsOnlyConfig,
-  compact: compactConfig,
-  default: defaultConfig
-}
 const editingAtom = atom(false)
-const presetAtom = atomWithStorage('ogrid-poc-preset', 'default')
 const savedConfigAtom = atomWithStorage<GridConfig | null>('ogrid-poc-config', null)
-const LiveConfig = () => {
-  const config = useGridConfig()
-  if (!config) return <span className='text-xs text-muted-foreground'>measuring...</span>
-  return (
-    <span className='font-mono text-xs text-muted-foreground'>
-      {config.layout?.length ?? 0} items · {String(config.cols ?? 24)} cols · {String(config.gap ?? 16)}px gap
-    </span>
-  )
-}
-const ResetButton = () => {
-  const reset = useGridReset()
-  if (!reset) return null
-  return (
-    <Button onClick={reset} size='sm' variant='outline'>
-      Reset
-    </Button>
-  )
-}
+const resetCountAtom = atom(0)
 const Page = () => {
   const [editing, setEditing] = useAtom(editingAtom)
-  const [preset, setPreset] = useAtom(presetAtom)
   const [savedConfig, setSavedConfig] = useAtom(savedConfigAtom)
-  const config = useMemo(() => savedConfig ?? presets[preset] ?? defaultConfig, [savedConfig, preset])
-  const presetValue = useMemo(() => [preset], [preset])
+  const [resetCount, setResetCount] = useAtom(resetCountAtom)
+  const { setTheme, theme } = useTheme()
+  const config = savedConfig ?? defaultConfig
   return (
-    <div className='flex flex-col gap-4 p-4'>
-      <div className='flex flex-wrap items-center gap-3'>
-        <Button onClick={() => setEditing(p => !p)} size='sm' variant={editing ? 'default' : 'outline'}>
-          {editing ? 'Done' : 'Customize'}
-        </Button>
-        {editing ? <ResetButton /> : null}
-        {savedConfig ? (
-          <Button onClick={() => setSavedConfig(null)} size='sm' variant='ghost'>
-            Clear saved
-          </Button>
-        ) : null}
-        <ToggleGroup
-          onValueChange={v => {
-            const val = v[0]
-            if (!val) return
-            setPreset(val)
-            setSavedConfig(null)
-          }}
-          size='sm'
-          value={presetValue}
-          variant='outline'>
-          <ToggleGroupItem value='default'>Full</ToggleGroupItem>
-          <ToggleGroupItem value='charts'>Charts</ToggleGroupItem>
-          <ToggleGroupItem value='compact'>Compact</ToggleGroupItem>
-        </ToggleGroup>
-        <LiveConfig />
-        {savedConfig ? <span className='text-xs text-primary'>● saved</span> : null}
+    <>
+      <Grid.Panel
+        trailing={
+          <>
+            {editing && savedConfig ? (
+              <button
+                className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
+                onClick={() => {
+                  setSavedConfig(null)
+                  setResetCount(c => c + 1)
+                }}
+                type='button'>
+                <RotateCcw className='size-4' />
+              </button>
+            ) : null}
+            <button
+              className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              type='button'>
+              {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
+            </button>
+          </>
+        }>
+        <Switch checked={editing} onCheckedChange={setEditing} />
+        <span className='text-sm text-muted-foreground'>{editing ? 'Editing' : 'Viewing'}</span>
+      </Grid.Panel>
+      <div className='px-4'>
+        <Grid config={config} editable={editing} key={resetCount} onConfigChange={setSavedConfig}>
+          <BarChartWidget key='chart' />
+          <KpiCard key='kpi' />
+          <AreaChartWidget key='areachart' />
+          <ProgressBars key='progress' />
+          <DataTableWidget key='table' />
+          <StatsGrid key='stats' />
+          <ScrollContent key='scroll' />
+          <Timeline key='timeline' />
+          <SparklineWidget key='sparkline' />
+          <LineChartWidget key='linechart' />
+          <PieChartWidget key='piechart' />
+          <TextWidget key='text' />
+          <LayoutSwitchWidget key='layoutswitch' />
+          <AsyncTable key='async' />
+          <Accordion key='accordion' />
+          <Badges key='badges' />
+          <CalendarWidget key='calendar' />
+          <CheckboxWidget key='checkbox' />
+          <FormWidget key='form' />
+          <Separator key='separator' />
+          <TabsPanel key='tabs' />
+          <ToggleGroupWidget key='toggles' />
+          <Avatars key='avatars' />
+          <RadialChartWidget key='radialchart' />
+          <Prose key='prose' />
+        </Grid>
       </div>
-      <Grid.Panel />
-      <Grid config={config} editable={editing} onConfigChange={setSavedConfig}>
-        <BarChartWidget key='chart' />
-        <KpiCard key='kpi' />
-        <AreaChartWidget key='areachart' />
-        <ProgressBars key='progress' />
-        <DataTableWidget key='table' />
-        <StatsGrid key='stats' />
-        <ScrollContent key='scroll' />
-        <Timeline key='timeline' />
-        <SparklineWidget key='sparkline' />
-        <LineChartWidget key='linechart' />
-        <PieChartWidget key='piechart' />
-        <TextWidget key='text' />
-        <LayoutSwitchWidget key='layoutswitch' />
-        <AsyncTable key='async' />
-        <Accordion key='accordion' />
-        <Badges key='badges' />
-        <CalendarWidget key='calendar' />
-        <CheckboxWidget key='checkbox' />
-        <FormWidget key='form' />
-        <Separator key='separator' />
-        <TabsPanel key='tabs' />
-        <ToggleGroupWidget key='toggles' />
-        <Avatars key='avatars' />
-        <RadialChartWidget key='radialchart' />
-        <Prose key='prose' />
-      </Grid>
-    </div>
+    </>
   )
 }
 export default Page
