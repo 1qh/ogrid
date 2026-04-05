@@ -34,8 +34,4 @@ const useGridConfig = (): GridConfig | null => {
   if (state?.phase !== 'done') return null
   return toGridConfig({ cols: state.cols, gap: state.gap, layout: state.layout, rowHeight: state.rowHeight })
 }
-const useGridReset = (): (() => void) | null => {
-  const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
-  return state?.reset ?? null
-}
-export { toGridConfig, useGridConfig, useGridReset }
+export { toGridConfig, useGridConfig }

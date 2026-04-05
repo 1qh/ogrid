@@ -29,7 +29,7 @@ interface GridProps {
   children: ReactNode
   config?: GridConfig
   editable?: boolean
-  onConfigChange?: (config: GridConfig | null) => void
+  onConfigChange?: (config: GridConfig) => void
 }
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
@@ -288,17 +288,6 @@ const Grid = ({ children, config, editable = false, onConfigChange }: GridProps)
       layout,
       phase,
       positionedIds: positionedIdsRef.current,
-      reset: () => {
-        setCols(config?.cols ?? DEFAULT_COLS)
-        setGap(config?.gap ?? DEFAULT_GAP)
-        setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
-        positionedIdsRef.current.clear()
-        resizedIdsRef.current.clear()
-        minHRef.current = new Map(initialMinHRef.current)
-        freeformLayoutRef.current = initialLayoutRef.current
-        settingLayoutRef.current = true
-        setLayout(initialLayoutRef.current)
-      },
       resizedIds: resizedIdsRef.current,
       rowHeight,
       setCols: (c: number) => {
