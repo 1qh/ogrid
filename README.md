@@ -155,7 +155,6 @@ const config = useGridConfig()
 ## Built on
 
 - [react-grid-layout](https://github.com/1qh/react-grid-layout) — the battle-tested layout engine that handles drag, resize, collision detection, and smooth animations
-- [tailwind-merge](https://github.com/dcastil/tailwind-merge) — intelligent Tailwind class merging for cell styling
 
 ## License
 
