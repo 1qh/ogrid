@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
-/* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop */
-/* eslint-disable no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, @typescript-eslint/no-unsafe-argument, react-hooks/refs */
+/* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop, complexity */
+/* eslint-disable no-continue, no-console, complexity, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, @typescript-eslint/no-unsafe-argument, react-hooks/refs */
 'use client'
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
@@ -24,9 +24,12 @@ import { createContentMinConstraint } from './constraint'
 import { gridStore } from './context'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
+import { toGridConfig } from './use-grid-config'
 interface GridProps {
   children: ReactNode
   config?: GridConfig
+  editable?: boolean
+  onConfigChange?: (config: GridConfig) => void
 }
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
@@ -88,11 +91,13 @@ const buildLayout = (
   }
   return result
 }
-const Grid = ({ children, config }: GridProps) => {
+const Grid = ({ children, config, editable = false, onConfigChange }: GridProps) => {
   const [cols, setCols] = useState(config?.cols ?? DEFAULT_COLS)
   const [gap, setGap] = useState(config?.gap ?? DEFAULT_GAP)
   const [rowHeight, setRowHeight] = useState(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
   const margin: readonly [number, number] = useMemo(() => [gap, gap], [gap])
+  const onConfigChangeRef = useRef(onConfigChange)
+  onConfigChangeRef.current = onConfigChange
   const containerRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef(new Map<string, HTMLDivElement>())
   const minHRef = useRef(new Map<string, number>())
@@ -137,6 +142,30 @@ const Grid = ({ children, config }: GridProps) => {
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
   const [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols))
+  const prevConfigRef = useRef(config)
+  useEffect(() => {
+    if (prevConfigRef.current === config) return
+    prevConfigRef.current = config
+    const c = config?.cols ?? DEFAULT_COLS
+    const g = config?.gap ?? DEFAULT_GAP
+    const rh = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
+    setCols(c)
+    setGap(g)
+    setRowHeight(rh)
+    const newLayout = buildLayout(itemKeys, configMap, fillSet, c)
+    const placed = computeLayoutWithCols(newLayout, c)
+    freeformLayoutRef.current = placed
+    settingLayoutRef.current = true
+    setLayout(placed)
+  }, [config, configMap, fillSet, itemKeys])
+  const emitConfigChange = useCallback(
+    (l: Layout) => {
+      onConfigChangeRef.current?.(
+        toGridConfig({ cols: colsRef.current, fillSet, gap: gapRef.current, layout: l, rowHeight: rowHeightRef.current })
+      )
+    },
+    [fillSet]
+  )
   const computeLayout = useCallback((items: Layout): Layout => computeLayoutWithCols(items, colsRef.current), [])
   const closeMeasureWindow = useCallback(() => {
     const mw = measureWindowRef.current
@@ -268,33 +297,82 @@ const Grid = ({ children, config }: GridProps) => {
     gridStore.setState({
       cols,
       compact,
+      editable,
       gap,
       layout,
       phase,
       positionedIds: positionedIdsRef.current,
       reset: () => {
-        setCols(config?.cols ?? DEFAULT_COLS)
-        setGap(config?.gap ?? DEFAULT_GAP)
-        setRowHeight(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
+        const c = config?.cols ?? DEFAULT_COLS
+        const g = config?.gap ?? DEFAULT_GAP
+        const rh = config?.rowHeight ?? DEFAULT_ROW_HEIGHT
+        setCols(c)
+        setGap(g)
+        setRowHeight(rh)
         positionedIdsRef.current.clear()
         resizedIdsRef.current.clear()
         minHRef.current = new Map(initialMinHRef.current)
         freeformLayoutRef.current = initialLayoutRef.current
         settingLayoutRef.current = true
         setLayout(initialLayoutRef.current)
+        onConfigChangeRef.current?.(
+          toGridConfig({ cols: c, fillSet, gap: g, layout: initialLayoutRef.current, rowHeight: rh })
+        )
       },
       resizedIds: resizedIdsRef.current,
       rowHeight,
       setCols: (c: number) => {
         setCols(c)
-        setLayout(prev => computeLayoutWithCols(clampLayoutToCols(prev, c), c))
+        setLayout(prev => {
+          const next = computeLayoutWithCols(clampLayoutToCols(prev, c), c)
+          onConfigChangeRef.current?.(
+            toGridConfig({ cols: c, fillSet, gap: gapRef.current, layout: next, rowHeight: rowHeightRef.current })
+          )
+          return next
+        })
       },
-      setGap,
-      setRowHeight,
+      setGap: (g: number) => {
+        setGap(g)
+        onConfigChangeRef.current?.(
+          toGridConfig({
+            cols: colsRef.current,
+            fillSet,
+            gap: g,
+            layout: freeformLayoutRef.current,
+            rowHeight: rowHeightRef.current
+          })
+        )
+      },
+      setRowHeight: (rh: number) => {
+        setRowHeight(rh)
+        onConfigChangeRef.current?.(
+          toGridConfig({
+            cols: colsRef.current,
+            fillSet,
+            gap: gapRef.current,
+            layout: freeformLayoutRef.current,
+            rowHeight: rh
+          })
+        )
+      },
       showRings,
       toggleRings: () => setShowRings(prev => !prev)
     })
-  }, [closeMeasureWindow, cols, compact, config, configMap, fillSet, gap, itemKeys, layout, phase, rowHeight, showRings])
+  }, [
+    closeMeasureWindow,
+    cols,
+    compact,
+    config,
+    configMap,
+    editable,
+    fillSet,
+    gap,
+    itemKeys,
+    layout,
+    phase,
+    rowHeight,
+    showRings
+  ])
   const contentMinConstraint = useMemo(
     () =>
       createContentMinConstraint({
@@ -328,14 +406,19 @@ const Grid = ({ children, config }: GridProps) => {
     },
     [computeLayout, fillSet]
   )
-  const handleDragStop = useCallback((_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
-    if (newItem) positionedIdsRef.current.add(newItem.i)
-  }, [])
+  const handleDragStop = useCallback(
+    (_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
+      if (newItem) positionedIdsRef.current.add(newItem.i)
+      emitConfigChange(freeformLayoutRef.current)
+    },
+    [emitConfigChange]
+  )
   const handleResizeStop = useCallback(
     (_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
       if (newItem) resizedIdsRef.current.add(newItem.i)
+      emitConfigChange(freeformLayoutRef.current)
     },
-    []
+    [emitConfigChange]
   )
   const setCardRef = useCallback((key: string, el: HTMLDivElement | null) => {
     if (el) {
@@ -343,7 +426,7 @@ const Grid = ({ children, config }: GridProps) => {
       cardRef.current.set(key, el)
     } else cardRef.current.delete(key)
   }, [])
-  const isFreeform = phase === 'done' && !compact
+  const isFreeform = editable && phase === 'done' && !compact
   const effectiveLayout = compact
     ? clampLayoutToCols(freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout, cols)
     : layout
@@ -376,7 +459,7 @@ const Grid = ({ children, config }: GridProps) => {
             width={width}>
             {itemKeys.map(key => (
               <div
-                className={`h-full rounded-lg ring-1 transition-shadow ${showRings ? 'ring-ring' : 'ring-ring/0 hover:ring-ring'}`}
+                className={`h-full rounded-lg ring-1 transition-shadow ${showRings && editable ? 'ring-ring' : editable ? 'ring-ring/0 hover:ring-ring' : 'ring-ring/0'}`}
                 key={key}>
                 <div
                   className={twMerge(
@@ -385,9 +468,11 @@ const Grid = ({ children, config }: GridProps) => {
                     classNameMap.get(key)
                   )}
                   ref={el => setCardRef(key, el)}>
-                  <div className='absolute right-1 top-1 z-10'>
-                    <DragHandle />
-                  </div>
+                  {editable ? (
+                    <div className='absolute right-1 top-1 z-10'>
+                      <DragHandle />
+                    </div>
+                  ) : null}
                   <div className='flex min-h-0 min-w-0 flex-1 flex-col justify-center overflow-hidden'>
                     {childMap.get(key)}
                   </div>

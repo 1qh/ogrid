@@ -2,6 +2,7 @@ import type { Layout } from 'react-grid-layout'
 interface GridStoreState {
   cols: number
   compact: boolean
+  editable: boolean
   gap: number
   layout: Layout
   phase: 'done' | 'measuring'

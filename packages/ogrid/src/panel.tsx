@@ -35,7 +35,7 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
 const Panel = () => {
   const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
   const dark = useSyncExternalStore(darkSubscribe, getDark, () => false)
-  if (!state) return null
+  if (!state?.editable) return null
   return (
     <div className='flex flex-wrap items-center gap-3 px-3 py-2 text-sm'>
       <label className='flex items-center gap-1 text-xs text-gray-500'>
