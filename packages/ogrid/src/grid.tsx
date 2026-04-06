@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop, complexity */
-/* eslint-disable no-continue, no-console, complexity, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, @typescript-eslint/no-unsafe-argument, react-hooks/refs */
+/* eslint-disable no-continue, no-console, complexity, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, react-hooks/refs */
 'use client'
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
@@ -38,7 +38,8 @@ interface GridProps extends GridInnerProps {
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
   const result: ReactElement[] = []
-  for (const child of Array.isArray(children) ? children : [children])
+  const items = Array.isArray(children) ? (children as ReactNode[]) : [children]
+  for (const child of items)
     if (Array.isArray(child)) result.push(...flatChildren(child))
     else if (isValidElement(child)) result.push(child)
   return result
