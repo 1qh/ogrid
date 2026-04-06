@@ -257,7 +257,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
   // biome-ignore lint/correctness/useExhaustiveDependencies: width triggers re-measurement
   useLayoutEffect(() => {
     if (cardRef.current.size === 0) return
-    measureAndUpdate()
+    if (measureWindowRef.current.phase === 'measuring') measureAndUpdate()
   }, [measureAndUpdate, width])
   useLayoutEffect(() => {
     const mw = measureWindowRef.current
@@ -285,6 +285,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
   // biome-ignore lint/correctness/useExhaustiveDependencies: gridStore sync uses all relevant state
   useEffect(() => {
     gridStore.setState({
+      ...gridStore.getSnapshot(),
       cols,
       compact,
       editable,
