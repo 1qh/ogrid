@@ -6,7 +6,7 @@
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
 import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { GridLayout, noCompactor, verticalCompactor } from 'react-grid-layout'
+import { GridLayout, verticalCompactor } from 'react-grid-layout'
 import type { GridConfig } from './types'
 import { cn } from './cn'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
@@ -51,7 +51,7 @@ const extractKeys = (children: ReactNode): string[] => {
   }
   return keys
 }
-const FREEFORM = { ...noCompactor, preventCollision: true }
+const FREEFORM = { ...verticalCompactor, preventCollision: false }
 const COMPACT = { ...verticalCompactor, preventCollision: false }
 const DragHandle = () => (
   <div
