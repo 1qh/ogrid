@@ -34,7 +34,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown && cp src/styles.css dist/styles.css",
+    "build": "tsdown",
     "cleanup-old-versions": "bun script/cleanup-old-versions.ts",
     "postpublish": "bun run cleanup-old-versions",
     "test": "bun test"
