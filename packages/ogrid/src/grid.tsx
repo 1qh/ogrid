@@ -472,10 +472,12 @@ const clearStorage = (id: string) => {
 }
 const Grid = ({ children, config, editable = false, id, onConfigChange, persist = false }: GridProps) => {
   const [resetCount, setResetCount] = useState(0)
-  const saved = persist && id ? readStorage(id) : null
+  const resettingRef = useRef(false)
+  const saved = persist && id && !resettingRef.current ? readStorage(id) : null
   const effectiveConfig = saved ?? config
   const handleConfigChange = useCallback(
     (c: GridConfig) => {
+      if (resettingRef.current) return
       if (persist && id) writeStorage(id, c)
       onConfigChange?.(c)
     },
@@ -483,8 +485,12 @@ const Grid = ({ children, config, editable = false, id, onConfigChange, persist 
   )
   const resetRef = useRef<() => void>(undefined)
   resetRef.current = () => {
+    resettingRef.current = true
     if (persist && id) clearStorage(id)
     setResetCount(c => c + 1)
+    queueMicrotask(() => {
+      resettingRef.current = false
+    })
   }
   useEffect(() => {
     const prev = gridStore.getSnapshot()
