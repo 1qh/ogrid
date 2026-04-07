@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop, react-perf/jsx-no-new-array-as-prop, complexity */
-/* eslint-disable no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, react-hooks/refs */
+/* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, react-hooks/refs */
 'use client'
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
@@ -99,7 +99,7 @@ const buildLayout = (
   }
   return result
 }
-const GridInner = ({ children, config, editable, onConfigChange }: GridInnerProps) => {
+const GridInner = ({ children, config, editable = false, onConfigChange }: GridInnerProps) => {
   const [cols, setCols] = useState(config?.cols ?? DEFAULT_COLS)
   const [gap, setGap] = useState(config?.gap ?? DEFAULT_GAP)
   const [rowHeight, setRowHeight] = useState(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
@@ -473,7 +473,7 @@ const clearStorage = (id: string) => {
     /* SSR */
   }
 }
-const Grid = ({ children, config, editable, id, onConfigChange, persist }: GridProps) => {
+const Grid = ({ children, config, editable = false, id, onConfigChange, persist = false }: GridProps) => {
   const [resetCount, setResetCount] = useState(0)
   const resettingRef = useRef(false)
   const saved = persist && id && !resettingRef.current ? readStorage(id) : null
