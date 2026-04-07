@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
-    "jotai": "latest",
     "next": "latest",
     "ogrid": "workspace:*"
   }

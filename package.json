@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "latest",
-    "@testing-library/react": "latest",
     "@types/bun": "latest",
     "bun-types": "latest",
     "happy-dom": "latest",
@@ -40,7 +39,6 @@
   "trustedDependencies": [
     "esbuild",
     "lintmax",
-    "msw",
-    "sharp"
+    "simple-git-hooks"
   ]
 }
