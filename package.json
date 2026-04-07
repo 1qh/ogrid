@@ -24,8 +24,6 @@
   "devDependencies": {
     "@happy-dom/global-registrator": "latest",
     "@types/bun": "latest",
-    "bun-types": "latest",
-    "happy-dom": "latest",
     "lintmax": "latest",
     "react": "latest",
     "react-dom": "latest",
