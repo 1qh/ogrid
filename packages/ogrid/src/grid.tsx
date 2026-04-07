@@ -56,7 +56,10 @@ const FREEFORM = { ...verticalCompactor, preventCollision: false }
 const COMPACT = { ...verticalCompactor, preventCollision: false }
 const DragHandle = () => (
   <div
-    className={`${DRAG_HANDLE_CLASS} flex items-center justify-center rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800`}>
+    className={cn(
+      DRAG_HANDLE_CLASS,
+      'flex items-center justify-center rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+    )}>
     <svg
       className='size-4'
       fill='none'
@@ -402,7 +405,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
     <div ref={containerRef}>
       {width > 0 && (
         <div
-          className={phase === 'measuring' ? 'opacity-0' : 'opacity-100 transition-opacity duration-150'}
+          className={cn(phase === 'measuring' ? 'opacity-0' : 'opacity-100 transition-opacity duration-150')}
           style={phase === 'measuring' ? { pointerEvents: 'none' } : undefined}>
           <GridLayout
             compactor={effectiveCompactor}

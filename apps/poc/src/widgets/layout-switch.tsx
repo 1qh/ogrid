@@ -1,4 +1,5 @@
 'use client'
+import { cn } from '@a/ui'
 import { useLayoutEffect, useRef, useState } from 'react'
 const items = [
   { label: 'Revenue', value: '$12.4k' },
@@ -23,7 +24,7 @@ const LayoutSwitch = () => {
   return (
     <div ref={ref}>
       <span className='text-sm font-medium'>Layout Switch {wide ? '(2-col)' : '(1-col)'}</span>
-      <div className={wide ? 'grid grid-cols-2 gap-3 pt-2' : 'flex flex-col gap-2 pt-2'}>
+      <div className={cn(wide ? 'grid grid-cols-2 gap-3 pt-2' : 'flex flex-col gap-2 pt-2')}>
         {items.map(i => (
           <div className='flex items-center justify-between rounded border p-2 text-sm' key={i.label}>
             <span className='text-muted-foreground'>{i.label}</span>
