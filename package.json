@@ -1,5 +1,4 @@
 {
-  "name": "ogrid-monorepo",
   "private": true,
   "type": "module",
   "workspaces": [
