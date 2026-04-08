@@ -1,4 +1,3 @@
-@import 'tailwindcss';
 @import '@a/ui/globals.css';
 @source '../../../../packages/ogrid/src/**/*.tsx';
 :root {
