@@ -2,9 +2,7 @@
   "extends": "lintmax/tsconfig",
   "compilerOptions": {
     "paths": {
-      "~/*": [
-        "./src/*"
-      ]
+      "~/*": ["./src/*"]
     }
   }
 }
