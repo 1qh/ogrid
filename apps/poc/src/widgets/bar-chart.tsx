@@ -1,4 +1,4 @@
-/* oxlint-disable react-perf/jsx-no-new-array-as-prop, react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable jsx-no-new-array-as-prop, jsx-no-new-object-as-prop */
 'use client'
 import {
   Bar,

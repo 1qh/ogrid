@@ -9,4 +9,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - run: bun action
+      - run: |
+          bun i --silent
+          echo "=== lintmax version ==="
+          cat node_modules/lintmax/package.json | grep version
+          echo "=== oxlint version ==="
+          node_modules/.bin/oxlint --version
+          echo "=== test directive ==="
+          head -3 apps/poc/src/widgets/area-chart.tsx
+          echo "=== oxlint on file with directive ==="
+          node_modules/.bin/oxlint -c node_modules/lintmax/oxlintrc.json apps/poc/src/widgets/area-chart.tsx 2>&1 || true
+          echo "=== cleanIgnores test ==="
+          cp apps/poc/src/widgets/area-chart.tsx /tmp/before.txt
+          bun run fix 2>&1 || true
+          echo "=== after fix ==="
+          head -3 apps/poc/src/widgets/area-chart.tsx
+          diff /tmp/before.txt apps/poc/src/widgets/area-chart.tsx || echo "FILE CHANGED"
+          echo "=== check ==="
+          bun run check 2>&1 || true

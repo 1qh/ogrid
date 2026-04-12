@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG gradient IDs */
-/* oxlint-disable react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable jsx-no-new-object-as-prop */
 'use client'
 import {
   Area,

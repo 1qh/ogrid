@@ -1,4 +1,4 @@
-/* oxlint-disable react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable jsx-no-new-object-as-prop */
 'use client'
 import { PolarAngleAxis, PolarRadiusAxis, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from 'recharts'
 const POLAR_DOMAIN = [0, 100] as const

@@ -1,4 +1,4 @@
-/* oxlint-disable react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable jsx-no-new-object-as-prop */
 'use client'
 import {
   CartesianGrid,
