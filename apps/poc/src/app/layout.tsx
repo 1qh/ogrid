@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-/* oxlint-disable import/no-unassigned-import */
 import { cn } from '@a/ui'
 import { mono, sans } from './fonts'
 import { Providers } from './providers'
