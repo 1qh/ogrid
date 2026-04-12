@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG */
-/* oxlint-disable jsx-no-jsx-as-prop */
+/* oxlint-disable react-perf/jsx-no-jsx-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Switch } from '@a/ui/switch'
