@@ -9,28 +9,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - run: |
-          bun i --silent
-          echo "=== lintmax version ==="
-          cat node_modules/lintmax/package.json | grep version | head -1
-          echo "=== oxlint version ==="
-          node_modules/.bin/oxlint --version
-          echo "=== test oxlint --rules react-perf ==="
-          bun node_modules/.bin/oxlint -c node_modules/lintmax/oxlintrc.json --rules 2>&1 | grep react_perf || echo "NO REACT_PERF RULES"
-          echo "=== test oxlint --rules with generated config ==="
-          mkdir -p node_modules/.cache/lintmax
-          bun node_modules/.bin/lintmax rules 2>&1 | grep react || echo "NO REACT RULES IN LINTMAX"
-          echo "=== raw oxlint on area-chart with shipped config ==="
-          node_modules/.bin/oxlint -c node_modules/lintmax/oxlintrc.json apps/poc/src/widgets/area-chart.tsx 2>&1 | grep -E "react-perf|Found" || true
-          echo "=== raw oxlint on area-chart WITHOUT directive ==="
-          sed '2d' apps/poc/src/widgets/area-chart.tsx > /tmp/test.tsx
-          cp /tmp/test.tsx apps/poc/src/widgets/area-chart-nodisable.tsx
-          node_modules/.bin/oxlint -c node_modules/lintmax/oxlintrc.json apps/poc/src/widgets/area-chart-nodisable.tsx 2>&1 | grep -E "react-perf|Found" || true
-          rm apps/poc/src/widgets/area-chart-nodisable.tsx
-          echo "=== run lintmax fix ==="
-          cp apps/poc/src/widgets/area-chart.tsx /tmp/before.txt
-          bun run fix 2>&1 || true
-          echo "=== diff after fix ==="
-          diff /tmp/before.txt apps/poc/src/widgets/area-chart.tsx || echo "FILE CHANGED BY FIX"
-          echo "=== head after fix ==="
-          head -3 apps/poc/src/widgets/area-chart.tsx
+      - run: bun action
