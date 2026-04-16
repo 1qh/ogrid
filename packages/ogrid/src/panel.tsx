@@ -121,6 +121,11 @@ const Slider = ({
     />
   </label>
 )
+const clampElastic = (v: number, lo: number, hi: number) => {
+  if (v < lo) return lo - (lo - v) * 0.25
+  if (v > hi) return hi + (v - hi) * 0.25
+  return v
+}
 const computeRestingX = (dock: 'left' | 'right', reveal: boolean) => {
   if (dock === 'left') return reveal ? EDGE_MARGIN : -BUBBLE_SIZE * TUCK_RATIO
   return reveal
@@ -375,8 +380,14 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
                 setOpen(false)
               }
               if (!p.did) return
-              let nx = e.clientX - p.ox
-              let ny = e.clientY - p.oy
+              const rawX = e.clientX - p.ox
+              const rawY = e.clientY - p.oy
+              const minX = -BUBBLE_SIZE / 2
+              const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
+              const minY = EDGE_MARGIN / 2
+              const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
+              let nx = clampElastic(rawX, minX, maxX)
+              let ny = clampElastic(rawY, minY, maxY)
               const bcx = nx + BUBBLE_SIZE / 2
               const bcy = ny + BUBBLE_SIZE / 2
               const zdx = bcx - zoneCenter.x
