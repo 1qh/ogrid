@@ -111,11 +111,14 @@ const Slider = ({
       <span className='font-mono tabular-nums'>{String(value)}</span>
     </div>
     <input
-      className='w-full'
+      className='h-1.5 w-full cursor-pointer appearance-none rounded-full accent-current outline-none [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-110 dark:[&::-webkit-slider-thumb]:bg-gray-100'
       max={max}
       min={min}
       onChange={e => onChange(Number(e.target.value))}
       step='1'
+      style={{
+        background: `linear-gradient(to right, rgb(17 24 39) 0%, rgb(17 24 39) ${String(((value - min) / (max - min)) * 100)}%, rgb(229 231 235) ${String(((value - min) / (max - min)) * 100)}%, rgb(229 231 235) 100%)`
+      }}
       type='range'
       value={value}
     />
@@ -251,7 +254,32 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
       globalThis.removeEventListener('mousedown', clickHandler)
     }
   }, [open])
-  if (!((editable || children || trailing) && mounted) || hidden) return null
+  if (!((editable || children || trailing) && mounted)) return null
+  if (hidden) {
+    const restoreDock: 'left' | 'right' = dock
+    return (
+      <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
+        <motion.button
+          animate={{ opacity: 0.4, x: 0 }}
+          aria-label='Show grid settings'
+          className={cn(
+            'pointer-events-auto fixed flex h-14 w-1.5 items-center justify-center rounded-full bg-gray-900 hover:w-2 hover:opacity-100 dark:bg-gray-100',
+            restoreDock === 'right' ? 'right-0 rounded-r-none' : 'left-0 rounded-l-none'
+          )}
+          initial={{ opacity: 0, x: restoreDock === 'right' ? 12 : -12 }}
+          onClick={() => {
+            setHidden(false)
+            writeHidden(false)
+          }}
+          style={{ top: 'calc(50% - 28px)' }}
+          transition={{ duration: 0.3 }}
+          type='button'
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        />
+      </div>
+    )
+  }
   const idle = !(dragging || hover || open || dismissing)
   const snapPreviewX = dock === 'right' ? globalThis.innerWidth - BUBBLE_SIZE - EDGE_MARGIN : EDGE_MARGIN
   const zoneCenter = { x: globalThis.innerWidth / 2, y: globalThis.innerHeight - 90 }
