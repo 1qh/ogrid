@@ -184,10 +184,12 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
   const [mounted, setMounted] = useState(false)
   const [tucked, setTucked] = useState(false)
   const [dismissing, setDismissing] = useState(false)
+  const [burstOrigin, setBurstOrigin] = useState<null | { x: number; y: number }>(null)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const prevEditableRef = useRef(false)
   const prevOverDismissRef = useRef(false)
+  const overDismissRef = useRef(false)
   const pointerRef = useRef<null | {
     did: boolean
     id: number
@@ -260,6 +262,9 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
       : '4px 6px 18px rgba(0,0,0,0.22), 0 2px 4px rgba(0,0,0,0.12)'
   const triggerDismiss = () => {
     vibrate([20, 40, 30])
+    const bx = x.get() + BUBBLE_SIZE / 2
+    const by = y.get() + BUBBLE_SIZE / 2
+    setBurstOrigin({ x: bx, y: by })
     setOverDismiss(false)
     setDismissing(true)
     setOpen(false)
@@ -267,7 +272,8 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
       setHidden(true)
       writeHidden(true)
       setDismissing(false)
-    }, 380)
+      setBurstOrigin(null)
+    }, 480)
   }
   return (
     <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
@@ -298,6 +304,27 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
         ) : null}
       </AnimatePresence>
       <AnimatePresence>
+        {burstOrigin
+          ? Array.from({ length: 10 }).map((_, i) => {
+              const angle = (i / 10) * Math.PI * 2
+              const dist = 60 + (i % 3) * 20
+              const dx = Math.cos(angle) * dist
+              const dy = Math.sin(angle) * dist
+              return (
+                <motion.span
+                  animate={{ opacity: 0, scale: 0, x: dx, y: dy }}
+                  className='pointer-events-none fixed size-2 rounded-full bg-gray-900 dark:bg-gray-100'
+                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                  key={`particle-${String(i)}`}
+                  style={{ left: burstOrigin.x - 4, top: burstOrigin.y - 4 }}
+                  transition={{ duration: 0.45, ease: 'easeOut' }}
+                />
+              )
+            })
+          : null}
+      </AnimatePresence>
+      <AnimatePresence>
         {dragging ? (
           <motion.div
             animate={{ opacity: 1, scale: overDismiss ? 1.4 : 1, y: 0 }}
@@ -311,6 +338,18 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             <motion.div animate={{ rotate: overDismiss ? 90 : 0 }} transition={SPRING}>
               <CloseIcon className='size-7' />
             </motion.div>
+            <AnimatePresence>
+              {overDismiss ? (
+                <motion.span
+                  animate={{ opacity: 1, y: 0 }}
+                  className='absolute -bottom-7 left-1/2 -translate-x-1/2 text-nowrap text-xs font-medium text-red-600 dark:text-red-400'
+                  exit={{ opacity: 0, y: 4 }}
+                  initial={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.15 }}>
+                  Release to dismiss
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -318,6 +357,7 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
         {open ? (
           <motion.div
             animate={{ x: 0 }}
+            aria-label='Grid settings'
             className={cn(
               'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background/85 shadow-2xl backdrop-blur-xl',
               dock === 'right' ? 'right-0 border-l' : 'left-0 border-r',
@@ -326,6 +366,7 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             exit={{ x: dock === 'right' ? '100%' : '-100%' }}
             initial={{ x: dock === 'right' ? '100%' : '-100%' }}
             key='drawer'
+            role='dialog'
             transition={DRAWER_SPRING}>
             <div className='flex items-center justify-between border-b border-border px-4 py-3'>
               <div className='flex items-center gap-2'>
@@ -357,7 +398,11 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
           </motion.div>
         ) : (
           <motion.button
-            animate={{ opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }}
+            animate={
+              dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
+            }
+            aria-expanded={open}
+            aria-label='Open grid settings'
             className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
             exit={
               dismissing
@@ -408,6 +453,7 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
               const zdy = bcy - zoneCenter.y
               const zdist2 = zdx * zdx + zdy * zdy
               const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
+              overDismissRef.current = inside
               setOverDismiss(inside)
               if (inside) {
                 const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
@@ -439,10 +485,11 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
               const vx = ((last.x - first.x) / dt) * 1000
               const vy = ((last.y - first.y) / dt) * 1000
               const speed = Math.hypot(vx, vy)
-              if (overDismiss || speed > FLICK_VELOCITY) {
+              if (overDismissRef.current || speed > FLICK_VELOCITY) {
                 triggerDismiss()
                 return
               }
+              overDismissRef.current = false
               setOverDismiss(false)
               const projectedX = x.get() + vx * 0.15
               const nextDock: 'left' | 'right' =
