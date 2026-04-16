@@ -22,6 +22,7 @@ import {
 } from './constants'
 import { createContentMinConstraint } from './constraint'
 import { gridStore } from './context'
+import { enforceMinH } from './enforce'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
 import { toGridConfig } from './use-grid-config'
@@ -358,21 +359,12 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
         settingLayoutRef.current = false
         return
       }
-      if (measureWindowRef.current.phase === 'measuring') {
-        const enforced = newLayout.map(item => {
-          if (fillSet.has(item.i)) return item
-          const minH = minHRef.current.get(item.i) ?? item.minH ?? 1
-          return { ...item, h: Math.max(item.h, minH), minH }
-        })
-        const result = computeLayout(enforced)
-        checkOverlaps(result)
-        freeformLayoutRef.current = result
-        setLayout(result)
-        return
-      }
-      checkOverlaps(newLayout)
-      freeformLayoutRef.current = newLayout
-      setLayout(newLayout)
+      const currentPhase = measureWindowRef.current.phase
+      const enforced = enforceMinH({ fillSet, layout: newLayout, minHByKey: minHRef.current, phase: currentPhase })
+      const result = currentPhase === 'measuring' ? computeLayout(enforced) : enforced
+      checkOverlaps(result)
+      freeformLayoutRef.current = result
+      setLayout(result)
     },
     [computeLayout, fillSet]
   )
