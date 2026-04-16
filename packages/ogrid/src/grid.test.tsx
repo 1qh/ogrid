@@ -4,7 +4,9 @@
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: test data */
 /* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop, react-hooks/globals */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, react-hooks/globals */
+/** biome-ignore-all lint/performance/noAwaitInLoops: sequential mount tests */
+/** biome-ignore-all lint/nursery/useExpect: has assertions */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, no-await-in-loop, react-hooks/globals */
 import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
@@ -2213,6 +2215,141 @@ describe('storage: special characters in id', () => {
   test('empty id', () => {
     writeStorage('', { cols: 14 })
     expect(readStorage('')?.cols).toBe(14)
+  })
+})
+describe('constants module exports', () => {
+  test('MAX_GUARD_FRAMES is a number', () => {
+    expect(typeof MAX_GUARD_FRAMES).toBe('number')
+    expect(MAX_GUARD_FRAMES).toBeGreaterThan(0)
+  })
+})
+describe('types module re-exports', () => {
+  test('GridConfig type available through index', () => {
+    const cfg: indexExports.GridConfig = { cols: 24, layout: [] }
+    expect(cfg.cols).toBe(24)
+  })
+  test('LayoutItem type available through index', () => {
+    const item: indexExports.LayoutItem = { i: 'a' }
+    expect(item.i).toBe('a')
+  })
+})
+describe('Grid unmount clean up', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('mounts and unmounts without errors', async () => {
+    const { unmount } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(() => {
+      unmount()
+    }).not.toThrow()
+  })
+  test('can mount multiple times sequentially', async () => {
+    for (let i = 0; i < 3; i += 1) {
+      const { unmount } = render(
+        <Grid>
+          <div key='a'>x</div>
+        </Grid>
+      )
+      await act(async () => {
+        await new Promise<void>(resolve => {
+          setTimeout(resolve, 20)
+        })
+      })
+      unmount()
+    }
+  })
+})
+describe('Grid key prop causes remount (used by reset)', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('key change unmounts and remounts', async () => {
+    let renderCount = 0
+    const Child = () => {
+      renderCount += 1
+      return <span>child</span>
+    }
+    const { rerender } = render(
+      <Grid key='v1'>
+        <Child key='a' />
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    const countAfterFirst = renderCount
+    rerender(
+      <Grid key='v2'>
+        <Child key='a' />
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(renderCount).toBeGreaterThan(countAfterFirst)
+  })
+})
+describe('storage: getItem returns corrupt JSON handled', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('returns null for unparseable value', () => {
+    globalThis.localStorage.setItem(`${STORAGE_PREFIX}bad`, '[[[not json')
+    expect(readStorage('bad')).toBeNull()
+  })
+  test('returns null for empty string', () => {
+    globalThis.localStorage.setItem(`${STORAGE_PREFIX}empty`, '')
+    expect(readStorage('empty')).toBeNull()
+  })
+})
+describe('toGridConfig idempotent', () => {
+  test('second call with same args produces identical output', () => {
+    const layout = [
+      { h: 4, i: 'a', w: 6, x: 0, y: 0 },
+      { h: 8, i: 'b', w: 18, x: 6, y: 0 }
+    ]
+    const a = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    const b = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(a).toEqual(b)
+  })
+})
+describe('buildLayout empty configMap fine', () => {
+  test('uses defaults for all items', () => {
+    const out = buildLayout({ cols: 12, configMap: new Map(), fillSet: new Set(), itemKeys: ['a', 'b'] })
+    for (const item of out) {
+      expect(item.w).toBe(12)
+      expect(item.h).toBe(1)
+    }
+  })
+})
+describe('computeLayoutWithCols extreme w', () => {
+  test('w=9999 with cols=24 gets clamped', () => {
+    const items = [{ h: 2, i: 'a', w: 9999, x: 0, y: 0 }]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]?.w).toBe(24)
+  })
+})
+describe('cn variant dedup', () => {
+  test('dedupes text-color classes', () => {
+    expect(cn('text-red-500', 'text-blue-500')).toBe('text-blue-500')
+  })
+  test('preserves non-conflicting classes', () => {
+    expect(cn('text-sm', 'font-bold', 'text-blue-500')).toBe('text-sm font-bold text-blue-500')
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
