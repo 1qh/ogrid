@@ -3,7 +3,7 @@
 /** biome-ignore-all lint/performance/useTopLevelRegex: test patterns */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
 /* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-hooks/globals */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, react-hooks/globals */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, react-hooks/globals */
 import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
@@ -1124,6 +1124,172 @@ describe('emitConfigChange microtask deferral', () => {
       setTimeout(resolve, 20)
     })
     expect(fires).toBeGreaterThan(0)
+  })
+})
+describe('Panel Copy button generates GridConfig format', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 20,
+      compact: false,
+      editable: true,
+      gap: 24,
+      layout: [
+        { h: 4, i: 'a', w: 8, x: 0, y: 0 },
+        { h: 6, i: 'b', w: 12, x: 8, y: 0 }
+      ],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 60,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('Copy writes TypeScript config to clipboard', async () => {
+    const writes: string[] = []
+    const originalClipboard = globalThis.navigator.clipboard
+    const mockWrite = async (t: string): Promise<void> => {
+      await Promise.resolve()
+      writes.push(t)
+    }
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: mockWrite }
+    })
+    const { container } = render(<Panel />)
+    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy')
+    copyBtn?.click()
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, 20)
+    })
+    expect(writes.length).toBe(1)
+    const output = writes[0] ?? ''
+    expect(output).toContain('cols: 20')
+    expect(output).toContain('gap: 24')
+    expect(output).toContain('rowHeight: 60')
+    expect(output).toContain('layout: [')
+    expect(output).toContain('satisfies GridConfig')
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: originalClipboard
+    })
+  })
+})
+describe('Panel slider interactions', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: (c: number) => {
+        const snap = gridStore.getSnapshot()
+        if (snap) gridStore.setState({ ...snap, cols: c })
+      },
+      setGap: (g: number) => {
+        const snap = gridStore.getSnapshot()
+        if (snap) gridStore.setState({ ...snap, gap: g })
+      },
+      setRowHeight: (rh: number) => {
+        const snap = gridStore.getSnapshot()
+        if (snap) gridStore.setState({ ...snap, rowHeight: rh })
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('Cols slider change updates store cols', () => {
+    const { container } = render(<Panel />)
+    const cols = container.querySelectorAll<HTMLInputElement>('input[type=range]')[0]
+    if (!cols) throw new Error('no slider')
+    const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(cols, '18')
+    cols.dispatchEvent(new Event('change', { bubbles: true }))
+    cols.dispatchEvent(new Event('input', { bubbles: true }))
+    expect(gridStore.getSnapshot()?.cols).toBe(18)
+  })
+  test('Gap slider change updates store gap', () => {
+    const { container } = render(<Panel />)
+    const gap = container.querySelectorAll<HTMLInputElement>('input[type=range]')[1]
+    if (!gap) throw new Error('no slider')
+    const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(gap, '8')
+    gap.dispatchEvent(new Event('change', { bubbles: true }))
+    gap.dispatchEvent(new Event('input', { bubbles: true }))
+    expect(gridStore.getSnapshot()?.gap).toBe(8)
+  })
+  test('Row slider change updates store rowHeight', () => {
+    const { container } = render(<Panel />)
+    const row = container.querySelectorAll<HTMLInputElement>('input[type=range]')[2]
+    if (!row) throw new Error('no slider')
+    const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(row, '70')
+    row.dispatchEvent(new Event('change', { bubbles: true }))
+    row.dispatchEvent(new Event('input', { bubbles: true }))
+    expect(gridStore.getSnapshot()?.rowHeight).toBe(70)
+  })
+})
+describe('Panel when phase is measuring hides Copy', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'measuring',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('Copy button not rendered during measurement', () => {
+    const { container } = render(<Panel />)
+    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy')
+    expect(copyBtn).toBeUndefined()
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
