@@ -761,6 +761,129 @@ describe('computeLayoutWithCols edge cases', () => {
     expect(placed[0]?.minW).toBe(4)
   })
 })
+describe('storage isolation', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('clear one does not affect another', () => {
+    writeStorage('a', { cols: 12 })
+    writeStorage('b', { cols: 20 })
+    clearStorage('a')
+    expect(readStorage('a')).toBeNull()
+    expect(readStorage('b')?.cols).toBe(20)
+  })
+  test('readStorage handles localStorage access errors', () => {
+    const original = globalThis.localStorage.getItem.bind(globalThis.localStorage)
+    Object.defineProperty(globalThis.localStorage, 'getItem', {
+      configurable: true,
+      value: () => {
+        throw new Error('blocked')
+      }
+    })
+    expect(readStorage('x')).toBeNull()
+    Object.defineProperty(globalThis.localStorage, 'getItem', {
+      configurable: true,
+      value: original
+    })
+  })
+  test('writeStorage silent on error', () => {
+    const original = globalThis.localStorage.setItem.bind(globalThis.localStorage)
+    Object.defineProperty(globalThis.localStorage, 'setItem', {
+      configurable: true,
+      value: () => {
+        throw new Error('quota')
+      }
+    })
+    expect(() => writeStorage('x', { cols: 12 })).not.toThrow()
+    Object.defineProperty(globalThis.localStorage, 'setItem', {
+      configurable: true,
+      value: original
+    })
+  })
+  test('clearStorage silent on error', () => {
+    const original = globalThis.localStorage.removeItem.bind(globalThis.localStorage)
+    Object.defineProperty(globalThis.localStorage, 'removeItem', {
+      configurable: true,
+      value: () => {
+        throw new Error('blocked')
+      }
+    })
+    expect(() => clearStorage('x')).not.toThrow()
+    Object.defineProperty(globalThis.localStorage, 'removeItem', {
+      configurable: true,
+      value: original
+    })
+  })
+})
+describe('enforceMinH pathological inputs', () => {
+  test('minH exactly equals h no mutation needed', () => {
+    const layout = [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', 4]]), phase: 'measuring' })
+    expect(out[0]?.h).toBe(4)
+  })
+  test('minH zero treated as 0', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', 0]]), phase: 'measuring' })
+    expect(out[0]?.h).toBe(2)
+  })
+  test('negative minH treated as fallback', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', -5]]), phase: 'measuring' })
+    expect(out[0]?.h).toBe(2)
+  })
+})
+describe('buildLayout explicit minH/minW preservation', () => {
+  test('explicit minH/minW passed through', () => {
+    const configMap = new Map([['a', { h: 4, minH: 2, minW: 3, w: 12, x: 0, y: 0 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.minH).toBe(2)
+    expect(out[0]?.minW).toBe(3)
+  })
+  test('default y=0 preserved', () => {
+    const out = buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.y).toBe(0)
+  })
+})
+describe('gridStore idempotency', () => {
+  test('setting same state multiple times notifies each time', () => {
+    let calls = 0
+    const unsub = gridStore.subscribe(() => {
+      calls += 1
+    })
+    const snap = {
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'measuring' as const,
+      positionedIds: new Set<string>(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set<string>(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    }
+    gridStore.setState(snap)
+    gridStore.setState(snap)
+    gridStore.setState(snap)
+    unsub()
+    expect(calls).toBe(3)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
