@@ -11,7 +11,15 @@ import { gridStore } from './context'
 const POSITION_KEY = 'ogrid:panel-position'
 const BUBBLE_SIZE = 40
 const EDGE_MARGIN = 12
+const DISMISS_RADIUS = 80
+const FLICK_VELOCITY = 1800
+const MAGNET_STRENGTH = 0.35
 const SPRING = { damping: 28, mass: 0.8, stiffness: 320, type: 'spring' as const }
+const vibrate = (pattern: number | number[]) => {
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern)
+  } catch {}
+}
 const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
   const lines: string[] = ['const grid = {']
   if (state.cols !== DEFAULT_COLS) lines.push(`  cols: ${String(state.cols)},`)
@@ -159,7 +167,9 @@ const Panel = ({
   const [open, setOpen] = useState(false)
   const [dock, setDock] = useState<'left' | 'right'>('right')
   const [dragging, setDragging] = useState(false)
+  const [overDismiss, setOverDismiss] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const overDismissRef = useRef(false)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const pointerRef = useRef<null | {
@@ -209,9 +219,25 @@ const Panel = ({
   }, [open])
   if (!(mounted && editable)) return null
   const popoverTop = Math.max(EDGE_MARGIN, Math.min(globalThis.innerHeight - 280, y.get()))
+  const zoneCenter = { x: globalThis.innerWidth / 2, y: globalThis.innerHeight - 70 }
   return (
     <MotionConfig reducedMotion='user'>
       <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
+        <AnimatePresence>
+          {dragging ? (
+            <motion.div
+              animate={{ opacity: 1, scale: overDismiss ? 1.3 : 1, y: 0 }}
+              className={cn(
+                'pointer-events-none fixed bottom-10 left-1/2 flex size-14 -translate-x-1/2 items-center justify-center rounded-full text-white shadow-lg',
+                overDismiss ? 'bg-red-600 shadow-[0_0_32px_rgba(239,68,68,0.55)]' : 'bg-red-500/75'
+              )}
+              exit={{ opacity: 0, y: 60 }}
+              initial={{ opacity: 0, y: 60 }}
+              transition={SPRING}>
+              <CloseIcon className='size-5' />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         <AnimatePresence>
           {open ? (
             <motion.div
@@ -247,7 +273,7 @@ const Panel = ({
                   </button>
                 </div>
               </div>
-              <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-2'>
+              <div className='flex flex-1 flex-col gap-1 overflow-y-auto pt-2 pb-3'>
                 {children ? <div className='flex flex-col gap-1 border-b border-border pb-2'>{children}</div> : null}
                 {state ? <EditControls state={state} /> : null}
               </div>
@@ -279,6 +305,7 @@ const Panel = ({
             const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
             if (!p.did && dist2 > 25) {
               p.did = true
+              vibrate(8)
               setDragging(true)
               setOpen(false)
             }
@@ -287,8 +314,24 @@ const Panel = ({
             const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
             const minY = EDGE_MARGIN / 2
             const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
-            const nx = Math.max(minX, Math.min(maxX, e.clientX - p.ox))
-            const ny = Math.max(minY, Math.min(maxY, e.clientY - p.oy))
+            let nx = Math.max(minX, Math.min(maxX, e.clientX - p.ox))
+            let ny = Math.max(minY, Math.min(maxY, e.clientY - p.oy))
+            const bcx = nx + BUBBLE_SIZE / 2
+            const bcy = ny + BUBBLE_SIZE / 2
+            const zdx = bcx - zoneCenter.x
+            const zdy = bcy - zoneCenter.y
+            const zdist2 = zdx * zdx + zdy * zdy
+            const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
+            if (inside !== overDismissRef.current) {
+              overDismissRef.current = inside
+              setOverDismiss(inside)
+              if (inside) vibrate(15)
+            }
+            if (inside) {
+              const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
+              nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
+              ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
+            }
             x.set(nx)
             y.set(ny)
             p.samples.push({ t: performance.now(), x: nx, y: ny })
@@ -313,6 +356,16 @@ const Panel = ({
             const dt = Math.max(1, last.t - first.t)
             const vx = ((last.x - first.x) / dt) * 1000
             const vy = ((last.y - first.y) / dt) * 1000
+            const speed = Math.hypot(vx, vy)
+            if (overDismissRef.current || speed > FLICK_VELOCITY) {
+              vibrate([20, 40, 30])
+              overDismissRef.current = false
+              setOverDismiss(false)
+              onToggle?.()
+              return
+            }
+            overDismissRef.current = false
+            setOverDismiss(false)
             const projectedX = x.get() + vx * 0.15
             const nextDock: 'left' | 'right' = projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
             const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
