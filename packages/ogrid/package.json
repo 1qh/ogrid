@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "clsx": "latest",
+    "motion": "latest",
     "react-grid-layout": "latest",
     "tailwind-merge": "latest"
   },

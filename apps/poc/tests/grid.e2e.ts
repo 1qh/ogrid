@@ -8,11 +8,10 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 const STORAGE_KEY = 'ogrid:poc'
 const openPanel = async (page: Page) => {
-  const bubble = page.locator('[data-ogrid-panel] button').first()
-  const isOpen = await page.evaluate(() => document.querySelectorAll('[data-ogrid-panel] > div').length > 0)
-  if (!isOpen) {
-    await bubble.click()
-    await page.waitForTimeout(100)
+  const hasDrawer = await page.evaluate(() => document.querySelectorAll('[data-ogrid-panel] input[type=range]').length > 0)
+  if (!hasDrawer) {
+    await page.locator('[data-ogrid-panel] button').first().click()
+    await page.waitForTimeout(300)
   }
 }
 const toggleEdit = async (page: Page) => {
