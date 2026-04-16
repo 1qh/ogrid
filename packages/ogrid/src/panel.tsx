@@ -18,9 +18,7 @@ const TUCK_DELAY = 2800
 const DISMISS_RADIUS = 90
 const FLICK_VELOCITY = 1800
 const MAGNET_STRENGTH = 0.35
-const BUBBLE_LAYOUT_ID = 'ogrid-bubble'
 const SPRING = { damping: 28, mass: 0.8, stiffness: 320, type: 'spring' as const }
-const DRAWER_SPRING = { damping: 30, mass: 0.85, stiffness: 360, type: 'spring' as const }
 const vibrate = (pattern: number | number[]) => {
   try {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern)
@@ -397,182 +395,170 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <AnimatePresence mode='popLayout'>
+        <AnimatePresence>
           {open ? (
             <motion.div
-              animate={{ x: 0 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               aria-label='Grid settings'
               className={cn(
-                'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background/85 shadow-2xl backdrop-blur-xl',
-                dock === 'right' ? 'right-0 border-l' : 'left-0 border-r',
-                'border-border'
+                'pointer-events-auto fixed flex max-h-[min(560px,80vh)] w-80 flex-col overflow-hidden rounded-xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl',
+                dock === 'right' ? 'origin-top-right' : 'origin-top-left'
               )}
-              exit={{ x: dock === 'right' ? '100%' : '-100%' }}
-              initial={{ x: dock === 'right' ? '100%' : '-100%' }}
-              key='drawer'
+              exit={{ opacity: 0, scale: 0.92, y: -4 }}
+              initial={{ opacity: 0, scale: 0.92, y: -4 }}
+              key='popover'
               role='dialog'
-              transition={DRAWER_SPRING}>
-              <div className='flex items-center justify-between border-b border-border px-4 py-3'>
-                <div className='flex items-center gap-2'>
-                  <motion.button
-                    className='flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
-                    layoutId={BUBBLE_LAYOUT_ID}
-                    onClick={() => setOpen(false)}
-                    transition={DRAWER_SPRING}
-                    type='button'
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.92 }}>
-                    <GridIcon className='size-[18px] text-white dark:text-gray-900' />
-                  </motion.button>
-                  <span className='text-sm font-semibold'>Grid</span>
-                </div>
+              style={{
+                [dock === 'right' ? 'right' : 'left']: EDGE_MARGIN + BUBBLE_SIZE + 12,
+                top: Math.max(EDGE_MARGIN, Math.min(globalThis.innerHeight - 200, y.get()))
+              }}
+              transition={{ damping: 28, mass: 0.7, stiffness: 380, type: 'spring' }}>
+              <div className='flex items-center justify-between border-b border-border px-3 py-2'>
+                <span className='text-sm font-semibold'>Grid</span>
                 <div className='flex items-center gap-1.5'>
                   <kbd className='rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground'>
                     ⌘K
                   </kbd>
                   <button
                     aria-label='Close'
-                    className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
                     onClick={() => setOpen(false)}
                     type='button'>
                     <CloseIcon />
                   </button>
                 </div>
               </div>
-              <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-3'>
-                {children ? <div className='flex flex-col gap-1 border-b border-border pb-3'>{children}</div> : null}
+              <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-2'>
+                {children ? <div className='flex flex-col gap-1 border-b border-border pb-2'>{children}</div> : null}
                 {editable && state ? <EditControls state={state} /> : null}
-                {trailing ? <div className='border-t border-border pt-3'>{trailing}</div> : null}
+                {trailing ? <div className='border-t border-border pt-2'>{trailing}</div> : null}
               </div>
             </motion.div>
-          ) : (
-            <motion.button
-              animate={
-                dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
-              }
-              aria-expanded={open}
-              aria-label='Open grid settings'
-              className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
-              exit={
-                dismissing
-                  ? { opacity: 0, rotate: 180, scale: 0, transition: { duration: 0.38, ease: 'easeIn' } }
-                  : { opacity: 0, scale: 0.5 }
-              }
-              initial={{ opacity: 0, scale: 0.5 }}
-              key='bubble'
-              layoutId={dismissing ? undefined : BUBBLE_LAYOUT_ID}
-              onHoverEnd={() => setHover(false)}
-              onHoverStart={() => setHover(true)}
-              onPointerDown={e => {
-                if (e.button !== 0 && e.pointerType === 'mouse') return
-                const el = e.currentTarget
-                el.setPointerCapture(e.pointerId)
-                pointerRef.current = {
-                  did: false,
-                  id: e.pointerId,
-                  ox: e.clientX - x.get(),
-                  oy: e.clientY - y.get(),
-                  samples: [{ t: performance.now(), x: x.get(), y: y.get() }],
-                  startX: e.clientX,
-                  startY: e.clientY
-                }
-              }}
-              onPointerMove={e => {
-                const p = pointerRef.current
-                if (p?.id !== e.pointerId) return
-                const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
-                if (!p.did && dist2 > 25) {
-                  p.did = true
-                  vibrate(8)
-                  setDragging(true)
-                  setOpen(false)
-                }
-                if (!p.did) return
-                const rawX = e.clientX - p.ox
-                const rawY = e.clientY - p.oy
-                const minX = -BUBBLE_SIZE / 2
-                const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
-                const minY = EDGE_MARGIN / 2
-                const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
-                let nx = clampElastic(rawX, minX, maxX)
-                let ny = clampElastic(rawY, minY, maxY)
-                const bcx = nx + BUBBLE_SIZE / 2
-                const bcy = ny + BUBBLE_SIZE / 2
-                const zdx = bcx - zoneCenter.x
-                const zdy = bcy - zoneCenter.y
-                const zdist2 = zdx * zdx + zdy * zdy
-                const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
-                overDismissRef.current = inside
-                setOverDismiss(inside)
-                if (inside) {
-                  const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
-                  nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
-                  ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
-                }
-                x.set(nx)
-                y.set(ny)
-                p.samples.push({ t: performance.now(), x: nx, y: ny })
-                if (p.samples.length > 5) p.samples.shift()
-              }}
-              onPointerUp={e => {
-                const p = pointerRef.current
-                if (p?.id !== e.pointerId) return
-                pointerRef.current = null
-                try {
-                  e.currentTarget.releasePointerCapture(e.pointerId)
-                } catch {}
-                if (!p.did) {
-                  setOpen(prev => !prev)
-                  return
-                }
-                setDragging(false)
-                const now = performance.now()
-                const fallback = p.samples[0] ?? { t: now, x: x.get(), y: y.get() }
-                const first = p.samples.find(s => now - s.t < 80) ?? fallback
-                const last = p.samples.at(-1) ?? fallback
-                const dt = Math.max(1, last.t - first.t)
-                const vx = ((last.x - first.x) / dt) * 1000
-                const vy = ((last.y - first.y) / dt) * 1000
-                const speed = Math.hypot(vx, vy)
-                if (overDismissRef.current || speed > FLICK_VELOCITY) {
-                  triggerDismiss()
-                  return
-                }
-                overDismissRef.current = false
-                setOverDismiss(false)
-                const projectedX = x.get() + vx * 0.15
-                const nextDock: 'left' | 'right' =
-                  projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
-                const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
-                const targetY = Math.max(EDGE_MARGIN, Math.min(maxY, y.get() + vy * 0.05))
-                setDock(nextDock)
-                animate(x, computeRestingX(nextDock, true), { ...SPRING, velocity: vx })
-                animate(y, targetY, { ...SPRING, velocity: vy })
-                writePosition({ x: computeRestingX(nextDock, true), y: targetY })
-              }}
-              style={{
-                boxShadow: dragging ? liftedShadow : restShadow,
-                height: BUBBLE_SIZE,
-                touchAction: 'none',
-                width: BUBBLE_SIZE,
-                x,
-                y
-              }}
-              transition={SPRING}
-              type='button'
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
-              {idle ? (
-                <motion.span
-                  animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
-                  className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
-                  transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
-                />
-              ) : null}
-              <GridIcon />
-            </motion.button>
-          )}
+          ) : null}
         </AnimatePresence>
+        <motion.button
+          animate={
+            dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
+          }
+          aria-expanded={open}
+          aria-label='Open grid settings'
+          className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
+          exit={
+            dismissing
+              ? { opacity: 0, rotate: 180, scale: 0, transition: { duration: 0.38, ease: 'easeIn' } }
+              : { opacity: 0, scale: 0.5 }
+          }
+          initial={{ opacity: 0, scale: 0.5 }}
+          key='bubble'
+          onHoverEnd={() => setHover(false)}
+          onHoverStart={() => setHover(true)}
+          onPointerDown={e => {
+            if (e.button !== 0 && e.pointerType === 'mouse') return
+            const el = e.currentTarget
+            el.setPointerCapture(e.pointerId)
+            pointerRef.current = {
+              did: false,
+              id: e.pointerId,
+              ox: e.clientX - x.get(),
+              oy: e.clientY - y.get(),
+              samples: [{ t: performance.now(), x: x.get(), y: y.get() }],
+              startX: e.clientX,
+              startY: e.clientY
+            }
+          }}
+          onPointerMove={e => {
+            const p = pointerRef.current
+            if (p?.id !== e.pointerId) return
+            const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
+            if (!p.did && dist2 > 25) {
+              p.did = true
+              vibrate(8)
+              setDragging(true)
+              setOpen(false)
+            }
+            if (!p.did) return
+            const rawX = e.clientX - p.ox
+            const rawY = e.clientY - p.oy
+            const minX = -BUBBLE_SIZE / 2
+            const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
+            const minY = EDGE_MARGIN / 2
+            const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
+            let nx = clampElastic(rawX, minX, maxX)
+            let ny = clampElastic(rawY, minY, maxY)
+            const bcx = nx + BUBBLE_SIZE / 2
+            const bcy = ny + BUBBLE_SIZE / 2
+            const zdx = bcx - zoneCenter.x
+            const zdy = bcy - zoneCenter.y
+            const zdist2 = zdx * zdx + zdy * zdy
+            const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
+            overDismissRef.current = inside
+            setOverDismiss(inside)
+            if (inside) {
+              const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
+              nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
+              ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
+            }
+            x.set(nx)
+            y.set(ny)
+            p.samples.push({ t: performance.now(), x: nx, y: ny })
+            if (p.samples.length > 5) p.samples.shift()
+          }}
+          onPointerUp={e => {
+            const p = pointerRef.current
+            if (p?.id !== e.pointerId) return
+            pointerRef.current = null
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId)
+            } catch {}
+            if (!p.did) {
+              setOpen(prev => !prev)
+              return
+            }
+            setDragging(false)
+            const now = performance.now()
+            const fallback = p.samples[0] ?? { t: now, x: x.get(), y: y.get() }
+            const first = p.samples.find(s => now - s.t < 80) ?? fallback
+            const last = p.samples.at(-1) ?? fallback
+            const dt = Math.max(1, last.t - first.t)
+            const vx = ((last.x - first.x) / dt) * 1000
+            const vy = ((last.y - first.y) / dt) * 1000
+            const speed = Math.hypot(vx, vy)
+            if (overDismissRef.current || speed > FLICK_VELOCITY) {
+              triggerDismiss()
+              return
+            }
+            overDismissRef.current = false
+            setOverDismiss(false)
+            const projectedX = x.get() + vx * 0.15
+            const nextDock: 'left' | 'right' = projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
+            const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
+            const targetY = Math.max(EDGE_MARGIN, Math.min(maxY, y.get() + vy * 0.05))
+            setDock(nextDock)
+            animate(x, computeRestingX(nextDock, true), { ...SPRING, velocity: vx })
+            animate(y, targetY, { ...SPRING, velocity: vy })
+            writePosition({ x: computeRestingX(nextDock, true), y: targetY })
+          }}
+          style={{
+            boxShadow: dragging ? liftedShadow : restShadow,
+            height: BUBBLE_SIZE,
+            touchAction: 'none',
+            width: BUBBLE_SIZE,
+            x,
+            y
+          }}
+          transition={SPRING}
+          type='button'
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
+          {idle ? (
+            <motion.span
+              animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
+              className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
+              transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
+            />
+          ) : null}
+          <GridIcon />
+        </motion.button>
       </div>
     </MotionConfig>
   )
