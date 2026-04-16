@@ -2031,6 +2031,190 @@ describe('computeLayoutWithCols items with w exactly cols', () => {
     expect(placed[2]?.y).toBe(4)
   })
 })
+describe('Panel children-only mode (view mode)', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('renders children without sliders', () => {
+    const { container } = render(
+      <Panel>
+        <span>edit</span>
+      </Panel>
+    )
+    expect(container.textContent).toBe('edit')
+    expect(container.querySelector('input[type=range]')).toBeNull()
+  })
+  test('renders both children and trailing in view mode', () => {
+    const { container } = render(
+      <Panel trailing={<span>end</span>}>
+        <span>start</span>
+      </Panel>
+    )
+    expect(container.textContent).toContain('start')
+    expect(container.textContent).toContain('end')
+  })
+})
+describe('Grid config with only cols', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('uses default gap and rowHeight', async () => {
+    render(
+      <Grid config={{ cols: 10 }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(gridStore.getSnapshot()?.gap).toBe(16)
+    expect(gridStore.getSnapshot()?.rowHeight).toBe(50)
+    expect(gridStore.getSnapshot()?.cols).toBe(10)
+  })
+})
+describe('Grid config.layout with partial fields', () => {
+  test('layout item with only i and w', async () => {
+    cleanup()
+    const { container } = render(
+      <Grid config={{ layout: [{ i: 'a', w: 12 }] }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+  })
+})
+describe('buildLayout items missing from configMap get defaults', () => {
+  test('half of items in configMap, half not', () => {
+    const configMap = new Map([['a', { h: 5 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a', 'b'] })
+    expect(out[0]?.h).toBe(5)
+    expect(out[1]?.h).toBe(1)
+  })
+})
+describe('toGridConfig with fillSet containing non-layout items', () => {
+  test('fill key not in layout is ignored', () => {
+    const layout = [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }]
+    const fillSet = new Set(['a', 'ghost'])
+    const cfg = toGridConfig({ cols: 24, fillSet, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.length).toBe(1)
+    expect(cfg.layout?.[0]?.fill).toBe(true)
+  })
+})
+describe('gridStore preserves typed function signatures', () => {
+  test('setCols accepts number', () => {
+    let received: number | undefined
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: (c: number) => {
+        received = c
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    gridStore.getSnapshot()?.setCols(18)
+    expect(received).toBe(18)
+  })
+})
+describe('enforceMinH returns same array reference optimization in measuring when no grow', () => {
+  test('if no items need growing, output still new array (consistent)', () => {
+    const layout = [{ h: 5, i: 'a', minH: 3, w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', 3]]), phase: 'measuring' })
+    expect(out[0]?.h).toBe(5)
+  })
+})
+describe('computeLayoutWithCols deterministic', () => {
+  test('same input produces same output', () => {
+    const items = [
+      { h: 2, i: 'a', w: 12, x: 0, y: 0 },
+      { h: 3, i: 'b', w: 12, x: 0, y: 0 },
+      { h: 1, i: 'c', w: 24, x: 0, y: 0 }
+    ]
+    const out1 = computeLayoutWithCols(items, 24)
+    const out2 = computeLayoutWithCols(items, 24)
+    expect(out1).toEqual(out2)
+  })
+})
+describe('clampLayoutToCols preserves order', () => {
+  test('original order maintained', () => {
+    const items = [
+      { h: 1, i: 'first', w: 30, x: 0, y: 0 },
+      { h: 1, i: 'second', w: 4, x: 0, y: 1 },
+      { h: 1, i: 'third', w: 30, x: 0, y: 2 }
+    ]
+    const clamped = clampLayoutToCols(items, 24)
+    expect(clamped.map(c => c.i)).toEqual(['first', 'second', 'third'])
+  })
+})
+describe('storage: special characters in id', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('id with dashes', () => {
+    writeStorage('page-one-two', { cols: 12 })
+    expect(readStorage('page-one-two')?.cols).toBe(12)
+  })
+  test('id with slashes (from pathname)', () => {
+    writeStorage('traces/abc-123', { cols: 18 })
+    expect(readStorage('traces/abc-123')?.cols).toBe(18)
+  })
+  test('empty id', () => {
+    writeStorage('', { cols: 14 })
+    expect(readStorage('')?.cols).toBe(14)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
