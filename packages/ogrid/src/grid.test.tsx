@@ -2,6 +2,7 @@
 /** biome-ignore-all lint/performance/noNamespaceImport: testing public exports */
 /** biome-ignore-all lint/performance/useTopLevelRegex: test patterns */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: test data */
 /* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop, react-hooks/globals */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, react-hooks/globals */
 import { act, cleanup, render } from '@testing-library/react'
@@ -1644,6 +1645,212 @@ describe('gridStore snapshot equality', () => {
 describe('storage STORAGE_PREFIX stability', () => {
   test('prefix value is ogrid:', () => {
     expect(STORAGE_PREFIX).toBe('ogrid:')
+  })
+})
+describe('Panel children slot', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('children render before sliders', () => {
+    const { container } = render(
+      <Panel>
+        <span data-testid='start'>start-slot</span>
+      </Panel>
+    )
+    const text = container.textContent ?? ''
+    const startIdx = text.indexOf('start-slot')
+    const colsIdx = text.indexOf('Cols')
+    expect(startIdx).toBeGreaterThanOrEqual(0)
+    expect(startIdx).toBeLessThan(colsIdx)
+  })
+  test('trailing renders after spacer', () => {
+    const { container } = render(<Panel trailing={<span>end-slot</span>} />)
+    const text = container.textContent ?? ''
+    expect(text).toContain('end-slot')
+    expect(text.indexOf('end-slot')).toBeGreaterThan(text.indexOf('Cols'))
+  })
+  test('both children and trailing render', () => {
+    const { container } = render(
+      <Panel trailing={<span>end</span>}>
+        <span>start</span>
+      </Panel>
+    )
+    expect(container.textContent).toContain('start')
+    expect(container.textContent).toContain('end')
+  })
+})
+describe('Grid with many children', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('renders 50 items', async () => {
+    const children = Array.from({ length: 50 }, (_, idx) => <div key={`i${idx}`}>{idx}</div>)
+    const { container } = render(<Grid>{children}</Grid>)
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(50)
+  })
+})
+describe('Grid children key changes cause remount behavior', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('adding a new child renders it', async () => {
+    const { container, rerender } = render(
+      <Grid>
+        <div key='a'>a</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    rerender(
+      <Grid>
+        <div key='a'>a</div>
+        <div key='b'>b</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(2)
+  })
+  test('removing a child drops it', async () => {
+    const { container, rerender } = render(
+      <Grid>
+        <div key='a'>a</div>
+        <div key='b'>b</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(2)
+    rerender(
+      <Grid>
+        <div key='a'>a</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+  })
+})
+describe('Grid editable prop transition', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('going from false to true reveals handles', async () => {
+    const { container, rerender } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.ogrid-drag-handle')).toBeNull()
+    rerender(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.ogrid-drag-handle')).not.toBeNull()
+  })
+  test('going from true to false hides handles', async () => {
+    const { container, rerender } = render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.ogrid-drag-handle')).not.toBeNull()
+    rerender(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.ogrid-drag-handle')).toBeNull()
+  })
+})
+describe('measureNaturalHeight with visibility/display', () => {
+  test('works when element is display:none parent', () => {
+    const parent = document.createElement('div')
+    parent.style.display = 'none'
+    parent.style.height = '50px'
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 200 })
+    parent.append(el)
+    expect(measureNaturalHeight(el)).toBe(200)
+    expect(parent.style.height).toBe('50px')
+  })
+})
+describe('computeLayoutWithCols fills columns independently', () => {
+  test('tall item in col 0 does not block col 12', () => {
+    const items = [
+      { h: 10, i: 'tall', w: 12, x: 0, y: 0 },
+      { h: 1, i: 'small', w: 12, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]?.y).toBe(0)
+    expect(placed[1]?.y).toBe(0)
+    expect(placed[1]?.x).toBe(12)
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
