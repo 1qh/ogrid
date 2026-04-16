@@ -150,10 +150,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
   const colsRef = useRef(cols)
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
-  const [layout, setLayout] = useState<Layout>(() => {
-    const built = buildLayout(itemKeys, configMap, fillSet, cols)
-    return computeLayoutWithCols(built, cols)
-  })
+  const [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols))
   const emitConfigChange = useCallback(
     (l: Layout) => {
       queueMicrotask(() => {
