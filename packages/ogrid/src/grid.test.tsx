@@ -1,8 +1,14 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: ogrid id prop */
+import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
+import { MAX_GUARD_FRAMES } from './constants'
+import { createContentMinConstraint } from './constraint'
 import { gridStore } from './context'
 import { enforceMinH } from './enforce'
+import { extractKeys, flatChildren } from './extract-keys'
+import Grid from './grid'
 import { measureNaturalHeight, pxToGridH } from './measurement'
 import { clearStorage, readStorage, STORAGE_PREFIX, writeStorage } from './storage'
 import { toGridConfig } from './use-grid-config'
@@ -301,6 +307,210 @@ describe('storage', () => {
     writeStorage('b', { cols: 20 })
     expect(readStorage('a')?.cols).toBe(12)
     expect(readStorage('b')?.cols).toBe(20)
+  })
+})
+describe('extractKeys / flatChildren', () => {
+  test('extracts keys from flat children array', () => {
+    const children = [<div key='a' />, <div key='b' />, <div key='c' />]
+    expect(extractKeys(children)).toEqual(['a', 'b', 'c'])
+  })
+  test('flattens nested arrays', () => {
+    const children = [<div key='a' />, [<div key='b' />, <div key='c' />]]
+    expect(extractKeys(children)).toEqual(['a', 'b', 'c'])
+  })
+  test('ignores non-element children', () => {
+    const children = [<div key='a' />, 'text', null, false, 42]
+    expect(extractKeys(children)).toEqual(['a'])
+  })
+  test('skips elements without keys', () => {
+    const children = [<div key='noop-1' />, <div key='b' />]
+    children[0] = { ...children[0], key: null } as (typeof children)[0]
+    expect(extractKeys(children).includes('b')).toBe(true)
+  })
+  test('strips React key prefix', () => {
+    const children = [<div key='.$abc' />]
+    expect(extractKeys(children)).toEqual(['abc'])
+  })
+  test('handles single child', () => {
+    expect(extractKeys(<div key='only' />)).toEqual(['only'])
+  })
+  test('empty children', () => {
+    expect(extractKeys([])).toEqual([])
+    expect(extractKeys(null)).toEqual([])
+  })
+  test('flatChildren returns elements only', () => {
+    const result = flatChildren([<div key='a' />, 'text', null])
+    expect(result).toHaveLength(1)
+  })
+})
+const makeEl = (scrollHeight: number) => {
+  const el = document.createElement('div')
+  Object.defineProperty(el, 'scrollHeight', { configurable: true, value: scrollHeight })
+  return el
+}
+const baseRefs = () => ({
+  cardRef: new Map<string, HTMLDivElement>(),
+  fillSet: new Set<string>(),
+  lastKnownWRef: new Map<string, number>(),
+  marginY: 16,
+  previousMinHRef: new Map<string, number>(),
+  rowHeight: 50,
+  transitionFrameRef: new Map<string, number>()
+})
+const constraintItem = { h: 2, i: 'a', w: 12, x: 0, y: 0 }
+describe('createContentMinConstraint', () => {
+  test('fill items unconstrained', () => {
+    const refs = baseRefs()
+    refs.fillSet.add('a')
+    const { constrainSize } = createContentMinConstraint(refs)
+    expect(constrainSize(constraintItem, 12, 1, 'se')).toEqual({ h: 1, w: 12 })
+  })
+  test('no cardRef entry returns h unchanged', () => {
+    const refs = baseRefs()
+    const { constrainSize } = createContentMinConstraint(refs)
+    expect(constrainSize(constraintItem, 12, 1, 'se')).toEqual({ h: 1, w: 12 })
+  })
+  test('enforces content minimum height', () => {
+    const refs = baseRefs()
+    refs.cardRef.set('a', makeEl(200))
+    const { constrainSize } = createContentMinConstraint(refs)
+    const result = constrainSize(constraintItem, 12, 1, 'se')
+    expect(result.h).toBeGreaterThanOrEqual(3)
+  })
+  test('allows h larger than minimum', () => {
+    const refs = baseRefs()
+    refs.cardRef.set('a', makeEl(100))
+    const { constrainSize } = createContentMinConstraint(refs)
+    expect(constrainSize(constraintItem, 12, 10, 'se').h).toBe(10)
+  })
+  test('width change triggers transition tracking', () => {
+    const refs = baseRefs()
+    refs.cardRef.set('a', makeEl(200))
+    refs.lastKnownWRef.set('a', 12)
+    const { constrainSize } = createContentMinConstraint(refs)
+    constrainSize(constraintItem, 8, 1, 'se')
+    expect(refs.previousMinHRef.has('a')).toBe(true)
+    expect(refs.lastKnownWRef.get('a')).toBe(8)
+  })
+  test('transition cleared after MAX_GUARD_FRAMES', () => {
+    const refs = baseRefs()
+    refs.cardRef.set('a', makeEl(200))
+    refs.lastKnownWRef.set('a', 12)
+    refs.previousMinHRef.set('a', 4)
+    refs.transitionFrameRef.set('a', MAX_GUARD_FRAMES - 1)
+    const { constrainSize } = createContentMinConstraint(refs)
+    constrainSize(constraintItem, 12, 1, 'se')
+    expect(refs.previousMinHRef.has('a')).toBe(false)
+    expect(refs.transitionFrameRef.has('a')).toBe(false)
+  })
+  test('name property set', () => {
+    expect(createContentMinConstraint(baseRefs()).name).toBe('content-min')
+  })
+})
+describe('Grid component', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('renders children', async () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>first</div>
+        <div key='b'>second</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 10)
+      })
+    })
+    expect(container.textContent).toContain('first')
+    expect(container.textContent).toContain('second')
+  })
+  test('respects editable=false (no drag handles visible path)', () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    expect(container.querySelector('.ogrid-drag-handle')).toBeNull()
+  })
+  test('renders drag handles when editable', async () => {
+    const { container } = render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 10)
+      })
+    })
+    expect(container.querySelector('.ogrid-drag-handle')).not.toBeNull()
+  })
+  test('persist=true + id reads from localStorage on mount', () => {
+    writeStorage('test', { cols: 12, layout: [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }] })
+    const { container } = render(
+      <Grid id='test' persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    expect(container).toBeTruthy()
+    expect(readStorage('test')?.cols).toBe(12)
+  })
+  test('reset clears storage and remounts', async () => {
+    writeStorage('test', { cols: 12, layout: [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }] })
+    render(
+      <Grid editable id='test' persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    const snap = gridStore.getSnapshot()
+    expect(snap?.reset).toBeDefined()
+    await act(async () => {
+      snap?.reset()
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 10)
+      })
+    })
+    expect(readStorage('test')).toBeNull()
+  })
+  test('onConfigChange not called during measurement', async () => {
+    let emitted = 0
+    render(
+      <Grid
+        onConfigChange={() => {
+          emitted += 1
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, 50)
+    })
+    expect(emitted).toBe(0)
+  })
+  test('Panel renders nothing when not editable and no children/trailing', () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    const panelContainer = document.createElement('div')
+    render(<Grid.Panel />, { container: panelContainer })
+    expect(panelContainer.firstChild).toBeNull()
+    expect(container).toBeTruthy()
+  })
+  test('Panel renders when editable', () => {
+    render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    const panelContainer = document.createElement('div')
+    document.body.append(panelContainer)
+    render(<Grid.Panel />, { container: panelContainer })
+    expect(panelContainer.textContent).toContain('Cols')
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {

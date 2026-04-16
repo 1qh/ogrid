@@ -3,9 +3,9 @@
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, complexity */
 /* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
 'use client'
-import type { ReactElement, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
-import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, verticalCompactor } from 'react-grid-layout'
 import type { GridConfig } from './types'
 import { buildLayout } from './build-layout'
@@ -24,6 +24,7 @@ import {
 import { createContentMinConstraint } from './constraint'
 import { gridStore } from './context'
 import { enforceMinH } from './enforce'
+import { extractKeys, flatChildren, KEY_PREFIX_RE } from './extract-keys'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
 import { clearStorage, readStorage, writeStorage } from './storage'
@@ -37,23 +38,6 @@ interface GridInnerProps {
 interface GridProps extends GridInnerProps {
   id?: string
   persist?: boolean
-}
-const KEY_PREFIX_RE = /^\.\$/u
-const flatChildren = (children: ReactNode): ReactElement[] => {
-  const result: ReactElement[] = []
-  const items = Array.isArray(children) ? (children as ReactNode[]) : [children]
-  for (const child of items)
-    if (Array.isArray(child)) result.push(...flatChildren(child))
-    else if (isValidElement(child)) result.push(child)
-  return result
-}
-const extractKeys = (children: ReactNode): string[] => {
-  const keys: string[] = []
-  for (const child of flatChildren(children)) {
-    const key = child.key?.replace(KEY_PREFIX_RE, '')
-    if (key) keys.push(key)
-  }
-  return keys
 }
 const FREEFORM = { ...verticalCompactor, preventCollision: false }
 const COMPACT = { ...verticalCompactor, preventCollision: false }
