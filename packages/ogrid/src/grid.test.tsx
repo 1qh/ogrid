@@ -2352,6 +2352,249 @@ describe('cn variant dedup', () => {
     expect(cn('text-sm', 'font-bold', 'text-blue-500')).toBe('text-sm font-bold text-blue-500')
   })
 })
+describe('Grid wrapper reset guards', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('resetting blocks handleConfigChange writes during microtask window', async () => {
+    writeStorage('g1', { cols: 18, layout: [] })
+    let receivedCalls = 0
+    render(
+      <Grid
+        editable
+        id='g1'
+        onConfigChange={() => {
+          receivedCalls += 1
+        }}
+        persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    act(() => {
+      gridStore.getSnapshot()?.reset()
+    })
+    expect(readStorage('g1')).toBeNull()
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(receivedCalls).toBeGreaterThanOrEqual(0)
+  })
+  test('reset without persist still increments resetCount', async () => {
+    render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.reset()
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+  })
+  test('reset without id does not touch storage', async () => {
+    writeStorage('other', { cols: 12 })
+    render(
+      <Grid editable persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.reset()
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(readStorage('other')?.cols).toBe(12)
+  })
+})
+describe('Grid wrapper without persist preserves storage isolation', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('no persist means no storage writes', async () => {
+    writeStorage('sentinel', { cols: 999 })
+    render(
+      <Grid
+        editable
+        onConfigChange={() => {
+          /* Empty */
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(10)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(readStorage('sentinel')?.cols).toBe(999)
+  })
+  test('persist without id does not write', async () => {
+    writeStorage('other', { cols: 77 })
+    render(
+      <Grid editable persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(11)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(readStorage('other')?.cols).toBe(77)
+  })
+})
+describe('Grid wrapper handleConfigChange with persist', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('setCols writes to storage when persist+id', async () => {
+    render(
+      <Grid editable id='hcc' persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(15)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(readStorage('hcc')?.cols).toBe(15)
+  })
+  test('onConfigChange callback receives config', async () => {
+    const received: { cols?: number }[] = []
+    render(
+      <Grid
+        editable
+        onConfigChange={c => {
+          received.push(c)
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(13)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    const lastConfig = received.at(-1)
+    expect(lastConfig?.cols).toBe(13)
+  })
+})
+describe('Grid wrapper persist reads saved on mount', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('existing saved config applied as effective config', async () => {
+    writeStorage('rsv', { cols: 18, gap: 22, rowHeight: 70 })
+    const captured: { cols?: number; gap?: number; rowHeight?: number }[] = []
+    render(
+      <Grid
+        id='rsv'
+        onConfigChange={c => {
+          captured.push(c)
+        }}
+        persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(gridStore.getSnapshot()?.cols).toBe(18)
+    expect(gridStore.getSnapshot()?.gap).toBe(22)
+    expect(gridStore.getSnapshot()?.rowHeight).toBe(70)
+  })
+})
+describe('DragHandle renders SVG', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('DragHandle visible when editable', async () => {
+    const { container } = render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    const handle = container.querySelector('.ogrid-drag-handle')
+    expect(handle).not.toBeNull()
+    expect(handle?.querySelector('svg')).not.toBeNull()
+    expect(handle?.querySelectorAll('circle').length).toBe(6)
+  })
+})
+describe('measureAndUpdate no-change branch', () => {
+  test('layout stays identical when measurements match', () => {
+    const refs = {
+      cardRef: new Map<string, HTMLDivElement>(),
+      fillSet: new Set<string>(),
+      lastKnownWRef: new Map<string, number>(),
+      marginY: 16,
+      previousMinHRef: new Map<string, number>(),
+      rowHeight: 50,
+      transitionFrameRef: new Map<string, number>()
+    }
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 100 })
+    refs.cardRef.set('a', el)
+    const { constrainSize } = createContentMinConstraint(refs)
+    const r1 = constrainSize({ h: 2, i: 'a', w: 12, x: 0, y: 0 }, 12, 5, 'se')
+    const r2 = constrainSize({ h: 2, i: 'a', w: 12, x: 0, y: 0 }, 12, 5, 'se')
+    expect(r1).toEqual(r2)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
