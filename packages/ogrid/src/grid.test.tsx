@@ -1492,6 +1492,160 @@ describe('storage JSON round-trip with all GridConfig fields', () => {
     expect(readStorage('el')?.layout).toEqual([])
   })
 })
+describe('extractKeys with fragments and falsy', () => {
+  test('handles boolean false', () => {
+    expect(extractKeys([false, <div key='a' />, true])).toEqual(['a'])
+  })
+  test('handles number and string children', () => {
+    expect(extractKeys([1, 'text', <div key='a' />])).toEqual(['a'])
+  })
+  test('non-array single null', () => {
+    expect(extractKeys(null as never)).toEqual([])
+  })
+  test('non-array single undefined', () => {
+    expect(extractKeys(undefined as never)).toEqual([])
+  })
+})
+describe('cn edge cases', () => {
+  test('numbers ignored safely', () => {
+    expect(cn('a', 0 as never, 'b')).toBe('a b')
+  })
+  test('tailwind conflict resolution', () => {
+    expect(cn('text-sm', 'text-lg')).toBe('text-lg')
+  })
+  test('nested arrays flatten', () => {
+    expect(cn(['a', ['b', 'c']])).toBe('a b c')
+  })
+})
+describe('pxToGridH boundary cases', () => {
+  test('rowHeight=0 gives Infinity edge', () => {
+    expect(Number.isFinite(pxToGridH(100, 0, 16))).toBe(true)
+  })
+  test('marginY=0', () => {
+    expect(pxToGridH(100, 50, 0)).toBe(Math.ceil(101 / 50))
+  })
+  test('very large px', () => {
+    expect(pxToGridH(10_000, 50, 16)).toBeGreaterThan(100)
+  })
+})
+describe('clampLayoutToCols larger cols unchanged', () => {
+  test('items narrower than cols pass through', () => {
+    const items = [{ h: 2, i: 'a', w: 6, x: 2, y: 0 }]
+    expect(clampLayoutToCols(items, 24)[0]).toBe(items[0])
+  })
+  test('multiple items preserved if all fit', () => {
+    const items = [
+      { h: 2, i: 'a', w: 6, x: 0, y: 0 },
+      { h: 2, i: 'b', w: 6, x: 6, y: 0 },
+      { h: 2, i: 'c', w: 6, x: 12, y: 0 }
+    ]
+    const clamped = clampLayoutToCols(items, 24)
+    for (let i = 0; i < items.length; i += 1) expect(clamped[i]).toBe(items[i])
+  })
+})
+describe('enforceMinH does not mutate input', () => {
+  test('returns new array in measuring', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', 4]]), phase: 'measuring' })
+    expect(out).not.toBe(layout)
+    expect(layout[0]?.h).toBe(2)
+  })
+  test('returns same reference in done phase', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map(), phase: 'done' })
+    expect(out).toBe(layout)
+  })
+})
+describe('buildLayout returns fresh layout each call', () => {
+  test('distinct call results not referentially equal', () => {
+    const args = { cols: 24, configMap: new Map(), fillSet: new Set<string>(), itemKeys: ['a'] }
+    expect(buildLayout(args)).not.toBe(buildLayout(args))
+  })
+})
+describe('useGridConfig reactive to store updates', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('re-renders when store changes via useSyncExternalStore', () => {
+    const seen: (number | undefined)[] = []
+    const Probe = () => {
+      const cfg = useGridConfig()
+      seen.push(cfg?.cols)
+      return null
+    }
+    gridStore.setState({
+      cols: 10,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    render(<Probe />)
+    act(() => {
+      gridStore.setState({ ...gridStore.getSnapshot(), cols: 30 } as NonNullable<ReturnType<typeof gridStore.getSnapshot>>)
+    })
+    expect(seen).toContain(10)
+    expect(seen).toContain(30)
+  })
+})
+describe('gridStore snapshot equality', () => {
+  test('identical references return stable snapshot', () => {
+    const snap: NonNullable<ReturnType<typeof gridStore.getSnapshot>> = {
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    }
+    gridStore.setState(snap)
+    expect(gridStore.getSnapshot()).toBe(snap)
+  })
+})
+describe('storage STORAGE_PREFIX stability', () => {
+  test('prefix value is ogrid:', () => {
+    expect(STORAGE_PREFIX).toBe('ogrid:')
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
