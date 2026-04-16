@@ -1,13 +1,14 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, complexity */
-/* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @typescript-eslint/max-params, react-hooks/refs */
+/* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
 'use client'
 import type { ReactElement, ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
 import { isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GridLayout, verticalCompactor } from 'react-grid-layout'
 import type { GridConfig } from './types'
+import { buildLayout } from './build-layout'
 import { cn } from './cn'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
 import {
@@ -79,27 +80,6 @@ const DragHandle = () => (
     </svg>
   </div>
 )
-const buildLayout = (
-  itemKeys: string[],
-  configMap: Map<string, { h?: number; minH?: number; minW?: number; w?: number; x?: number; y?: number }>,
-  fillSet: Set<string>,
-  cols: number
-): Layout => {
-  const result: RGLLayoutItem[] = []
-  for (const key of itemKeys) {
-    const c = configMap.get(key)
-    result.push({
-      h: c?.h ?? (fillSet.has(key) ? 8 : 1),
-      i: key,
-      minH: c?.minH,
-      minW: c?.minW,
-      w: c?.w ?? cols,
-      x: c?.x ?? 0,
-      y: c?.y ?? 0
-    })
-  }
-  return result
-}
 const GridInner = ({ children, config, editable = false, onConfigChange }: GridInnerProps) => {
   const [cols, setCols] = useState(config?.cols ?? DEFAULT_COLS)
   const [gap, setGap] = useState(config?.gap ?? DEFAULT_GAP)
@@ -150,7 +130,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
   const colsRef = useRef(cols)
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
-  const [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols))
+  const [layout, setLayout] = useState<Layout>(() => buildLayout({ cols, configMap, fillSet, itemKeys }))
   const emitConfigChange = useCallback(
     (l: Layout) => {
       queueMicrotask(() => {

@@ -1,5 +1,7 @@
-import { describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { buildLayout } from './build-layout'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
+import { gridStore } from './context'
 import { enforceMinH } from './enforce'
 import { pxToGridH } from './measurement'
 import { toGridConfig } from './use-grid-config'
@@ -127,6 +129,114 @@ describe('enforceMinH', () => {
     expect(out[1]?.h).toBe(2)
   })
 })
+describe('buildLayout', () => {
+  test('uses defaults when key not in configMap', () => {
+    const out = buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]).toMatchObject({ h: 1, i: 'a', w: 24, x: 0, y: 0 })
+  })
+  test('fill items default h=8', () => {
+    const out = buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(['a']), itemKeys: ['a'] })
+    expect(out[0]?.h).toBe(8)
+  })
+  test('respects explicit h/x/y/w', () => {
+    const configMap = new Map([['a', { h: 5, w: 12, x: 6, y: 3 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]).toMatchObject({ h: 5, w: 12, x: 6, y: 3 })
+  })
+  test('explicit h overrides fill default', () => {
+    const configMap = new Map([['a', { h: 3 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(['a']), itemKeys: ['a'] })
+    expect(out[0]?.h).toBe(3)
+  })
+  test('preserves minH/minW', () => {
+    const configMap = new Map([['a', { minH: 2, minW: 4 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]).toMatchObject({ minH: 2, minW: 4 })
+  })
+  test('ignores keys not in itemKeys', () => {
+    const configMap = new Map([
+      ['a', { h: 5 }],
+      ['ghost', { h: 99 }]
+    ])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out).toHaveLength(1)
+  })
+  test('empty itemKeys', () => {
+    expect(buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(), itemKeys: [] })).toEqual([])
+  })
+  test('preserves itemKeys order', () => {
+    const out = buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(), itemKeys: ['c', 'a', 'b'] })
+    expect(out.map(i => i.i)).toEqual(['c', 'a', 'b'])
+  })
+})
+describe('gridStore', () => {
+  beforeEach(() => {
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'measuring',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('getSnapshot returns set state', () => {
+    expect(gridStore.getSnapshot()?.cols).toBe(24)
+  })
+  test('setState notifies subscribers', () => {
+    let calls = 0
+    const unsub = gridStore.subscribe(() => {
+      calls += 1
+    })
+    gridStore.setState({ ...gridStore.getSnapshot(), cols: 12 })
+    gridStore.setState({ ...gridStore.getSnapshot(), cols: 16 })
+    unsub()
+    expect(calls).toBe(2)
+  })
+  test('unsubscribe stops notifications', () => {
+    let calls = 0
+    const unsub = gridStore.subscribe(() => {
+      calls += 1
+    })
+    unsub()
+    gridStore.setState({ ...gridStore.getSnapshot(), cols: 12 })
+    expect(calls).toBe(0)
+  })
+  test('multiple subscribers all notified', () => {
+    let a = 0
+    let b = 0
+    const ua = gridStore.subscribe(() => {
+      a += 1
+    })
+    const ub = gridStore.subscribe(() => {
+      b += 1
+    })
+    gridStore.setState({ ...gridStore.getSnapshot(), cols: 12 })
+    ua()
+    ub()
+    expect(a).toBe(1)
+    expect(b).toBe(1)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
@@ -190,6 +300,36 @@ describe('bug: reload + resize causes cascade growth', () => {
     expect(cfg.layout?.[0]).toMatchObject({ fill: true, h: 8, i: 'chart', w: 12 })
     expect(cfg.layout?.[1]).toMatchObject({ h: 4, i: 'kpi', w: 12, x: 12 })
     expect(cfg.layout?.[2]).toMatchObject({ fill: true, h: 8, i: 'area', w: 12, x: 12, y: 4 })
+  })
+})
+describe('round-trip: buildLayout + toGridConfig', () => {
+  test('config → buildLayout → toGridConfig preserves user data', () => {
+    const savedConfig = {
+      layout: [
+        { fill: true, h: 8, i: 'chart', w: 12 },
+        { h: 4, i: 'kpi', w: 12, x: 12 },
+        { h: 6, i: 'table', w: 16, y: 12 }
+      ]
+    }
+    const itemKeys = savedConfig.layout.map(i => i.i)
+    const configMap = new Map(savedConfig.layout.map(i => [i.i, i]))
+    const fillSet = new Set(savedConfig.layout.filter(i => i.fill).map(i => i.i))
+    const built = buildLayout({ cols: 24, configMap, fillSet, itemKeys })
+    const roundTripped = toGridConfig({ cols: 24, fillSet, gap: 16, layout: built, rowHeight: 50 })
+    for (const original of savedConfig.layout) {
+      const round = roundTripped.layout?.find(r => r.i === original.i)
+      expect(round?.h).toBe(original.h)
+      expect(round?.w).toBe(original.w)
+      expect(round?.fill).toBe(original.fill ?? undefined)
+    }
+  })
+  test('default config → buildLayout produces full-width items', () => {
+    const itemKeys = ['a', 'b']
+    const configMap = new Map()
+    const fillSet = new Set<string>()
+    const built = buildLayout({ cols: 24, configMap, fillSet, itemKeys })
+    expect(built[0]?.w).toBe(24)
+    expect(built[1]?.w).toBe(24)
   })
 })
 describe('toGridConfig', () => {
