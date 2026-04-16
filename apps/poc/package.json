@@ -13,6 +13,7 @@
     "ogrid": "workspace:*"
   },
   "devDependencies": {
-    "@playwright/test": "latest"
+    "@playwright/test": "latest",
+    "playwright-core": "latest"
   }
 }
