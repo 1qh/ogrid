@@ -805,6 +805,38 @@ test('reset after heavy customization: all items return to pristine state', asyn
     expect({ h: r.h, key, w: r.w }).toEqual({ h: p.h, key, w: p.w })
   }
 })
+test('seed taller h then reload then resize shorter (minH must not lock at saved h)', async ({ page }) => {
+  await page.evaluate(
+    args => globalThis.localStorage.setItem(args.k, JSON.stringify({ layout: [{ h: 8, i: 'kpi', w: 12 }] })),
+    { k: STORAGE_KEY }
+  )
+  await page.reload()
+  await page.waitForSelector('.react-grid-item')
+  await page.waitForTimeout(800)
+  await page.keyboard.press('Meta+k')
+  await page.waitForTimeout(400)
+  const getKpiH = async () =>
+    page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('[data-ogrid-key="kpi"]')?.closest('.react-grid-item')
+      return el ? (el as HTMLElement).offsetHeight : 0
+    })
+  const hAfterReload = await getKpiH()
+  const resize = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="kpi"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.react-resizable-handle-se')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+  })
+  if (!resize) throw new Error('no handle')
+  await page.mouse.move(resize.x, resize.y)
+  await page.mouse.down()
+  await page.mouse.move(resize.x, resize.y - 300, { steps: 20 })
+  await page.mouse.up()
+  await page.waitForTimeout(600)
+  const hShorter = await getKpiH()
+  expect(hShorter).toBeLessThan(hAfterReload - 50)
+})
 test('reload with saved config preserves item heights (regression)', async ({ page }) => {
   const cfg = {
     layout: [

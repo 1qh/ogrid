@@ -233,6 +233,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
     const mw = measureWindowRef.current
     const observer = new ResizeObserver(entries => {
       let changed = false
+      if (mw.phase !== 'measuring') return
       for (const entry of entries) {
         const el = entry.target
         if (!(el instanceof HTMLDivElement)) continue
@@ -244,7 +245,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
         minHRef.current.set(key, gridH)
         changed = true
       }
-      if (changed && mw.phase === 'measuring') {
+      if (changed) {
         cancelAnimationFrame(rafRef.current)
         rafRef.current = requestAnimationFrame(measureAndUpdate)
       }
@@ -391,7 +392,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
                 <div
                   className={cn(
                     'relative flex flex-col',
-                    phase === 'done' ? 'h-full overflow-auto' : 'min-h-full',
+                    phase === 'done' ? 'h-full overflow-auto' : '',
                     classNameMap.get(key)
                   )}
                   ref={el => setCardRef(key, el)}>
