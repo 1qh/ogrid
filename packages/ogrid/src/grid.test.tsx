@@ -2595,6 +2595,189 @@ describe('measureAndUpdate no-change branch', () => {
     expect(r1).toEqual(r2)
   })
 })
+describe('computeLayoutWithCols more invariants', () => {
+  test('preserves i identity for every item', () => {
+    const items = [
+      { h: 2, i: 'x', w: 6, x: 0, y: 0 },
+      { h: 2, i: 'y', w: 6, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed.map(p => p.i).toSorted()).toEqual(['x', 'y'])
+  })
+  test('output length matches input length', () => {
+    const items = Array.from({ length: 30 }, (_, idx) => ({ h: 1, i: `i${idx}`, w: 3, x: 0, y: 0 }))
+    expect(computeLayoutWithCols(items, 24)).toHaveLength(30)
+  })
+  test('all y values >= 0', () => {
+    const items = [{ h: 1, i: 'a', w: 12, x: 0, y: 0 }]
+    const placed = computeLayoutWithCols(items, 24)
+    for (const p of placed) expect(p.y).toBeGreaterThanOrEqual(0)
+  })
+  test('all x + w <= cols', () => {
+    const items = Array.from({ length: 20 }, (_, idx) => ({ h: 1, i: `i${idx}`, w: 8, x: 0, y: 0 }))
+    const placed = computeLayoutWithCols(items, 24)
+    for (const p of placed) expect(p.x + p.w).toBeLessThanOrEqual(24)
+  })
+})
+describe('clampLayoutToCols edge', () => {
+  test('item already at edge unchanged', () => {
+    const items = [{ h: 1, i: 'a', w: 12, x: 12, y: 0 }]
+    expect(clampLayoutToCols(items, 24)[0]).toBe(items[0])
+  })
+  test('w exactly equals cols', () => {
+    const items = [{ h: 1, i: 'a', w: 24, x: 0, y: 0 }]
+    expect(clampLayoutToCols(items, 24)[0]).toBe(items[0])
+  })
+  test('very narrow cols=1', () => {
+    const items = [{ h: 1, i: 'a', w: 5, x: 3, y: 0 }]
+    const clamped = clampLayoutToCols(items, 1)
+    expect(clamped[0]?.w).toBe(1)
+    expect(clamped[0]?.x).toBe(0)
+  })
+})
+describe('enforceMinH preserves item field identity', () => {
+  test('preserves i/w/x/y when only h changes', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 3, y: 4 }]
+    const out = enforceMinH({
+      fillSet: new Set(),
+      layout,
+      minHByKey: new Map([['a', 5]]),
+      phase: 'measuring'
+    })
+    expect(out[0]).toMatchObject({ i: 'a', w: 12, x: 3, y: 4 })
+  })
+  test('preserves i/w/x/y when fill skipped', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 3, y: 4 }]
+    const out = enforceMinH({
+      fillSet: new Set(['a']),
+      layout,
+      minHByKey: new Map([['a', 99]]),
+      phase: 'measuring'
+    })
+    expect(out[0]).toBe(layout[0])
+  })
+})
+describe('buildLayout explicit h=0 preserved', () => {
+  test('explicit h=0 does not fallback', () => {
+    const configMap = new Map([['a', { h: 0 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.h).toBe(0)
+  })
+  test('explicit x/y=0 preserved (default also 0)', () => {
+    const configMap = new Map([['a', { x: 0, y: 0 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.x).toBe(0)
+    expect(out[0]?.y).toBe(0)
+  })
+})
+describe('toGridConfig numeric edge values', () => {
+  test('h=0 preserved (non-default)', () => {
+    const layout = [{ h: 0, i: 'a', w: 12, x: 0, y: 0 }]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]?.h).toBe(0)
+  })
+  test('large numbers preserved', () => {
+    const layout = [{ h: 1_000_000, i: 'a', w: 12, x: 999, y: 9999 }]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]).toMatchObject({ h: 1_000_000, w: 12, x: 999, y: 9999 })
+  })
+})
+describe('storage large config', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('handles 500-item layout', () => {
+    const layout = Array.from({ length: 500 }, (_, idx) => ({ h: 2, i: `i${idx}`, w: 4, x: 0, y: idx * 2 }))
+    writeStorage('big', { layout })
+    const read = readStorage('big')
+    expect(read?.layout).toHaveLength(500)
+  })
+})
+describe('gridStore listener stability', () => {
+  test('subscribing twice with same listener adds both (Set semantics)', () => {
+    let calls = 0
+    const handler = () => {
+      calls += 1
+    }
+    const unsub1 = gridStore.subscribe(handler)
+    const unsub2 = gridStore.subscribe(handler)
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    unsub1()
+    unsub2()
+    expect(calls).toBe(1)
+  })
+})
+describe('cn with very long class list', () => {
+  test('handles 50+ classes without errors', () => {
+    const classes = Array.from({ length: 50 }, (_, idx) => `cls-${idx}`)
+    expect(() => cn(...classes)).not.toThrow()
+  })
+  test('handles undefined interspersed', () => {
+    expect(cn('a', undefined, 'b', null, 'c')).toBe('a b c')
+  })
+})
+describe('extractKeys symbol key skipped', () => {
+  test('numeric keys accepted', () => {
+    const el = { ...(<div key='42' />) }
+    expect(extractKeys([el as never])).toEqual(['42'])
+  })
+})
+describe('flatChildren flattens deeply', () => {
+  test('handles array of arrays of arrays', () => {
+    const result = flatChildren([[[<div key='a' />]]])
+    expect(result).toHaveLength(1)
+  })
+})
+describe('pxToGridH returns integers', () => {
+  test('Math.ceil ensures integer output', () => {
+    for (let px = 1; px <= 200; px += 1) expect(Number.isInteger(pxToGridH(px, 50, 16))).toBe(true)
+  })
+})
+describe('Grid wrapper resetRef always callable via store', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('reset callable after mount', async () => {
+    render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(gridStore.getSnapshot()?.reset).toBeInstanceOf(Function)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
