@@ -250,6 +250,8 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
     }
   }, [open])
   if (!((editable || children || trailing) && mounted) || hidden) return null
+  const idle = !(dragging || hover || open || dismissing)
+  const snapPreviewX = dock === 'right' ? globalThis.innerWidth - BUBBLE_SIZE - EDGE_MARGIN : EDGE_MARGIN
   const zoneCenter = { x: globalThis.innerWidth / 2, y: globalThis.innerHeight - 90 }
   const liftedShadow = '0 24px 48px rgba(0,0,0,0.4), 0 10px 20px rgba(0,0,0,0.25)'
   const restShadow =
@@ -284,6 +286,18 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
         ) : null}
       </AnimatePresence>
       <AnimatePresence>
+        {dragging && !overDismiss ? (
+          <motion.div
+            animate={{ opacity: 0.25, scale: 1 }}
+            className='pointer-events-none fixed top-0 left-0 rounded-full border-2 border-dashed border-gray-500 dark:border-gray-400'
+            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            style={{ height: BUBBLE_SIZE, left: snapPreviewX, top: y.get(), width: BUBBLE_SIZE }}
+            transition={{ duration: 0.2 }}
+          />
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
         {dragging ? (
           <motion.div
             animate={{ opacity: 1, scale: overDismiss ? 1.4 : 1, y: 0 }}
@@ -305,7 +319,7 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
           <motion.div
             animate={{ x: 0 }}
             className={cn(
-              'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background shadow-2xl',
+              'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background/85 shadow-2xl backdrop-blur-xl',
               dock === 'right' ? 'right-0 border-l' : 'left-0 border-r',
               'border-border'
             )}
@@ -452,6 +466,13 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             type='button'
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
+            {idle ? (
+              <motion.span
+                animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
+                className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
+                transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
+              />
+            ) : null}
             <GridIcon />
           </motion.button>
         )}
