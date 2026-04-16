@@ -149,7 +149,10 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
   const colsRef = useRef(cols)
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
-  const [layout, setLayout] = useState<Layout>(() => buildLayout(itemKeys, configMap, fillSet, cols))
+  const [layout, setLayout] = useState<Layout>(() => {
+    const built = buildLayout(itemKeys, configMap, fillSet, cols)
+    return computeLayoutWithCols(built, cols)
+  })
   const emitConfigChange = useCallback(
     (l: Layout) => {
       queueMicrotask(() => {
@@ -355,16 +358,21 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
         settingLayoutRef.current = false
         return
       }
-      const enforced = newLayout.map(item => {
-        if (fillSet.has(item.i)) return item
-        const minH = minHRef.current.get(item.i) ?? item.minH ?? 1
-        const h = Math.max(item.h, minH)
-        return { ...item, h, minH }
-      })
-      const result = measureWindowRef.current.phase === 'measuring' ? computeLayout(enforced) : enforced
-      checkOverlaps(result)
-      freeformLayoutRef.current = result
-      setLayout(result)
+      if (measureWindowRef.current.phase === 'measuring') {
+        const enforced = newLayout.map(item => {
+          if (fillSet.has(item.i)) return item
+          const minH = minHRef.current.get(item.i) ?? item.minH ?? 1
+          return { ...item, h: Math.max(item.h, minH), minH }
+        })
+        const result = computeLayout(enforced)
+        checkOverlaps(result)
+        freeformLayoutRef.current = result
+        setLayout(result)
+        return
+      }
+      checkOverlaps(newLayout)
+      freeformLayoutRef.current = newLayout
+      setLayout(newLayout)
     },
     [computeLayout, fillSet]
   )
