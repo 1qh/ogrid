@@ -127,6 +127,71 @@ describe('enforceMinH', () => {
     expect(out[1]?.h).toBe(2)
   })
 })
+describe('bug: reload + resize causes cascade growth', () => {
+  test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
+    const savedLayout = [
+      { h: 4, i: 'kpi', w: 12, x: 12, y: 0 },
+      { h: 4, i: 'progress', w: 12, x: 0, y: 8 },
+      { h: 3, i: 'stats', w: 8, x: 16, y: 12 },
+      { h: 5, i: 'timeline', w: 12, x: 12, y: 18 },
+      { h: 3, i: 'text', w: 12, x: 0, y: 39 }
+    ]
+    const measuredMinH = new Map([
+      ['kpi', 5],
+      ['progress', 5],
+      ['stats', 4],
+      ['text', 4],
+      ['timeline', 6]
+    ])
+    const afterResize = enforceMinH({
+      fillSet: new Set(),
+      layout: savedLayout,
+      minHByKey: measuredMinH,
+      phase: 'done'
+    })
+    for (let i = 0; i < savedLayout.length; i += 1) expect(afterResize[i]?.h).toBe(savedLayout[i]?.h ?? 0)
+  })
+  test('reload scenario: only measurement phase grows items (initial load only)', () => {
+    const savedLayout = [
+      { h: 4, i: 'a', w: 12, x: 0, y: 0 },
+      { h: 4, i: 'b', w: 12, x: 12, y: 0 }
+    ]
+    const measuredMinH = new Map([
+      ['a', 5],
+      ['b', 5]
+    ])
+    const measuring = enforceMinH({ fillSet: new Set(), layout: savedLayout, minHByKey: measuredMinH, phase: 'measuring' })
+    expect(measuring[0]?.h).toBe(5)
+    expect(measuring[1]?.h).toBe(5)
+    const done = enforceMinH({ fillSet: new Set(), layout: measuring, minHByKey: measuredMinH, phase: 'done' })
+    expect(done[0]?.h).toBe(5)
+    expect(done[1]?.h).toBe(5)
+    const anotherLayoutChange = enforceMinH({
+      fillSet: new Set(),
+      layout: done,
+      minHByKey: new Map([
+        ['a', 99],
+        ['b', 99]
+      ]),
+      phase: 'done'
+    })
+    expect(anotherLayoutChange[0]?.h).toBe(5)
+    expect(anotherLayoutChange[1]?.h).toBe(5)
+  })
+  test('round-trip: saved config → toGridConfig after measurement preserves positions', () => {
+    const originalLayout = [
+      { h: 8, i: 'chart', w: 12, x: 0, y: 0 },
+      { h: 4, i: 'kpi', w: 12, x: 12, y: 0 },
+      { h: 8, i: 'area', w: 12, x: 12, y: 4 }
+    ]
+    const fillSet = new Set(['area', 'chart'])
+    const cfg = toGridConfig({ cols: 24, fillSet, gap: 16, layout: originalLayout, rowHeight: 50 })
+    expect(cfg.layout).toHaveLength(3)
+    expect(cfg.layout?.[0]).toMatchObject({ fill: true, h: 8, i: 'chart', w: 12 })
+    expect(cfg.layout?.[1]).toMatchObject({ h: 4, i: 'kpi', w: 12, x: 12 })
+    expect(cfg.layout?.[2]).toMatchObject({ fill: true, h: 8, i: 'area', w: 12, x: 12, y: 4 })
+  })
+})
 describe('toGridConfig', () => {
   test('omits defaults, preserves non-defaults', () => {
     const layout = [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }]
