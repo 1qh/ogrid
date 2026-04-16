@@ -3,11 +3,16 @@
   "private": true,
   "scripts": {
     "build": "next build --turbo",
-    "dev": "next dev --turbo -p 3200"
+    "dev": "next dev --turbo -p 3200",
+    "test": "playwright test"
   },
   "dependencies": {
     "@a/ui": "workspace:*",
+    "jotai": "latest",
     "next": "latest",
     "ogrid": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest"
   }
 }
