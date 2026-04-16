@@ -3113,6 +3113,158 @@ describe('storage prefix key uniqueness', () => {
     expect(readStorage('abcd')?.cols).toBe(2)
   })
 })
+describe('Grid with onConfigChange AND persist', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('both fire on change', async () => {
+    const received: unknown[] = []
+    render(
+      <Grid
+        editable
+        id='both'
+        onConfigChange={c => {
+          received.push(c)
+        }}
+        persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(19)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(received.length).toBeGreaterThan(0)
+    expect(readStorage('both')?.cols).toBe(19)
+  })
+})
+describe('Panel editable empty layout', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('shows 0 items', () => {
+    const { container } = render(<Panel />)
+    expect(container.textContent).toContain('0 items')
+  })
+})
+describe('Grid classNameMap applies to cell', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('cell has className', async () => {
+    const { container } = render(
+      <Grid config={{ layout: [{ className: 'my-cls', i: 'a', w: 12 }] }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.my-cls')).not.toBeNull()
+  })
+  test('mixed className presence', async () => {
+    const { container } = render(
+      <Grid
+        config={{
+          layout: [
+            { className: 'has', i: 'a', w: 12 },
+            { i: 'b', w: 12 }
+          ]
+        }}>
+        <div key='a'>a</div>
+        <div key='b'>b</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.has').length).toBe(1)
+  })
+})
+describe('cn all-falsy inputs', () => {
+  test('returns empty string', () => {
+    expect(cn(false, null, undefined)).toBe('')
+  })
+})
+describe('computeLayoutWithCols preserves input order', () => {
+  test('order of i values unchanged', () => {
+    const items = [
+      { h: 1, i: 'first', w: 6, x: 0, y: 0 },
+      { h: 1, i: 'second', w: 6, x: 0, y: 0 },
+      { h: 1, i: 'third', w: 6, x: 0, y: 0 }
+    ]
+    expect(computeLayoutWithCols(items, 24).map(p => p.i)).toEqual(['first', 'second', 'third'])
+  })
+})
+describe('readStorage with non-prefixed key', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('returns null for keys without ogrid: prefix', () => {
+    globalThis.localStorage.setItem('plain-key', 'value')
+    expect(readStorage('plain-key')).toBeNull()
+  })
+})
+describe('writeStorage preserves complex types', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('className/fill/numeric fields preserved', () => {
+    writeStorage('types', {
+      layout: [{ className: 'cn', fill: true, h: 4, i: 'a', minH: 2, w: 12, x: 3, y: 4 }]
+    })
+    const read = readStorage('types')
+    expect(read?.layout?.[0]).toMatchObject({
+      className: 'cn',
+      fill: true,
+      h: 4,
+      i: 'a',
+      minH: 2,
+      w: 12,
+      x: 3,
+      y: 4
+    })
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
