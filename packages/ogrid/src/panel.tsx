@@ -238,6 +238,20 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
     animate(x, computeRestingX(dock, reveal), SPRING)
   }, [dock, hover, open, dragging, tucked, x])
   useEffect(() => {
+    const shortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        if (hidden) {
+          setHidden(false)
+          writeHidden(false)
+        }
+        setOpen(p => !p)
+      }
+    }
+    globalThis.addEventListener('keydown', shortcut)
+    return () => globalThis.removeEventListener('keydown', shortcut)
+  }, [hidden])
+  useEffect(() => {
     if (!open) return
     const keyHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
@@ -412,13 +426,18 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
                   </motion.button>
                   <span className='text-sm font-semibold'>Grid</span>
                 </div>
-                <button
-                  aria-label='Close'
-                  className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
-                  onClick={() => setOpen(false)}
-                  type='button'>
-                  <CloseIcon />
-                </button>
+                <div className='flex items-center gap-1.5'>
+                  <kbd className='rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground'>
+                    ⌘K
+                  </kbd>
+                  <button
+                    aria-label='Close'
+                    className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    onClick={() => setOpen(false)}
+                    type='button'>
+                    <CloseIcon />
+                  </button>
+                </div>
               </div>
               <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-3'>
                 {children ? <div className='flex flex-col gap-1 border-b border-border pb-3'>{children}</div> : null}
