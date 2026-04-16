@@ -1,7 +1,13 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: ogrid id prop */
+/** biome-ignore-all lint/performance/noNamespaceImport: testing public exports */
+/** biome-ignore-all lint/performance/useTopLevelRegex: test patterns */
+/** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
+/* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-hooks/globals */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, react-hooks/globals */
 import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
+import { cn } from './cn'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
 import { MAX_GUARD_FRAMES } from './constants'
 import { createContentMinConstraint } from './constraint'
@@ -9,9 +15,11 @@ import { gridStore } from './context'
 import { enforceMinH } from './enforce'
 import { extractKeys, flatChildren } from './extract-keys'
 import Grid from './grid'
+import * as indexExports from './index'
 import { measureNaturalHeight, pxToGridH } from './measurement'
+import Panel from './panel'
 import { clearStorage, readStorage, STORAGE_PREFIX, writeStorage } from './storage'
-import { toGridConfig } from './use-grid-config'
+import { toGridConfig, useGridConfig } from './use-grid-config'
 describe('computeLayoutWithCols', () => {
   test('places items row by row', () => {
     const items = [
@@ -511,6 +519,246 @@ describe('Grid component', () => {
     document.body.append(panelContainer)
     render(<Grid.Panel />, { container: panelContainer })
     expect(panelContainer.textContent).toContain('Cols')
+  })
+})
+describe('cn', () => {
+  test('merges tailwind classes, deduplicates', () => {
+    expect(cn('p-2', 'p-4')).toBe('p-4')
+  })
+  test('filters falsy values', () => {
+    expect(cn('a', false, null, undefined, 'b')).toBe('a b')
+  })
+  test('conditional class', () => {
+    const active = true
+    expect(cn('base', active && 'on')).toContain('on')
+  })
+  test('empty input returns empty', () => {
+    expect(cn()).toBe('')
+  })
+  test('array input', () => {
+    expect(cn(['a', 'b'])).toBe('a b')
+  })
+})
+describe('public exports', () => {
+  test('index exports Grid and useGridConfig', () => {
+    expect(indexExports.Grid).toBeDefined()
+    expect(indexExports.useGridConfig).toBeDefined()
+  })
+  test('Grid has Panel subcomponent', () => {
+    expect(indexExports.Grid.Panel).toBeDefined()
+  })
+})
+describe('useGridConfig hook', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('returns null when phase is measuring', () => {
+    let captured: unknown
+    const Probe = () => {
+      captured = useGridConfig()
+      return null
+    }
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'measuring',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    render(<Probe />)
+    expect(captured).toBeNull()
+  })
+  test('returns GridConfig when phase done', () => {
+    let captured: unknown
+    const Probe = () => {
+      captured = useGridConfig()
+      return null
+    }
+    gridStore.setState({
+      cols: 20,
+      compact: false,
+      editable: true,
+      gap: 20,
+      layout: [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 60,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    render(<Probe />)
+    expect(captured).toMatchObject({ cols: 20, gap: 20, rowHeight: 60 })
+  })
+})
+describe('Panel subcomponent direct', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('renders null when editable false and no children', () => {
+    gridStore.setState({ ...gridStore.getSnapshot(), editable: false })
+    const { container } = render(<Panel />)
+    expect(container.firstChild).toBeNull()
+  })
+  test('renders children even when editable false', () => {
+    gridStore.setState({ ...gridStore.getSnapshot(), editable: false })
+    const { container } = render(
+      <Panel>
+        <span>extra</span>
+      </Panel>
+    )
+    expect(container.textContent).toContain('extra')
+  })
+  test('renders cols/gap/row sliders when editable', () => {
+    const { container } = render(<Panel />)
+    expect(container.textContent).toMatch(/Cols/u)
+    expect(container.textContent).toMatch(/Gap/u)
+    expect(container.textContent).toMatch(/Row/u)
+  })
+  test('renders Reset button when done phase', () => {
+    const { container } = render(<Panel />)
+    expect(container.textContent).toContain('Reset')
+  })
+  test('trailing slot renders at end', () => {
+    const { container } = render(<Panel trailing={<span>after</span>} />)
+    expect(container.textContent).toContain('after')
+  })
+  test('item count shown', () => {
+    const { container } = render(<Panel />)
+    expect(container.textContent).toMatch(/1 items/u)
+  })
+  test('clicking reset invokes store.reset', () => {
+    let resetCalls = 0
+    gridStore.setState({
+      ...gridStore.getSnapshot(),
+      reset: () => {
+        resetCalls += 1
+      }
+    })
+    const { container } = render(<Panel />)
+    const buttons = container.querySelectorAll('button')
+    const resetBtn = [...buttons].find(b => b.textContent === 'Reset')
+    resetBtn?.click()
+    expect(resetCalls).toBe(1)
+  })
+  test('Rings toggle invokes toggleRings', () => {
+    let toggles = 0
+    gridStore.setState({
+      ...gridStore.getSnapshot(),
+      toggleRings: () => {
+        toggles += 1
+      }
+    })
+    const { container } = render(<Panel />)
+    const ringsBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
+    ringsBtn?.click()
+    expect(toggles).toBe(1)
+  })
+})
+describe('toGridConfig edge cases', () => {
+  test('layout with empty fillSet', () => {
+    const out = toGridConfig({ cols: 24, fillSet: new Set(), gap: 16, layout: [], rowHeight: 50 })
+    expect(out.layout).toEqual([])
+  })
+  test('missing fillSet treats all as non-fill', () => {
+    const layout = [{ h: 8, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(out.layout?.[0]?.fill).toBeUndefined()
+  })
+  test('preserves h=1 (default check)', () => {
+    const layout = [{ h: 1, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(out.layout?.[0]?.h).toBeUndefined()
+  })
+  test('large layouts handled', () => {
+    const layout = Array.from({ length: 50 }, (_, idx) => ({ h: 4, i: `item${idx}`, w: 12, x: 0, y: idx * 4 }))
+    const out = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(out.layout).toHaveLength(50)
+  })
+})
+describe('computeLayoutWithCols edge cases', () => {
+  test('single column grid', () => {
+    const items = [
+      { h: 2, i: 'a', w: 1, x: 0, y: 0 },
+      { h: 2, i: 'b', w: 1, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 1)
+    expect(placed[0]).toMatchObject({ x: 0, y: 0 })
+    expect(placed[1]).toMatchObject({ x: 0, y: 2 })
+  })
+  test('many items pack tightly', () => {
+    const items = Array.from({ length: 12 }, (_, idx) => ({ h: 1, i: `i${idx}`, w: 4, x: 0, y: 0 }))
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]?.y).toBe(0)
+    expect(placed[5]?.y).toBe(0)
+    expect(placed[6]?.y).toBe(1)
+  })
+  test('preserves other item fields', () => {
+    const items = [{ h: 2, i: 'a', minH: 2, minW: 4, w: 12, x: 0, y: 0 }]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]?.minH).toBe(2)
+    expect(placed[0]?.minW).toBe(4)
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
