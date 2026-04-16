@@ -2778,6 +2778,220 @@ describe('Grid wrapper resetRef always callable via store', () => {
     expect(gridStore.getSnapshot()?.reset).toBeInstanceOf(Function)
   })
 })
+describe('constraint fillSet skip semantics', () => {
+  test('fill item always returns h unchanged regardless of content', () => {
+    const refs = {
+      cardRef: new Map<string, HTMLDivElement>(),
+      fillSet: new Set<string>(['fill-item']),
+      lastKnownWRef: new Map<string, number>(),
+      marginY: 16,
+      previousMinHRef: new Map<string, number>(),
+      rowHeight: 50,
+      transitionFrameRef: new Map<string, number>()
+    }
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 10_000 })
+    refs.cardRef.set('fill-item', el)
+    const { constrainSize } = createContentMinConstraint(refs)
+    expect(constrainSize({ h: 2, i: 'fill-item', w: 12, x: 0, y: 0 }, 12, 1, 'se').h).toBe(1)
+  })
+  test('constrainSize preserves incoming w', () => {
+    const refs = {
+      cardRef: new Map<string, HTMLDivElement>(),
+      fillSet: new Set<string>(),
+      lastKnownWRef: new Map<string, number>(),
+      marginY: 16,
+      previousMinHRef: new Map<string, number>(),
+      rowHeight: 50,
+      transitionFrameRef: new Map<string, number>()
+    }
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 100 })
+    refs.cardRef.set('a', el)
+    const { constrainSize } = createContentMinConstraint(refs)
+    expect(constrainSize({ h: 2, i: 'a', w: 12, x: 0, y: 0 }, 15, 5, 'se').w).toBe(15)
+  })
+})
+describe('measureNaturalHeight zero-content', () => {
+  test('returns 0 when element has no content', () => {
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 0 })
+    expect(measureNaturalHeight(el)).toBe(0)
+  })
+})
+describe('toGridConfig mixed x/y positions preserved', () => {
+  test('grid of items at various positions', () => {
+    const layout = [
+      { h: 2, i: 'a', w: 12, x: 0, y: 0 },
+      { h: 2, i: 'b', w: 12, x: 12, y: 0 },
+      { h: 2, i: 'c', w: 12, x: 0, y: 2 },
+      { h: 2, i: 'd', w: 12, x: 12, y: 2 }
+    ]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]?.x).toBeUndefined()
+    expect(cfg.layout?.[0]?.y).toBeUndefined()
+    expect(cfg.layout?.[1]?.x).toBe(12)
+    expect(cfg.layout?.[2]?.y).toBe(2)
+  })
+})
+describe('Panel item count', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: Array.from({ length: 7 }, (_, idx) => ({ h: 1, i: `i${idx}`, w: 4, x: 0, y: idx })),
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('shows count matching layout length', () => {
+    const { container } = render(<Panel />)
+    expect(container.textContent).toContain('7 items')
+  })
+})
+describe('Panel Rings active/inactive', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('active class when showRings=true', () => {
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: true,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    const { container } = render(<Panel />)
+    const rings = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
+    expect(rings?.className).toContain('bg-gray-900')
+  })
+  test('inactive class when showRings=false', () => {
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    const { container } = render(<Panel />)
+    const rings = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
+    expect(rings?.className).toContain('border')
+  })
+})
+describe('gridStore reset field re-identity across mounts', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('new mount replaces reset reference', async () => {
+    const { unmount } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    const first = gridStore.getSnapshot()?.reset
+    unmount()
+    render(
+      <Grid>
+        <div key='b'>y</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(gridStore.getSnapshot()?.reset).not.toBe(first)
+  })
+})
+describe('cn empty strings', () => {
+  test('empty string removed', () => {
+    expect(cn('a', '', 'b')).toBe('a b')
+  })
+})
+describe('Grid without any config renders with defaults', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('cols defaults to 24', async () => {
+    render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(gridStore.getSnapshot()?.cols).toBe(24)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
