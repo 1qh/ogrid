@@ -7,8 +7,18 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 const STORAGE_KEY = 'ogrid:poc'
+const openPanel = async (page: Page) => {
+  const bubble = page.locator('[data-ogrid-panel] button').first()
+  const isOpen = await page.evaluate(() => document.querySelectorAll('[data-ogrid-panel] > div').length > 0)
+  if (!isOpen) {
+    await bubble.click()
+    await page.waitForTimeout(100)
+  }
+}
 const toggleEdit = async (page: Page) => {
+  await openPanel(page)
   await page.locator('[role="switch"], button[role="switch"]').first().click()
+  await page.waitForTimeout(100)
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
