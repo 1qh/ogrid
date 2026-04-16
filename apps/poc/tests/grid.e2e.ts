@@ -385,6 +385,167 @@ test('drag handle position is top-right of each item', async ({ page }) => {
     expect(p.handleX - p.itemX).toBeGreaterThan(100)
   }
 })
+const snapshotAll = async (page: Page) =>
+  page.evaluate(() => {
+    const items = document.querySelectorAll<HTMLElement>('.react-grid-item')
+    const result: Record<string, { h: number; w: number; x: number; y: number }> = {}
+    for (const el of items) {
+      const key = el.querySelector<HTMLElement>('[data-ogrid-key]')?.dataset.ogridKey
+      if (!key) continue
+      const rect = el.getBoundingClientRect()
+      result[key] = { h: rect.height, w: rect.width, x: Math.round(rect.x), y: Math.round(rect.y) }
+    }
+    return result
+  })
+test('resize one item: OTHER items h/w never change', async ({ page }) => {
+  await toggleEdit(page)
+  await page.waitForTimeout(500)
+  const before = await snapshotAll(page)
+  const handleInfo = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="progress"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.react-resizable-handle-se')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { height: r.height, width: r.width, x: r.x, y: r.y }
+  })
+  if (!handleInfo) throw new Error('no handle')
+  await page.mouse.move(handleInfo.x + handleInfo.width / 2, handleInfo.y + handleInfo.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(handleInfo.x + 80, handleInfo.y + 200, { steps: 15 })
+  await page.mouse.up()
+  await page.waitForTimeout(500)
+  const after = await snapshotAll(page)
+  for (const key of Object.keys(before)) {
+    if (key === 'progress') continue
+    const b = before[key]
+    const a = after[key]
+    if (!(a && b)) continue
+    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+  }
+})
+test('drag one item: OTHER items h/w never change', async ({ page }) => {
+  await toggleEdit(page)
+  await page.waitForTimeout(500)
+  const before = await snapshotAll(page)
+  const handleInfo = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="kpi"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.ogrid-drag-handle')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { height: r.height, width: r.width, x: r.x, y: r.y }
+  })
+  if (!handleInfo) throw new Error('no handle')
+  await page.mouse.move(handleInfo.x + handleInfo.width / 2, handleInfo.y + handleInfo.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(handleInfo.x - 400, handleInfo.y + 400, { steps: 15 })
+  await page.mouse.up()
+  await page.waitForTimeout(500)
+  const after = await snapshotAll(page)
+  for (const key of Object.keys(before)) {
+    if (key === 'kpi') continue
+    const b = before[key]
+    const a = after[key]
+    if (!(a && b)) continue
+    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+  }
+})
+test('reload after resize: OTHER items h/w match pre-reload', async ({ page }) => {
+  await toggleEdit(page)
+  await page.waitForTimeout(500)
+  const handleInfo = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="progress"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.react-resizable-handle-se')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { height: r.height, width: r.width, x: r.x, y: r.y }
+  })
+  if (!handleInfo) throw new Error('no handle')
+  await page.mouse.move(handleInfo.x + handleInfo.width / 2, handleInfo.y + handleInfo.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(handleInfo.x + 50, handleInfo.y + 300, { steps: 15 })
+  await page.mouse.up()
+  await page.waitForTimeout(500)
+  const beforeReload = await snapshotAll(page)
+  await page.reload()
+  await page.waitForSelector('.react-grid-item')
+  await page.waitForTimeout(600)
+  const afterReload = await snapshotAll(page)
+  for (const key of Object.keys(beforeReload)) {
+    const b = beforeReload[key]
+    const a = afterReload[key]
+    if (!(a && b)) continue
+    expect({ h: a.h, key }).toEqual({ h: b.h, key })
+  }
+})
+test('resize then reload then resize different item: first item h stays', async ({ page }) => {
+  await toggleEdit(page)
+  await page.waitForTimeout(500)
+  const progressHandle = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="progress"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.react-resizable-handle-se')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { height: r.height, width: r.width, x: r.x, y: r.y }
+  })
+  if (!progressHandle) throw new Error('no handle')
+  await page.mouse.move(progressHandle.x + progressHandle.width / 2, progressHandle.y + progressHandle.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(progressHandle.x + 80, progressHandle.y + 250, { steps: 15 })
+  await page.mouse.up()
+  await page.waitForTimeout(500)
+  const snapshotAfterFirst = await snapshotAll(page)
+  const progressHAfter1 = snapshotAfterFirst.progress?.h
+  await page.reload()
+  await page.waitForSelector('.react-grid-item')
+  await page.waitForTimeout(600)
+  await toggleEdit(page)
+  await page.waitForTimeout(300)
+  const beforeSecondResize = await snapshotAll(page)
+  const kpiHandle = await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-ogrid-key="kpi"]')?.closest('.react-grid-item')
+    const h = el?.querySelector<HTMLElement>('.react-resizable-handle-se')
+    if (!h) return null
+    const r = h.getBoundingClientRect()
+    return { height: r.height, width: r.width, x: r.x, y: r.y }
+  })
+  if (!kpiHandle) throw new Error('no kpi handle')
+  await page.mouse.move(kpiHandle.x + kpiHandle.width / 2, kpiHandle.y + kpiHandle.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(kpiHandle.x + 40, kpiHandle.y + 100, { steps: 15 })
+  await page.mouse.up()
+  await page.waitForTimeout(500)
+  const afterSecondResize = await snapshotAll(page)
+  expect(afterSecondResize.progress?.h).toBe(beforeSecondResize.progress?.h)
+  expect(afterSecondResize.progress?.h).toBe(progressHAfter1)
+})
+test('multiple sliders tweak: items not being tweaked stay in same grid positions relative to each other', async ({
+  page
+}) => {
+  await toggleEdit(page)
+  await page.waitForTimeout(500)
+  const before = await snapshotAll(page)
+  const gap = page.locator('input[type=range]').nth(1)
+  await gap.evaluate((el: HTMLInputElement) => {
+    const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(el, '8')
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await page.waitForTimeout(500)
+  const after = await snapshotAll(page)
+  const beforeKeys = Object.keys(before).toSorted()
+  const afterKeys = Object.keys(after).toSorted()
+  expect(afterKeys).toEqual(beforeKeys)
+  const beforeOrder = beforeKeys
+    .map(k => ({ k, y: before[k]?.y ?? 0 }))
+    .toSorted((a, b) => a.y - b.y)
+    .map(e => e.k)
+  const afterOrder = afterKeys
+    .map(k => ({ k, y: after[k]?.y ?? 0 }))
+    .toSorted((a, b) => a.y - b.y)
+    .map(e => e.k)
+  expect(afterOrder).toEqual(beforeOrder)
+})
 test('reload with saved config preserves item heights (regression)', async ({ page }) => {
   const cfg = {
     layout: [
