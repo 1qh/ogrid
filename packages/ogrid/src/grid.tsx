@@ -29,14 +29,12 @@ import { pxToGridH } from './measurement'
 import Panel from './panel'
 import { clearStorage, readStorage, writeStorage } from './storage'
 import { toGridConfig } from './use-grid-config'
-interface GridInnerProps {
+interface GridProps {
   children: ReactNode
   config?: GridConfig
   editable?: boolean
-  onConfigChange?: (config: GridConfig) => void
-}
-interface GridProps extends GridInnerProps {
   id?: string
+  onConfigChange?: (config: GridConfig) => void
   persist?: boolean
 }
 const FREEFORM = { ...verticalCompactor, preventCollision: false }
@@ -65,7 +63,22 @@ const DragHandle = () => (
     </svg>
   </div>
 )
-const GridInner = ({ children, config, editable = false, onConfigChange }: GridInnerProps) => {
+const noop = () => {
+  /* Empty */
+}
+const GridInner = ({
+  children,
+  config,
+  editable = false,
+  onConfigChange,
+  onReset = noop
+}: {
+  children: ReactNode
+  config?: GridConfig
+  editable?: boolean
+  onConfigChange?: (config: GridConfig) => void
+  onReset?: () => void
+}) => {
   const [cols, setCols] = useState(config?.cols ?? DEFAULT_COLS)
   const [gap, setGap] = useState(config?.gap ?? DEFAULT_GAP)
   const [rowHeight, setRowHeight] = useState(config?.rowHeight ?? DEFAULT_ROW_HEIGHT)
@@ -264,6 +277,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
       layout,
       phase,
       positionedIds: positionedIdsRef.current,
+      reset: onReset,
       resizedIds: resizedIdsRef.current,
       rowHeight,
       setCols: (c: number) => {
@@ -286,6 +300,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
       showRings,
       toggleRings: () => setShowRings(prev => !prev)
     })
+    return () => gridStore.setState(null)
   }, [
     closeMeasureWindow,
     cols,
@@ -298,6 +313,7 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
     gap,
     itemKeys,
     layout,
+    onReset,
     phase,
     rowHeight,
     showRings
@@ -435,12 +451,13 @@ const Grid = ({ children, config, editable = false, id, onConfigChange, persist 
       resettingRef.current = false
     })
   }
-  useEffect(() => {
-    const prev = gridStore.getSnapshot()
-    if (prev) gridStore.setState({ ...prev, reset: () => resetRef.current?.() })
-  }, [])
   return (
-    <GridInner config={effectiveConfig} editable={editable} key={resetCount} onConfigChange={handleConfigChange}>
+    <GridInner
+      config={effectiveConfig}
+      editable={editable}
+      key={resetCount}
+      onConfigChange={handleConfigChange}
+      onReset={() => resetRef.current?.()}>
       {children}
     </GridInner>
   )

@@ -20,7 +20,7 @@ let state: GridStoreState | null = null
 const listeners = new Set<() => void>()
 const gridStore = {
   getSnapshot: () => state,
-  setState: (next: GridStoreState) => {
+  setState: (next: GridStoreState | null) => {
     state = next
     for (const listener of listeners) listener()
   },
