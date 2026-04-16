@@ -4,7 +4,7 @@
 /* oxlint-disable eslint/complexity */
 'use client'
 import type { ReactNode } from 'react'
-import { animate, AnimatePresence, motion, useMotionValue } from 'motion/react'
+import { animate, AnimatePresence, motion, MotionConfig, useMotionValue } from 'motion/react'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { cn } from './cn'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
@@ -258,25 +258,27 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
   if (hidden) {
     const restoreDock: 'left' | 'right' = dock
     return (
-      <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
-        <motion.button
-          animate={{ opacity: 0.55, x: 0 }}
-          aria-label='Show grid settings'
-          className={cn(
-            'group pointer-events-auto fixed flex h-20 w-2 items-center justify-center bg-gradient-to-b from-gray-700 via-gray-900 to-gray-700 shadow-lg transition-[width,opacity] duration-200 hover:w-10 hover:opacity-100 dark:from-gray-200 dark:via-gray-100 dark:to-gray-200',
-            restoreDock === 'right' ? 'right-0 rounded-l-md' : 'left-0 rounded-r-md'
-          )}
-          initial={{ opacity: 0, x: restoreDock === 'right' ? 16 : -16 }}
-          onClick={() => {
-            setHidden(false)
-            writeHidden(false)
-          }}
-          style={{ top: 'calc(50% - 40px)' }}
-          transition={{ duration: 0.35 }}
-          type='button'>
-          <GridIcon className='size-4 text-white opacity-0 transition-opacity group-hover:opacity-100 dark:text-gray-900' />
-        </motion.button>
-      </div>
+      <MotionConfig reducedMotion='user'>
+        <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
+          <motion.button
+            animate={{ opacity: 0.55, x: 0 }}
+            aria-label='Show grid settings'
+            className={cn(
+              'group pointer-events-auto fixed flex h-20 w-2 items-center justify-center bg-gradient-to-b from-gray-700 via-gray-900 to-gray-700 shadow-lg transition-[width,opacity] duration-200 hover:w-10 hover:opacity-100 dark:from-gray-200 dark:via-gray-100 dark:to-gray-200',
+              restoreDock === 'right' ? 'right-0 rounded-l-md' : 'left-0 rounded-r-md'
+            )}
+            initial={{ opacity: 0, x: restoreDock === 'right' ? 16 : -16 }}
+            onClick={() => {
+              setHidden(false)
+              writeHidden(false)
+            }}
+            style={{ top: 'calc(50% - 40px)' }}
+            transition={{ duration: 0.35 }}
+            type='button'>
+            <GridIcon className='size-4 text-white opacity-0 transition-opacity group-hover:opacity-100 dark:text-gray-900' />
+          </motion.button>
+        </div>
+      </MotionConfig>
     )
   }
   const idle = !(dragging || hover || open || dismissing)
@@ -303,255 +305,257 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
     }, 480)
   }
   return (
-    <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            animate={{ opacity: 1 }}
-            className='pointer-events-none fixed inset-0 bg-gradient-to-l from-black/25 to-transparent'
-            exit={{ opacity: 0 }}
-            initial={{ opacity: 0 }}
-            style={{
-              backgroundImage: dock === 'left' ? 'linear-gradient(to right, rgba(0,0,0,0.25), transparent)' : undefined
-            }}
-            transition={{ duration: 0.25 }}
-          />
-        ) : null}
-      </AnimatePresence>
-      <AnimatePresence>
-        {dragging && !overDismiss ? (
-          <motion.div
-            animate={{ opacity: 0.25, scale: 1 }}
-            className='pointer-events-none fixed top-0 left-0 rounded-full border-2 border-dashed border-gray-500 dark:border-gray-400'
-            exit={{ opacity: 0, scale: 0.8 }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            style={{ height: BUBBLE_SIZE, left: snapPreviewX, top: y.get(), width: BUBBLE_SIZE }}
-            transition={{ duration: 0.2 }}
-          />
-        ) : null}
-      </AnimatePresence>
-      <AnimatePresence>
-        {burstOrigin
-          ? Array.from({ length: 10 }).map((_, i) => {
-              const angle = (i / 10) * Math.PI * 2
-              const dist = 60 + (i % 3) * 20
-              const dx = Math.cos(angle) * dist
-              const dy = Math.sin(angle) * dist
-              return (
-                <motion.span
-                  animate={{ opacity: 0, scale: 0, x: dx, y: dy }}
-                  className='pointer-events-none fixed size-2 rounded-full bg-gray-900 dark:bg-gray-100'
-                  exit={{ opacity: 0 }}
-                  initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                  key={`particle-${String(i)}`}
-                  style={{ left: burstOrigin.x - 4, top: burstOrigin.y - 4 }}
-                  transition={{ duration: 0.45, ease: 'easeOut' }}
-                />
-              )
-            })
-          : null}
-      </AnimatePresence>
-      <AnimatePresence>
-        {dragging ? (
-          <motion.div
-            animate={{ opacity: 1, scale: overDismiss ? 1.4 : 1, y: 0 }}
-            className={cn(
-              'pointer-events-none fixed bottom-14 left-1/2 flex size-[72px] -translate-x-1/2 items-center justify-center rounded-full text-white transition-colors',
-              overDismiss ? 'bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.6)]' : 'bg-red-500/75 shadow-lg'
-            )}
-            exit={{ opacity: 0, y: 80 }}
-            initial={{ opacity: 0, y: 80 }}
-            transition={SPRING}>
-            <motion.div animate={{ rotate: overDismiss ? 90 : 0 }} transition={SPRING}>
-              <CloseIcon className='size-7' />
+    <MotionConfig reducedMotion='user'>
+      <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
+        <AnimatePresence>
+          {open ? (
+            <motion.div
+              animate={{ opacity: 1 }}
+              className='pointer-events-none fixed inset-0 bg-gradient-to-l from-black/25 to-transparent'
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              style={{
+                backgroundImage: dock === 'left' ? 'linear-gradient(to right, rgba(0,0,0,0.25), transparent)' : undefined
+              }}
+              transition={{ duration: 0.25 }}
+            />
+          ) : null}
+        </AnimatePresence>
+        <AnimatePresence>
+          {dragging && !overDismiss ? (
+            <motion.div
+              animate={{ opacity: 0.25, scale: 1 }}
+              className='pointer-events-none fixed top-0 left-0 rounded-full border-2 border-dashed border-gray-500 dark:border-gray-400'
+              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              style={{ height: BUBBLE_SIZE, left: snapPreviewX, top: y.get(), width: BUBBLE_SIZE }}
+              transition={{ duration: 0.2 }}
+            />
+          ) : null}
+        </AnimatePresence>
+        <AnimatePresence>
+          {burstOrigin
+            ? Array.from({ length: 10 }).map((_, i) => {
+                const angle = (i / 10) * Math.PI * 2
+                const dist = 60 + (i % 3) * 20
+                const dx = Math.cos(angle) * dist
+                const dy = Math.sin(angle) * dist
+                return (
+                  <motion.span
+                    animate={{ opacity: 0, scale: 0, x: dx, y: dy }}
+                    className='pointer-events-none fixed size-2 rounded-full bg-gray-900 dark:bg-gray-100'
+                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                    key={`particle-${String(i)}`}
+                    style={{ left: burstOrigin.x - 4, top: burstOrigin.y - 4 }}
+                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                  />
+                )
+              })
+            : null}
+        </AnimatePresence>
+        <AnimatePresence>
+          {dragging ? (
+            <motion.div
+              animate={{ opacity: 1, scale: overDismiss ? 1.4 : 1, y: 0 }}
+              className={cn(
+                'pointer-events-none fixed bottom-14 left-1/2 flex size-[72px] -translate-x-1/2 items-center justify-center rounded-full text-white transition-colors',
+                overDismiss ? 'bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.6)]' : 'bg-red-500/75 shadow-lg'
+              )}
+              exit={{ opacity: 0, y: 80 }}
+              initial={{ opacity: 0, y: 80 }}
+              transition={SPRING}>
+              <motion.div animate={{ rotate: overDismiss ? 90 : 0 }} transition={SPRING}>
+                <CloseIcon className='size-7' />
+              </motion.div>
+              <AnimatePresence>
+                {overDismiss ? (
+                  <motion.span
+                    animate={{ opacity: 1, y: 0 }}
+                    className='absolute -bottom-7 left-1/2 -translate-x-1/2 text-nowrap text-xs font-medium text-red-600 dark:text-red-400'
+                    exit={{ opacity: 0, y: 4 }}
+                    initial={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.15 }}>
+                    Release to dismiss
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
             </motion.div>
-            <AnimatePresence>
-              {overDismiss ? (
-                <motion.span
-                  animate={{ opacity: 1, y: 0 }}
-                  className='absolute -bottom-7 left-1/2 -translate-x-1/2 text-nowrap text-xs font-medium text-red-600 dark:text-red-400'
-                  exit={{ opacity: 0, y: 4 }}
-                  initial={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.15 }}>
-                  Release to dismiss
-                </motion.span>
-              ) : null}
-            </AnimatePresence>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-      <AnimatePresence mode='popLayout'>
-        {open ? (
-          <motion.div
-            animate={{ x: 0 }}
-            aria-label='Grid settings'
-            className={cn(
-              'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background/85 shadow-2xl backdrop-blur-xl',
-              dock === 'right' ? 'right-0 border-l' : 'left-0 border-r',
-              'border-border'
-            )}
-            exit={{ x: dock === 'right' ? '100%' : '-100%' }}
-            initial={{ x: dock === 'right' ? '100%' : '-100%' }}
-            key='drawer'
-            role='dialog'
-            transition={DRAWER_SPRING}>
-            <div className='flex items-center justify-between border-b border-border px-4 py-3'>
-              <div className='flex items-center gap-2'>
-                <motion.button
-                  className='flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
-                  layoutId={BUBBLE_LAYOUT_ID}
+          ) : null}
+        </AnimatePresence>
+        <AnimatePresence mode='popLayout'>
+          {open ? (
+            <motion.div
+              animate={{ x: 0 }}
+              aria-label='Grid settings'
+              className={cn(
+                'pointer-events-auto fixed top-0 bottom-0 flex w-[340px] flex-col bg-background/85 shadow-2xl backdrop-blur-xl',
+                dock === 'right' ? 'right-0 border-l' : 'left-0 border-r',
+                'border-border'
+              )}
+              exit={{ x: dock === 'right' ? '100%' : '-100%' }}
+              initial={{ x: dock === 'right' ? '100%' : '-100%' }}
+              key='drawer'
+              role='dialog'
+              transition={DRAWER_SPRING}>
+              <div className='flex items-center justify-between border-b border-border px-4 py-3'>
+                <div className='flex items-center gap-2'>
+                  <motion.button
+                    className='flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
+                    layoutId={BUBBLE_LAYOUT_ID}
+                    onClick={() => setOpen(false)}
+                    transition={DRAWER_SPRING}
+                    type='button'
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}>
+                    <GridIcon className='size-[18px] text-white dark:text-gray-900' />
+                  </motion.button>
+                  <span className='text-sm font-semibold'>Grid</span>
+                </div>
+                <button
+                  aria-label='Close'
+                  className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
                   onClick={() => setOpen(false)}
-                  transition={DRAWER_SPRING}
-                  type='button'
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.92 }}>
-                  <GridIcon className='size-[18px] text-white dark:text-gray-900' />
-                </motion.button>
-                <span className='text-sm font-semibold'>Grid</span>
+                  type='button'>
+                  <CloseIcon />
+                </button>
               </div>
-              <button
-                aria-label='Close'
-                className='rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground'
-                onClick={() => setOpen(false)}
-                type='button'>
-                <CloseIcon />
-              </button>
-            </div>
-            <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-3'>
-              {children ? <div className='flex flex-col gap-1 border-b border-border pb-3'>{children}</div> : null}
-              {editable && state ? <EditControls state={state} /> : null}
-              {trailing ? <div className='border-t border-border pt-3'>{trailing}</div> : null}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.button
-            animate={
-              dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
-            }
-            aria-expanded={open}
-            aria-label='Open grid settings'
-            className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
-            exit={
-              dismissing
-                ? { opacity: 0, rotate: 180, scale: 0, transition: { duration: 0.38, ease: 'easeIn' } }
-                : { opacity: 0, scale: 0.5 }
-            }
-            initial={{ opacity: 0, scale: 0.5 }}
-            key='bubble'
-            layoutId={dismissing ? undefined : BUBBLE_LAYOUT_ID}
-            onHoverEnd={() => setHover(false)}
-            onHoverStart={() => setHover(true)}
-            onPointerDown={e => {
-              if (e.button !== 0 && e.pointerType === 'mouse') return
-              const el = e.currentTarget
-              el.setPointerCapture(e.pointerId)
-              pointerRef.current = {
-                did: false,
-                id: e.pointerId,
-                ox: e.clientX - x.get(),
-                oy: e.clientY - y.get(),
-                samples: [{ t: performance.now(), x: x.get(), y: y.get() }],
-                startX: e.clientX,
-                startY: e.clientY
+              <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-3'>
+                {children ? <div className='flex flex-col gap-1 border-b border-border pb-3'>{children}</div> : null}
+                {editable && state ? <EditControls state={state} /> : null}
+                {trailing ? <div className='border-t border-border pt-3'>{trailing}</div> : null}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.button
+              animate={
+                dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
               }
-            }}
-            onPointerMove={e => {
-              const p = pointerRef.current
-              if (p?.id !== e.pointerId) return
-              const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
-              if (!p.did && dist2 > 25) {
-                p.did = true
-                vibrate(8)
-                setDragging(true)
-                setOpen(false)
+              aria-expanded={open}
+              aria-label='Open grid settings'
+              className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
+              exit={
+                dismissing
+                  ? { opacity: 0, rotate: 180, scale: 0, transition: { duration: 0.38, ease: 'easeIn' } }
+                  : { opacity: 0, scale: 0.5 }
               }
-              if (!p.did) return
-              const rawX = e.clientX - p.ox
-              const rawY = e.clientY - p.oy
-              const minX = -BUBBLE_SIZE / 2
-              const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
-              const minY = EDGE_MARGIN / 2
-              const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
-              let nx = clampElastic(rawX, minX, maxX)
-              let ny = clampElastic(rawY, minY, maxY)
-              const bcx = nx + BUBBLE_SIZE / 2
-              const bcy = ny + BUBBLE_SIZE / 2
-              const zdx = bcx - zoneCenter.x
-              const zdy = bcy - zoneCenter.y
-              const zdist2 = zdx * zdx + zdy * zdy
-              const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
-              overDismissRef.current = inside
-              setOverDismiss(inside)
-              if (inside) {
-                const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
-                nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
-                ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
-              }
-              x.set(nx)
-              y.set(ny)
-              p.samples.push({ t: performance.now(), x: nx, y: ny })
-              if (p.samples.length > 5) p.samples.shift()
-            }}
-            onPointerUp={e => {
-              const p = pointerRef.current
-              if (p?.id !== e.pointerId) return
-              pointerRef.current = null
-              try {
-                e.currentTarget.releasePointerCapture(e.pointerId)
-              } catch {}
-              if (!p.did) {
-                setOpen(prev => !prev)
-                return
-              }
-              setDragging(false)
-              const now = performance.now()
-              const fallback = p.samples[0] ?? { t: now, x: x.get(), y: y.get() }
-              const first = p.samples.find(s => now - s.t < 80) ?? fallback
-              const last = p.samples.at(-1) ?? fallback
-              const dt = Math.max(1, last.t - first.t)
-              const vx = ((last.x - first.x) / dt) * 1000
-              const vy = ((last.y - first.y) / dt) * 1000
-              const speed = Math.hypot(vx, vy)
-              if (overDismissRef.current || speed > FLICK_VELOCITY) {
-                triggerDismiss()
-                return
-              }
-              overDismissRef.current = false
-              setOverDismiss(false)
-              const projectedX = x.get() + vx * 0.15
-              const nextDock: 'left' | 'right' =
-                projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
-              const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
-              const targetY = Math.max(EDGE_MARGIN, Math.min(maxY, y.get() + vy * 0.05))
-              setDock(nextDock)
-              animate(x, computeRestingX(nextDock, true), { ...SPRING, velocity: vx })
-              animate(y, targetY, { ...SPRING, velocity: vy })
-              writePosition({ x: computeRestingX(nextDock, true), y: targetY })
-            }}
-            style={{
-              boxShadow: dragging ? liftedShadow : restShadow,
-              height: BUBBLE_SIZE,
-              touchAction: 'none',
-              width: BUBBLE_SIZE,
-              x,
-              y
-            }}
-            transition={SPRING}
-            type='button'
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
-            {idle ? (
-              <motion.span
-                animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
-                className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
-                transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
-              />
-            ) : null}
-            <GridIcon />
-          </motion.button>
-        )}
-      </AnimatePresence>
-    </div>
+              initial={{ opacity: 0, scale: 0.5 }}
+              key='bubble'
+              layoutId={dismissing ? undefined : BUBBLE_LAYOUT_ID}
+              onHoverEnd={() => setHover(false)}
+              onHoverStart={() => setHover(true)}
+              onPointerDown={e => {
+                if (e.button !== 0 && e.pointerType === 'mouse') return
+                const el = e.currentTarget
+                el.setPointerCapture(e.pointerId)
+                pointerRef.current = {
+                  did: false,
+                  id: e.pointerId,
+                  ox: e.clientX - x.get(),
+                  oy: e.clientY - y.get(),
+                  samples: [{ t: performance.now(), x: x.get(), y: y.get() }],
+                  startX: e.clientX,
+                  startY: e.clientY
+                }
+              }}
+              onPointerMove={e => {
+                const p = pointerRef.current
+                if (p?.id !== e.pointerId) return
+                const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
+                if (!p.did && dist2 > 25) {
+                  p.did = true
+                  vibrate(8)
+                  setDragging(true)
+                  setOpen(false)
+                }
+                if (!p.did) return
+                const rawX = e.clientX - p.ox
+                const rawY = e.clientY - p.oy
+                const minX = -BUBBLE_SIZE / 2
+                const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
+                const minY = EDGE_MARGIN / 2
+                const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
+                let nx = clampElastic(rawX, minX, maxX)
+                let ny = clampElastic(rawY, minY, maxY)
+                const bcx = nx + BUBBLE_SIZE / 2
+                const bcy = ny + BUBBLE_SIZE / 2
+                const zdx = bcx - zoneCenter.x
+                const zdy = bcy - zoneCenter.y
+                const zdist2 = zdx * zdx + zdy * zdy
+                const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
+                overDismissRef.current = inside
+                setOverDismiss(inside)
+                if (inside) {
+                  const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
+                  nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
+                  ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
+                }
+                x.set(nx)
+                y.set(ny)
+                p.samples.push({ t: performance.now(), x: nx, y: ny })
+                if (p.samples.length > 5) p.samples.shift()
+              }}
+              onPointerUp={e => {
+                const p = pointerRef.current
+                if (p?.id !== e.pointerId) return
+                pointerRef.current = null
+                try {
+                  e.currentTarget.releasePointerCapture(e.pointerId)
+                } catch {}
+                if (!p.did) {
+                  setOpen(prev => !prev)
+                  return
+                }
+                setDragging(false)
+                const now = performance.now()
+                const fallback = p.samples[0] ?? { t: now, x: x.get(), y: y.get() }
+                const first = p.samples.find(s => now - s.t < 80) ?? fallback
+                const last = p.samples.at(-1) ?? fallback
+                const dt = Math.max(1, last.t - first.t)
+                const vx = ((last.x - first.x) / dt) * 1000
+                const vy = ((last.y - first.y) / dt) * 1000
+                const speed = Math.hypot(vx, vy)
+                if (overDismissRef.current || speed > FLICK_VELOCITY) {
+                  triggerDismiss()
+                  return
+                }
+                overDismissRef.current = false
+                setOverDismiss(false)
+                const projectedX = x.get() + vx * 0.15
+                const nextDock: 'left' | 'right' =
+                  projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
+                const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
+                const targetY = Math.max(EDGE_MARGIN, Math.min(maxY, y.get() + vy * 0.05))
+                setDock(nextDock)
+                animate(x, computeRestingX(nextDock, true), { ...SPRING, velocity: vx })
+                animate(y, targetY, { ...SPRING, velocity: vy })
+                writePosition({ x: computeRestingX(nextDock, true), y: targetY })
+              }}
+              style={{
+                boxShadow: dragging ? liftedShadow : restShadow,
+                height: BUBBLE_SIZE,
+                touchAction: 'none',
+                width: BUBBLE_SIZE,
+                x,
+                y
+              }}
+              transition={SPRING}
+              type='button'
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
+              {idle ? (
+                <motion.span
+                  animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
+                  className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
+                  transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
+                />
+              ) : null}
+              <GridIcon />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
   )
 }
 export default Panel
