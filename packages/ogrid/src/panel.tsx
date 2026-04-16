@@ -143,9 +143,6 @@ const EditControls = ({ state }: { state: NonNullable<ReturnType<typeof gridStor
         Reset layout
       </button>
     </div>
-    <div className='border-t border-border px-4 py-2 text-xs text-muted-foreground'>
-      {String(state.layout.length)} items · {String(state.cols)} cols
-    </div>
   </>
 )
 const Panel = ({
@@ -231,7 +228,14 @@ const Panel = ({
               style={{ [dock === 'right' ? 'right' : 'left']: EDGE_MARGIN + BUBBLE_SIZE + 10, top: popoverTop }}
               transition={{ damping: 28, mass: 0.7, stiffness: 380, type: 'spring' }}>
               <div className='flex items-center justify-between border-b border-border px-3 py-2'>
-                <span className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Grid</span>
+                <div className='flex items-baseline gap-2'>
+                  <span className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Grid</span>
+                  {state ? (
+                    <span className='font-mono text-[10px] tabular-nums text-muted-foreground/60'>
+                      {String(state.layout.length)}
+                    </span>
+                  ) : null}
+                </div>
                 <div className='flex items-center gap-1'>
                   {trailing ?? null}
                   <button
