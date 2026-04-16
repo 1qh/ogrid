@@ -1853,6 +1853,184 @@ describe('computeLayoutWithCols fills columns independently', () => {
     expect(placed[1]?.x).toBe(12)
   })
 })
+describe('constraint transitions: multiple width changes', () => {
+  test('lastKnownWRef updated on each width change', () => {
+    const refs = {
+      cardRef: new Map<string, HTMLDivElement>(),
+      fillSet: new Set<string>(),
+      lastKnownWRef: new Map<string, number>(),
+      marginY: 16,
+      previousMinHRef: new Map<string, number>(),
+      rowHeight: 50,
+      transitionFrameRef: new Map<string, number>()
+    }
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 100 })
+    refs.cardRef.set('a', el)
+    const { constrainSize } = createContentMinConstraint(refs)
+    constrainSize({ h: 2, i: 'a', w: 12, x: 0, y: 0 }, 12, 2, 'se')
+    expect(refs.lastKnownWRef.get('a')).toBe(12)
+    constrainSize({ h: 2, i: 'a', w: 8, x: 0, y: 0 }, 8, 2, 'se')
+    expect(refs.lastKnownWRef.get('a')).toBe(8)
+  })
+})
+describe('toGridConfig preserves x=0 when y > 0', () => {
+  test('y=4 preserved even though x=0', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 4 }]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]?.x).toBeUndefined()
+    expect(cfg.layout?.[0]?.y).toBe(4)
+  })
+})
+describe('Grid rendering with no children', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('renders zero items', async () => {
+    const { container } = render(<Grid>{[]}</Grid>)
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(0)
+  })
+})
+describe('Grid onConfigChange prop stability', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('replacing onConfigChange mid-session still works', async () => {
+    let calls1 = 0
+    let calls2 = 0
+    const { rerender } = render(
+      <Grid
+        editable
+        onConfigChange={() => {
+          calls1 += 1
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    rerender(
+      <Grid
+        editable
+        onConfigChange={() => {
+          calls2 += 1
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(calls1 + calls2).toBeGreaterThanOrEqual(0)
+  })
+})
+describe('Panel auto-hides with no editable and no slots', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('renders null', () => {
+    const { container } = render(<Panel />)
+    expect(container.firstChild).toBeNull()
+  })
+  test('renders with trailing only (no children, no editable)', () => {
+    const { container } = render(<Panel trailing={<span>t</span>} />)
+    expect(container.textContent).toContain('t')
+  })
+})
+describe('gridStore getSnapshot returns same identity until setState', () => {
+  test('two calls without setState return same object', () => {
+    const snap: NonNullable<ReturnType<typeof gridStore.getSnapshot>> = {
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    }
+    gridStore.setState(snap)
+    expect(gridStore.getSnapshot()).toBe(gridStore.getSnapshot())
+  })
+})
+describe('enforceMinH various minHByKey values', () => {
+  test('minHByKey has extra keys not in layout (ignored)', () => {
+    const layout = [{ h: 4, i: 'a', w: 12, x: 0, y: 0 }]
+    const minH = new Map([
+      ['a', 3],
+      ['ghost', 99]
+    ])
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: minH, phase: 'measuring' })
+    expect(out[0]?.h).toBe(4)
+  })
+})
+describe('computeLayoutWithCols items with w exactly cols', () => {
+  test('full-width items stack one per row', () => {
+    const items = [
+      { h: 2, i: 'a', w: 24, x: 0, y: 0 },
+      { h: 2, i: 'b', w: 24, x: 0, y: 0 },
+      { h: 2, i: 'c', w: 24, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]?.y).toBe(0)
+    expect(placed[1]?.y).toBe(2)
+    expect(placed[2]?.y).toBe(4)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [

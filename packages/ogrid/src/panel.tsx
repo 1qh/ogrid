@@ -101,10 +101,11 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             Reset
           </button>
           <p className='grow' />
-          {trailing}
-          <span className='text-gray-500'>{String(state.layout.length)} items</span>
         </>
       ) : null}
+      {!editable && (children || trailing) ? <p className='grow' /> : null}
+      {trailing}
+      {editable && state ? <span className='text-gray-500'>{String(state.layout.length)} items</span> : null}
     </div>
   )
 }
