@@ -260,23 +260,22 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
     return (
       <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
         <motion.button
-          animate={{ opacity: 0.4, x: 0 }}
+          animate={{ opacity: 0.55, x: 0 }}
           aria-label='Show grid settings'
           className={cn(
-            'pointer-events-auto fixed flex h-14 w-1.5 items-center justify-center rounded-full bg-gray-900 hover:w-2 hover:opacity-100 dark:bg-gray-100',
-            restoreDock === 'right' ? 'right-0 rounded-r-none' : 'left-0 rounded-l-none'
+            'group pointer-events-auto fixed flex h-20 w-2 items-center justify-center bg-gradient-to-b from-gray-700 via-gray-900 to-gray-700 shadow-lg transition-[width,opacity] duration-200 hover:w-10 hover:opacity-100 dark:from-gray-200 dark:via-gray-100 dark:to-gray-200',
+            restoreDock === 'right' ? 'right-0 rounded-l-md' : 'left-0 rounded-r-md'
           )}
-          initial={{ opacity: 0, x: restoreDock === 'right' ? 12 : -12 }}
+          initial={{ opacity: 0, x: restoreDock === 'right' ? 16 : -16 }}
           onClick={() => {
             setHidden(false)
             writeHidden(false)
           }}
-          style={{ top: 'calc(50% - 28px)' }}
-          transition={{ duration: 0.3 }}
-          type='button'
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        />
+          style={{ top: 'calc(50% - 40px)' }}
+          transition={{ duration: 0.35 }}
+          type='button'>
+          <GridIcon className='size-4 text-white opacity-0 transition-opacity group-hover:opacity-100 dark:text-gray-900' />
+        </motion.button>
       </div>
     )
   }
