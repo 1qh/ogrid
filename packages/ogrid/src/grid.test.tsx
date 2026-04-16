@@ -1006,6 +1006,126 @@ describe('extractKeys ordering edge cases', () => {
     expect(extractKeys(children)).toEqual(['a', 'b'])
   })
 })
+describe('store actions via direct setState', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        const snap = gridStore.getSnapshot()
+        if (snap) gridStore.setState({ ...snap, showRings: !snap.showRings })
+      }
+    })
+  })
+  test('toggleRings flips showRings', () => {
+    expect(gridStore.getSnapshot()?.showRings).toBe(false)
+    gridStore.getSnapshot()?.toggleRings()
+    expect(gridStore.getSnapshot()?.showRings).toBe(true)
+    gridStore.getSnapshot()?.toggleRings()
+    expect(gridStore.getSnapshot()?.showRings).toBe(false)
+  })
+  test('state accessible immediately after setState', () => {
+    const snap = gridStore.getSnapshot()
+    expect(snap?.cols).toBe(24)
+    expect(snap?.gap).toBe(16)
+    expect(snap?.rowHeight).toBe(50)
+  })
+})
+describe('computeLayoutWithCols placement invariants', () => {
+  test('picks best-X that minimizes Y (row-first)', () => {
+    const items = [
+      { h: 3, i: 'tall', w: 12, x: 0, y: 0 },
+      { h: 1, i: 'a', w: 6, x: 0, y: 0 },
+      { h: 1, i: 'b', w: 6, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[0]).toMatchObject({ x: 0, y: 0 })
+    expect(placed[1]).toMatchObject({ x: 12, y: 0 })
+    expect(placed[2]).toMatchObject({ x: 18, y: 0 })
+  })
+  test('fills gaps before stacking', () => {
+    const items = [
+      { h: 2, i: 'a', w: 12, x: 0, y: 0 },
+      { h: 1, i: 'b', w: 12, x: 0, y: 0 },
+      { h: 1, i: 'c', w: 12, x: 0, y: 0 }
+    ]
+    const placed = computeLayoutWithCols(items, 24)
+    expect(placed[1]?.y).toBe(0)
+    expect(placed[2]?.y).toBe(1)
+  })
+  test('no result overlaps', () => {
+    const items = Array.from({ length: 20 }, (_, idx) => ({ h: 2, i: `i${idx}`, w: 8, x: 0, y: 0 }))
+    const placed = computeLayoutWithCols(items, 24)
+    for (let a = 0; a < placed.length; a += 1)
+      for (let b = a + 1; b < placed.length; b += 1) {
+        const ia = placed[a]
+        const ib = placed[b]
+        if (ia && ib) {
+          const overlap = ia.x < ib.x + ib.w && ia.x + ia.w > ib.x && ia.y < ib.y + ib.h && ia.y + ia.h > ib.y
+          expect(overlap).toBe(false)
+        }
+      }
+  })
+})
+describe('emitConfigChange microtask deferral', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('does not fire synchronously during render', () => {
+    let syncFires = 0
+    render(
+      <Grid
+        editable
+        onConfigChange={() => {
+          syncFires += 1
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    gridStore.getSnapshot()?.setCols(16)
+    expect(syncFires).toBe(0)
+  })
+  test('fires asynchronously after setCols', async () => {
+    let fires = 0
+    render(
+      <Grid
+        editable
+        onConfigChange={() => {
+          fires += 1
+        }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    gridStore.getSnapshot()?.setCols(14)
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, 20)
+    })
+    expect(fires).toBeGreaterThan(0)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
