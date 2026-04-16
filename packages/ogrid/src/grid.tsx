@@ -26,6 +26,7 @@ import { gridStore } from './context'
 import { enforceMinH } from './enforce'
 import { pxToGridH } from './measurement'
 import Panel from './panel'
+import { clearStorage, readStorage, writeStorage } from './storage'
 import { toGridConfig } from './use-grid-config'
 interface GridInnerProps {
   children: ReactNode
@@ -426,29 +427,6 @@ const GridInner = ({ children, config, editable = false, onConfigChange }: GridI
       )}
     </div>
   )
-}
-const STORAGE_PREFIX = 'ogrid:'
-const readStorage = (id: string): GridConfig | null => {
-  try {
-    const raw = globalThis.localStorage.getItem(STORAGE_PREFIX + id)
-    return raw ? (JSON.parse(raw) as GridConfig) : null
-  } catch {
-    return null
-  }
-}
-const writeStorage = (id: string, config: GridConfig) => {
-  try {
-    globalThis.localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(config))
-  } catch {
-    /* SSR */
-  }
-}
-const clearStorage = (id: string) => {
-  try {
-    globalThis.localStorage.removeItem(STORAGE_PREFIX + id)
-  } catch {
-    /* SSR */
-  }
 }
 const Grid = ({ children, config, editable = false, id, onConfigChange, persist = false }: GridProps) => {
   const [resetCount, setResetCount] = useState(0)

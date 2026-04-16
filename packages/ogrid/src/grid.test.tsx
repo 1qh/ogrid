@@ -3,7 +3,8 @@ import { buildLayout } from './build-layout'
 import { checkOverlaps, clampLayoutToCols, computeLayoutWithCols } from './compute-layout'
 import { gridStore } from './context'
 import { enforceMinH } from './enforce'
-import { pxToGridH } from './measurement'
+import { measureNaturalHeight, pxToGridH } from './measurement'
+import { clearStorage, readStorage, STORAGE_PREFIX, writeStorage } from './storage'
 import { toGridConfig } from './use-grid-config'
 describe('computeLayoutWithCols', () => {
   test('places items row by row', () => {
@@ -235,6 +236,71 @@ describe('gridStore', () => {
     ub()
     expect(a).toBe(1)
     expect(b).toBe(1)
+  })
+})
+describe('measureNaturalHeight', () => {
+  test('returns scrollHeight when no parent', () => {
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 250 })
+    expect(measureNaturalHeight(el)).toBe(250)
+  })
+  test('restores parent height after measuring', () => {
+    const parent = document.createElement('div')
+    parent.style.height = '100px'
+    const el = document.createElement('div')
+    Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 500 })
+    parent.append(el)
+    measureNaturalHeight(el)
+    expect(parent.style.height).toBe('100px')
+  })
+  test('temporarily sets parent to auto to measure natural', () => {
+    const parent = document.createElement('div')
+    parent.style.height = '100px'
+    const el = document.createElement('div')
+    let observedParentHeight = ''
+    Object.defineProperty(el, 'scrollHeight', {
+      configurable: true,
+      get: () => {
+        observedParentHeight = parent.style.height
+        return 300
+      }
+    })
+    parent.append(el)
+    const result = measureNaturalHeight(el)
+    expect(result).toBe(300)
+    expect(observedParentHeight).toBe('auto')
+  })
+})
+describe('storage', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('readStorage returns null when missing', () => {
+    expect(readStorage('missing')).toBeNull()
+  })
+  test('writeStorage then readStorage round-trip', () => {
+    const cfg = { cols: 12, layout: [{ h: 4, i: 'a', w: 6, x: 0, y: 0 }] }
+    writeStorage('page', cfg)
+    expect(readStorage('page')).toEqual(cfg)
+  })
+  test('clearStorage removes entry', () => {
+    writeStorage('page', { cols: 12 })
+    clearStorage('page')
+    expect(readStorage('page')).toBeNull()
+  })
+  test('uses STORAGE_PREFIX', () => {
+    writeStorage('page', { cols: 12 })
+    expect(globalThis.localStorage.getItem(`${STORAGE_PREFIX}page`)).not.toBeNull()
+  })
+  test('readStorage returns null on corrupt JSON', () => {
+    globalThis.localStorage.setItem(`${STORAGE_PREFIX}corrupt`, '{not json')
+    expect(readStorage('corrupt')).toBeNull()
+  })
+  test('different ids isolated', () => {
+    writeStorage('a', { cols: 12 })
+    writeStorage('b', { cols: 20 })
+    expect(readStorage('a')?.cols).toBe(12)
+    expect(readStorage('b')?.cols).toBe(20)
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
