@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/suspicious/noEmptyBlockStatements: intentional empty catch */
 /* oxlint-disable jsx-a11y/label-has-associated-control, react-perf/jsx-no-new-object-as-prop, react/jsx-handler-names */
-/* eslint-disable @typescript-eslint/strict-void-return, no-empty, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, complexity */
-/* oxlint-disable eslint/complexity */
+/* eslint-disable @typescript-eslint/strict-void-return, no-empty, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 'use client'
 import type { ReactNode } from 'react'
 import { animate, AnimatePresence, motion, MotionConfig, useMotionValue } from 'motion/react'
@@ -10,20 +9,9 @@ import { cn } from './cn'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
 const POSITION_KEY = 'ogrid:panel-position'
-const HIDDEN_KEY = 'ogrid:panel-hidden'
-const BUBBLE_SIZE = 56
-const EDGE_MARGIN = 16
-const TUCK_RATIO = 0.18
-const TUCK_DELAY = 2800
-const DISMISS_RADIUS = 90
-const FLICK_VELOCITY = 1800
-const MAGNET_STRENGTH = 0.35
+const BUBBLE_SIZE = 40
+const EDGE_MARGIN = 12
 const SPRING = { damping: 28, mass: 0.8, stiffness: 320, type: 'spring' as const }
-const vibrate = (pattern: number | number[]) => {
-  try {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern)
-  } catch {}
-}
 const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapshot>>) => {
   const lines: string[] = ['const grid = {']
   if (state.cols !== DEFAULT_COLS) lines.push(`  cols: ${String(state.cols)},`)
@@ -56,20 +44,7 @@ const writePosition = (pos: { x: number; y: number }) => {
     globalThis.localStorage.setItem(POSITION_KEY, JSON.stringify(pos))
   } catch {}
 }
-const readHidden = () => {
-  try {
-    return globalThis.localStorage.getItem(HIDDEN_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-const writeHidden = (v: boolean) => {
-  try {
-    if (v) globalThis.localStorage.setItem(HIDDEN_KEY, '1')
-    else globalThis.localStorage.removeItem(HIDDEN_KEY)
-  } catch {}
-}
-const GridIcon = ({ className = 'size-6 text-white' }: { className?: string }) => (
+const SlidersIcon = ({ className = 'size-[18px]' }: { className?: string }) => (
   <svg
     aria-hidden='true'
     className={className}
@@ -79,13 +54,18 @@ const GridIcon = ({ className = 'size-6 text-white' }: { className?: string }) =
     strokeLinejoin='round'
     strokeWidth='2'
     viewBox='0 0 24 24'>
-    <rect height='7' rx='1' width='7' x='3' y='3' />
-    <rect height='7' rx='1' width='7' x='14' y='3' />
-    <rect height='7' rx='1' width='7' x='14' y='14' />
-    <rect height='7' rx='1' width='7' x='3' y='14' />
+    <line x1='4' x2='4' y1='21' y2='14' />
+    <line x1='4' x2='4' y1='10' y2='3' />
+    <line x1='12' x2='12' y1='21' y2='12' />
+    <line x1='12' x2='12' y1='8' y2='3' />
+    <line x1='20' x2='20' y1='21' y2='16' />
+    <line x1='20' x2='20' y1='12' y2='3' />
+    <line x1='1' x2='7' y1='14' y2='14' />
+    <line x1='9' x2='15' y1='8' y2='8' />
+    <line x1='17' x2='23' y1='16' y2='16' />
   </svg>
 )
-const CloseIcon = ({ className = 'size-4' }: { className?: string }) => (
+const CloseIcon = ({ className = 'size-3.5' }: { className?: string }) => (
   <svg aria-hidden='true' className={className} fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'>
     <path d='M6 6l12 12M6 18L18 6' strokeLinecap='round' />
   </svg>
@@ -102,37 +82,32 @@ const Slider = ({
   min: number
   onChange: (v: number) => void
   value: number
-}) => (
-  <label className='flex flex-col gap-1.5 px-4 py-2 text-xs text-gray-600 dark:text-gray-300'>
-    <div className='flex items-center justify-between'>
-      <span className='font-medium'>{label}</span>
-      <span className='font-mono tabular-nums'>{String(value)}</span>
-    </div>
-    <input
-      className='h-1.5 w-full cursor-pointer appearance-none rounded-full accent-current outline-none [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gray-900 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-110 dark:[&::-webkit-slider-thumb]:bg-gray-100'
-      max={max}
-      min={min}
-      onChange={e => onChange(Number(e.target.value))}
-      step='1'
-      style={{
-        background: `linear-gradient(to right, rgb(17 24 39) 0%, rgb(17 24 39) ${String(((value - min) / (max - min)) * 100)}%, rgb(229 231 235) ${String(((value - min) / (max - min)) * 100)}%, rgb(229 231 235) 100%)`
-      }}
-      type='range'
-      value={value}
-    />
-  </label>
-)
-const clampElastic = (v: number, lo: number, hi: number) => {
-  if (v < lo) return lo - (lo - v) * 0.25
-  if (v > hi) return hi + (v - hi) * 0.25
-  return v
+}) => {
+  const pct = ((value - min) / (max - min)) * 100
+  return (
+    <label className='flex flex-col gap-1.5 px-4 py-2 text-xs text-muted-foreground'>
+      <div className='flex items-center justify-between'>
+        <span className='font-medium text-foreground'>{label}</span>
+        <span className='font-mono tabular-nums'>{String(value)}</span>
+      </div>
+      <input
+        className='h-1.5 w-full cursor-pointer appearance-none rounded-full outline-none [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-110'
+        max={max}
+        min={min}
+        onChange={e => onChange(Number(e.target.value))}
+        step='1'
+        style={{
+          background: `linear-gradient(to right, currentColor 0%, currentColor ${String(pct)}%, rgb(0 0 0 / 0.12) ${String(pct)}%, rgb(0 0 0 / 0.12) 100%)`,
+          color: 'var(--foreground, #111827)'
+        }}
+        type='range'
+        value={value}
+      />
+    </label>
+  )
 }
-const computeRestingX = (dock: 'left' | 'right', reveal: boolean) => {
-  if (dock === 'left') return reveal ? EDGE_MARGIN : -BUBBLE_SIZE * TUCK_RATIO
-  return reveal
-    ? globalThis.innerWidth - BUBBLE_SIZE - EDGE_MARGIN
-    : globalThis.innerWidth - BUBBLE_SIZE * (1 - TUCK_RATIO)
-}
+const computeRestingX = (dock: 'left' | 'right') =>
+  dock === 'right' ? globalThis.innerWidth - BUBBLE_SIZE - EDGE_MARGIN : EDGE_MARGIN
 const EditControls = ({ state }: { state: NonNullable<ReturnType<typeof gridStore.getSnapshot>> }) => (
   <>
     <Slider label='Columns' max={48} min={1} onChange={state.setCols} value={state.cols} />
@@ -168,29 +143,28 @@ const EditControls = ({ state }: { state: NonNullable<ReturnType<typeof gridStor
         Reset layout
       </button>
     </div>
-    <div className='mt-auto border-t border-border px-4 py-3 text-xs text-muted-foreground'>
+    <div className='border-t border-border px-4 py-2 text-xs text-muted-foreground'>
       {String(state.layout.length)} items · {String(state.cols)} cols
     </div>
   </>
 )
-const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactNode }) => {
+const Panel = ({
+  children,
+  onToggle,
+  trailing
+}: {
+  children?: ReactNode
+  onToggle?: () => void
+  trailing?: ReactNode
+}) => {
   const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
   const editable = state?.editable ?? false
   const [open, setOpen] = useState(false)
   const [dock, setDock] = useState<'left' | 'right'>('right')
-  const [hover, setHover] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const [overDismiss, setOverDismiss] = useState(false)
-  const [hidden, setHidden] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [tucked, setTucked] = useState(false)
-  const [dismissing, setDismissing] = useState(false)
-  const [burstOrigin, setBurstOrigin] = useState<null | { x: number; y: number }>(null)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
-  const prevEditableRef = useRef(false)
-  const prevOverDismissRef = useRef(false)
-  const overDismissRef = useRef(false)
   const pointerRef = useRef<null | {
     did: boolean
     id: number
@@ -206,49 +180,19 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
     const initialY = saved?.y ?? globalThis.innerHeight / 2 - BUBBLE_SIZE / 2
     const initialDock: 'left' | 'right' = saved && saved.x + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
     setDock(initialDock)
-    setHidden(readHidden())
-    x.set(computeRestingX(initialDock, true))
+    x.set(computeRestingX(initialDock))
     y.set(initialY)
   }, [x, y])
-  useEffect(() => {
-    if (!prevEditableRef.current && editable && hidden) {
-      setHidden(false)
-      setDismissing(false)
-      writeHidden(false)
-    }
-    prevEditableRef.current = editable
-  }, [editable, hidden])
-  useEffect(() => {
-    if (overDismiss && !prevOverDismissRef.current) vibrate(15)
-    prevOverDismissRef.current = overDismiss
-  }, [overDismiss])
-  useEffect(() => {
-    if (dragging || hover || open) {
-      setTucked(false)
-      return
-    }
-    const t = setTimeout(() => setTucked(true), TUCK_DELAY)
-    return () => clearTimeout(t)
-  }, [dragging, hover, open])
-  useEffect(() => {
-    if (dragging || open) return
-    const reveal = !tucked || hover
-    animate(x, computeRestingX(dock, reveal), SPRING)
-  }, [dock, hover, open, dragging, tucked, x])
   useEffect(() => {
     const shortcut = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        if (hidden) {
-          setHidden(false)
-          writeHidden(false)
-        }
-        setOpen(p => !p)
+        onToggle?.()
       }
     }
     globalThis.addEventListener('keydown', shortcut)
     return () => globalThis.removeEventListener('keydown', shortcut)
-  }, [hidden])
+  }, [onToggle])
   useEffect(() => {
     if (!open) return
     const keyHandler = (e: KeyboardEvent) => {
@@ -266,159 +210,30 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
       globalThis.removeEventListener('mousedown', clickHandler)
     }
   }, [open])
-  if (!((editable || children || trailing) && mounted)) return null
-  if (hidden) {
-    const restoreDock: 'left' | 'right' = dock
-    return (
-      <MotionConfig reducedMotion='user'>
-        <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
-          <motion.button
-            animate={{ opacity: 0.55, x: 0 }}
-            aria-label='Show grid settings'
-            className={cn(
-              'group pointer-events-auto fixed flex h-20 w-2 items-center justify-center bg-gradient-to-b from-gray-700 via-gray-900 to-gray-700 shadow-lg transition-[width,opacity] duration-200 hover:w-10 hover:opacity-100 dark:from-gray-200 dark:via-gray-100 dark:to-gray-200',
-              restoreDock === 'right' ? 'right-0 rounded-l-md' : 'left-0 rounded-r-md'
-            )}
-            initial={{ opacity: 0, x: restoreDock === 'right' ? 16 : -16 }}
-            onClick={() => {
-              setHidden(false)
-              writeHidden(false)
-            }}
-            style={{ top: 'calc(50% - 40px)' }}
-            transition={{ duration: 0.35 }}
-            type='button'>
-            <GridIcon className='size-4 text-white opacity-0 transition-opacity group-hover:opacity-100 dark:text-gray-900' />
-          </motion.button>
-        </div>
-      </MotionConfig>
-    )
-  }
-  const idle = !(dragging || hover || open || dismissing)
-  const snapPreviewX = dock === 'right' ? globalThis.innerWidth - BUBBLE_SIZE - EDGE_MARGIN : EDGE_MARGIN
-  const zoneCenter = { x: globalThis.innerWidth / 2, y: globalThis.innerHeight - 90 }
-  const liftedShadow = '0 24px 48px rgba(0,0,0,0.4), 0 10px 20px rgba(0,0,0,0.25)'
-  const restShadow =
-    dock === 'right'
-      ? '-4px 6px 18px rgba(0,0,0,0.22), 0 2px 4px rgba(0,0,0,0.12)'
-      : '4px 6px 18px rgba(0,0,0,0.22), 0 2px 4px rgba(0,0,0,0.12)'
-  const triggerDismiss = () => {
-    vibrate([20, 40, 30])
-    const bx = x.get() + BUBBLE_SIZE / 2
-    const by = y.get() + BUBBLE_SIZE / 2
-    setBurstOrigin({ x: bx, y: by })
-    setOverDismiss(false)
-    setDismissing(true)
-    setOpen(false)
-    setTimeout(() => {
-      setHidden(true)
-      writeHidden(true)
-      setDismissing(false)
-      setBurstOrigin(null)
-    }, 480)
-  }
+  if (!(mounted && editable)) return null
+  const popoverTop = Math.max(EDGE_MARGIN, Math.min(globalThis.innerHeight - 280, y.get()))
   return (
     <MotionConfig reducedMotion='user'>
       <div className='pointer-events-none fixed inset-0 z-[60]' data-ogrid-panel>
         <AnimatePresence>
           {open ? (
             <motion.div
-              animate={{ opacity: 1 }}
-              className='pointer-events-none fixed inset-0 bg-gradient-to-l from-black/25 to-transparent'
-              exit={{ opacity: 0 }}
-              initial={{ opacity: 0 }}
-              style={{
-                backgroundImage: dock === 'left' ? 'linear-gradient(to right, rgba(0,0,0,0.25), transparent)' : undefined
-              }}
-              transition={{ duration: 0.25 }}
-            />
-          ) : null}
-        </AnimatePresence>
-        <AnimatePresence>
-          {dragging && !overDismiss ? (
-            <motion.div
-              animate={{ opacity: 0.25, scale: 1 }}
-              className='pointer-events-none fixed top-0 left-0 rounded-full border-2 border-dashed border-gray-500 dark:border-gray-400'
-              exit={{ opacity: 0, scale: 0.8 }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              style={{ height: BUBBLE_SIZE, left: snapPreviewX, top: y.get(), width: BUBBLE_SIZE }}
-              transition={{ duration: 0.2 }}
-            />
-          ) : null}
-        </AnimatePresence>
-        <AnimatePresence>
-          {burstOrigin
-            ? Array.from({ length: 10 }).map((_, i) => {
-                const angle = (i / 10) * Math.PI * 2
-                const dist = 60 + (i % 3) * 20
-                const dx = Math.cos(angle) * dist
-                const dy = Math.sin(angle) * dist
-                return (
-                  <motion.span
-                    animate={{ opacity: 0, scale: 0, x: dx, y: dy }}
-                    className='pointer-events-none fixed size-2 rounded-full bg-gray-900 dark:bg-gray-100'
-                    exit={{ opacity: 0 }}
-                    initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                    key={`particle-${String(i)}`}
-                    style={{ left: burstOrigin.x - 4, top: burstOrigin.y - 4 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
-                  />
-                )
-              })
-            : null}
-        </AnimatePresence>
-        <AnimatePresence>
-          {dragging ? (
-            <motion.div
-              animate={{ opacity: 1, scale: overDismiss ? 1.4 : 1, y: 0 }}
-              className={cn(
-                'pointer-events-none fixed bottom-14 left-1/2 flex size-[72px] -translate-x-1/2 items-center justify-center rounded-full text-white transition-colors',
-                overDismiss ? 'bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.6)]' : 'bg-red-500/75 shadow-lg'
-              )}
-              exit={{ opacity: 0, y: 80 }}
-              initial={{ opacity: 0, y: 80 }}
-              transition={SPRING}>
-              <motion.div animate={{ rotate: overDismiss ? 90 : 0 }} transition={SPRING}>
-                <CloseIcon className='size-7' />
-              </motion.div>
-              <AnimatePresence>
-                {overDismiss ? (
-                  <motion.span
-                    animate={{ opacity: 1, y: 0 }}
-                    className='absolute -bottom-7 left-1/2 -translate-x-1/2 text-nowrap text-xs font-medium text-red-600 dark:text-red-400'
-                    exit={{ opacity: 0, y: 4 }}
-                    initial={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.15 }}>
-                    Release to dismiss
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-        <AnimatePresence>
-          {open ? (
-            <motion.div
               animate={{ opacity: 1, scale: 1, y: 0 }}
               aria-label='Grid settings'
               className={cn(
-                'pointer-events-auto fixed flex max-h-[min(560px,80vh)] w-80 flex-col overflow-hidden rounded-xl border border-border bg-background/90 shadow-2xl backdrop-blur-xl',
+                'pointer-events-auto fixed flex max-h-[min(480px,80vh)] w-72 flex-col overflow-hidden rounded-xl border border-border bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-xl',
                 dock === 'right' ? 'origin-top-right' : 'origin-top-left'
               )}
-              exit={{ opacity: 0, scale: 0.92, y: -4 }}
-              initial={{ opacity: 0, scale: 0.92, y: -4 }}
+              exit={{ opacity: 0, scale: 0.94, y: -4 }}
+              initial={{ opacity: 0, scale: 0.94, y: -4 }}
               key='popover'
               role='dialog'
-              style={{
-                [dock === 'right' ? 'right' : 'left']: EDGE_MARGIN + BUBBLE_SIZE + 12,
-                top: Math.max(EDGE_MARGIN, Math.min(globalThis.innerHeight - 200, y.get()))
-              }}
+              style={{ [dock === 'right' ? 'right' : 'left']: EDGE_MARGIN + BUBBLE_SIZE + 10, top: popoverTop }}
               transition={{ damping: 28, mass: 0.7, stiffness: 380, type: 'spring' }}>
               <div className='flex items-center justify-between border-b border-border px-3 py-2'>
-                <span className='text-sm font-semibold'>Grid</span>
-                <div className='flex items-center gap-1.5'>
-                  <kbd className='rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground'>
-                    ⌘K
-                  </kbd>
+                <span className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Grid</span>
+                <div className='flex items-center gap-1'>
+                  {trailing ?? null}
                   <button
                     aria-label='Close'
                     className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -430,32 +245,20 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
               </div>
               <div className='flex flex-1 flex-col gap-1 overflow-y-auto py-2'>
                 {children ? <div className='flex flex-col gap-1 border-b border-border pb-2'>{children}</div> : null}
-                {editable && state ? <EditControls state={state} /> : null}
-                {trailing ? <div className='border-t border-border pt-2'>{trailing}</div> : null}
+                {state ? <EditControls state={state} /> : null}
               </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
         <motion.button
-          animate={
-            dismissing ? { opacity: 0, rotate: 180, scale: 0 } : { opacity: 1, rotate: 0, scale: dragging ? 1.18 : 1 }
-          }
+          animate={{ opacity: 1, scale: dragging ? 1.1 : 1 }}
           aria-expanded={open}
-          aria-label='Open grid settings'
-          className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-800 to-gray-950 dark:from-gray-100 dark:to-gray-300'
-          exit={
-            dismissing
-              ? { opacity: 0, rotate: 180, scale: 0, transition: { duration: 0.38, ease: 'easeIn' } }
-              : { opacity: 0, scale: 0.5 }
-          }
-          initial={{ opacity: 0, scale: 0.5 }}
-          key='bubble'
-          onHoverEnd={() => setHover(false)}
-          onHoverStart={() => setHover(true)}
+          aria-label='Grid settings'
+          className='pointer-events-auto fixed top-0 left-0 flex items-center justify-center rounded-full bg-foreground text-background shadow-md transition-shadow hover:shadow-lg'
+          initial={{ opacity: 0, scale: 0.6 }}
           onPointerDown={e => {
             if (e.button !== 0 && e.pointerType === 'mouse') return
-            const el = e.currentTarget
-            el.setPointerCapture(e.pointerId)
+            e.currentTarget.setPointerCapture(e.pointerId)
             pointerRef.current = {
               did: false,
               id: e.pointerId,
@@ -472,32 +275,16 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             const dist2 = (e.clientX - p.startX) ** 2 + (e.clientY - p.startY) ** 2
             if (!p.did && dist2 > 25) {
               p.did = true
-              vibrate(8)
               setDragging(true)
               setOpen(false)
             }
             if (!p.did) return
-            const rawX = e.clientX - p.ox
-            const rawY = e.clientY - p.oy
             const minX = -BUBBLE_SIZE / 2
             const maxX = globalThis.innerWidth - BUBBLE_SIZE / 2
             const minY = EDGE_MARGIN / 2
             const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN / 2
-            let nx = clampElastic(rawX, minX, maxX)
-            let ny = clampElastic(rawY, minY, maxY)
-            const bcx = nx + BUBBLE_SIZE / 2
-            const bcy = ny + BUBBLE_SIZE / 2
-            const zdx = bcx - zoneCenter.x
-            const zdy = bcy - zoneCenter.y
-            const zdist2 = zdx * zdx + zdy * zdy
-            const inside = zdist2 < DISMISS_RADIUS * DISMISS_RADIUS
-            overDismissRef.current = inside
-            setOverDismiss(inside)
-            if (inside) {
-              const k = MAGNET_STRENGTH * (1 - Math.sqrt(zdist2) / DISMISS_RADIUS)
-              nx += (zoneCenter.x - BUBBLE_SIZE / 2 - nx) * k
-              ny += (zoneCenter.y - BUBBLE_SIZE / 2 - ny) * k
-            }
+            const nx = Math.max(minX, Math.min(maxX, e.clientX - p.ox))
+            const ny = Math.max(minY, Math.min(maxY, e.clientY - p.oy))
             x.set(nx)
             y.set(ny)
             p.samples.push({ t: performance.now(), x: nx, y: ny })
@@ -522,42 +309,21 @@ const Panel = ({ children, trailing }: { children?: ReactNode; trailing?: ReactN
             const dt = Math.max(1, last.t - first.t)
             const vx = ((last.x - first.x) / dt) * 1000
             const vy = ((last.y - first.y) / dt) * 1000
-            const speed = Math.hypot(vx, vy)
-            if (overDismissRef.current || speed > FLICK_VELOCITY) {
-              triggerDismiss()
-              return
-            }
-            overDismissRef.current = false
-            setOverDismiss(false)
             const projectedX = x.get() + vx * 0.15
             const nextDock: 'left' | 'right' = projectedX + BUBBLE_SIZE / 2 < globalThis.innerWidth / 2 ? 'left' : 'right'
             const maxY = globalThis.innerHeight - BUBBLE_SIZE - EDGE_MARGIN
             const targetY = Math.max(EDGE_MARGIN, Math.min(maxY, y.get() + vy * 0.05))
             setDock(nextDock)
-            animate(x, computeRestingX(nextDock, true), { ...SPRING, velocity: vx })
+            animate(x, computeRestingX(nextDock), { ...SPRING, velocity: vx })
             animate(y, targetY, { ...SPRING, velocity: vy })
-            writePosition({ x: computeRestingX(nextDock, true), y: targetY })
+            writePosition({ x: computeRestingX(nextDock), y: targetY })
           }}
-          style={{
-            boxShadow: dragging ? liftedShadow : restShadow,
-            height: BUBBLE_SIZE,
-            touchAction: 'none',
-            width: BUBBLE_SIZE,
-            x,
-            y
-          }}
+          style={{ height: BUBBLE_SIZE, touchAction: 'none', width: BUBBLE_SIZE, x, y }}
           transition={SPRING}
           type='button'
           whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: dragging ? 1.18 : 0.92 }}>
-          {idle ? (
-            <motion.span
-              animate={{ opacity: [0.35, 0.15, 0.35], scale: [1, 1.35, 1] }}
-              className='pointer-events-none absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-100'
-              transition={{ duration: 3.2, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }}
-            />
-          ) : null}
-          <GridIcon />
+          whileTap={{ scale: 0.92 }}>
+          <SlidersIcon />
         </motion.button>
       </div>
     </MotionConfig>

@@ -7,17 +7,27 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 const STORAGE_KEY = 'ogrid:poc'
-const openPanel = async (page: Page) => {
-  const hasDrawer = await page.evaluate(() => document.querySelectorAll('[data-ogrid-panel] input[type=range]').length > 0)
-  if (!hasDrawer) {
+const toggleEdit = async (page: Page) => {
+  await page.keyboard.press('Meta+k')
+  await page.waitForTimeout(250)
+  const hasBubble = (await page.locator('[data-ogrid-panel] button').count()) > 0
+  if (hasBubble) {
     await page.locator('[data-ogrid-panel] button').first().click()
     await page.waitForTimeout(300)
   }
 }
-const toggleEdit = async (page: Page) => {
-  await openPanel(page)
-  await page.locator('[role="switch"], button[role="switch"]').first().click()
-  await page.waitForTimeout(100)
+const openPanel = async (page: Page) => {
+  const hasPopover = await page.evaluate(
+    () => document.querySelectorAll('[data-ogrid-panel] input[type=range]').length > 0
+  )
+  if (!hasPopover) {
+    const bubble = page.locator('[data-ogrid-panel] button').first()
+    if ((await bubble.count()) === 0) await toggleEdit(page)
+    else {
+      await bubble.click()
+      await page.waitForTimeout(300)
+    }
+  }
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/')

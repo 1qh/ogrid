@@ -2,7 +2,6 @@
 /* oxlint-disable jsx-no-jsx-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
-import { Switch } from '@a/ui/switch'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
@@ -69,6 +68,7 @@ const Page = () => {
   return (
     <>
       <Grid.Panel
+        onToggle={() => setEditing(p => !p)}
         trailing={
           <button
             className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -76,10 +76,8 @@ const Page = () => {
             type='button'>
             {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
           </button>
-        }>
-        <Switch checked={editing} onCheckedChange={setEditing} />
-        <span className='text-sm text-muted-foreground'>{editing ? 'Editing' : 'Viewing'}</span>
-      </Grid.Panel>
+        }
+      />
       <div className='px-4'>
         <Grid config={config} editable={editing} id='poc' persist>
           <BarChartWidget key='chart' />
