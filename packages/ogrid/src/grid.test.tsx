@@ -2992,6 +2992,127 @@ describe('Grid without any config renders with defaults', () => {
     expect(gridStore.getSnapshot()?.cols).toBe(24)
   })
 })
+describe('buildLayout fillSet precedence without config', () => {
+  test('fillSet matters when configMap empty', () => {
+    const out = buildLayout({ cols: 24, configMap: new Map(), fillSet: new Set(['a']), itemKeys: ['a'] })
+    expect(out[0]?.h).toBe(8)
+  })
+})
+describe('enforceMinH produces fresh items in measuring', () => {
+  test('items not reused from input', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: 0, y: 0 }]
+    const out = enforceMinH({ fillSet: new Set(), layout, minHByKey: new Map([['a', 4]]), phase: 'measuring' })
+    expect(out[0]).not.toBe(layout[0])
+  })
+})
+describe('toGridConfig always returns layout array', () => {
+  test('empty input gives empty layout array', () => {
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout: [], rowHeight: 50 })
+    expect(Array.isArray(cfg.layout)).toBe(true)
+    expect(cfg.layout).toHaveLength(0)
+  })
+})
+describe('computeLayoutWithCols single large item', () => {
+  test('single h=20 item placed correctly', () => {
+    const placed = computeLayoutWithCols([{ h: 20, i: 'a', w: 24, x: 0, y: 0 }], 24)
+    expect(placed[0]).toMatchObject({ h: 20, x: 0, y: 0 })
+  })
+})
+describe('clampLayoutToCols returns same ref when no changes', () => {
+  test('identity preserved', () => {
+    const item = { h: 1, i: 'a', w: 6, x: 0, y: 0 }
+    expect(clampLayoutToCols([item], 24)[0]).toBe(item)
+  })
+})
+describe('gridStore snapshot identity', () => {
+  test('consecutive calls return same reference', () => {
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    expect(gridStore.getSnapshot()).toBe(gridStore.getSnapshot())
+  })
+})
+describe('Panel step=1 on ranges', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('all sliders step=1', () => {
+    const { container } = render(<Panel />)
+    for (const input of container.querySelectorAll<HTMLInputElement>('input[type=range]')) expect(input.step).toBe('1')
+  })
+})
+describe('buildLayout output has required RGL fields', () => {
+  test('h/i/w/x/y present', () => {
+    const out = buildLayout({ cols: 12, configMap: new Map(), fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.h).toBeDefined()
+    expect(out[0]?.i).toBeDefined()
+    expect(out[0]?.w).toBeDefined()
+    expect(out[0]?.x).toBeDefined()
+    expect(out[0]?.y).toBeDefined()
+  })
+})
+describe('storage prefix key uniqueness', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('similar keys not colliding', () => {
+    writeStorage('abc', { cols: 1 })
+    writeStorage('abcd', { cols: 2 })
+    expect(readStorage('abc')?.cols).toBe(1)
+    expect(readStorage('abcd')?.cols).toBe(2)
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
