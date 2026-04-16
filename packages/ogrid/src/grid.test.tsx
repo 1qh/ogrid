@@ -884,6 +884,128 @@ describe('gridStore idempotency', () => {
     expect(calls).toBe(3)
   })
 })
+describe('Grid measurement window', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('measuring phase renders with opacity-0', () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    const measuringEl = container.querySelector('.opacity-0')
+    expect(measuringEl).not.toBeNull()
+  })
+  test('eventually transitions to done phase', async () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 300)
+      })
+    })
+    const done = container.querySelector('.opacity-100')
+    expect(done).not.toBeNull()
+  })
+})
+describe('Grid with saved config', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('uses saved config over default', async () => {
+    writeStorage('x', { cols: 12, layout: [{ h: 4, i: 'a', w: 6, x: 0, y: 0 }] })
+    const { container } = render(
+      <Grid editable id='x' persist>
+        <div key='a'>data</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(container.textContent).toContain('data')
+  })
+  test('onConfigChange fires through handleConfigChange', async () => {
+    writeStorage('y', { cols: 14 })
+    let captured: unknown
+    render(
+      <Grid
+        editable
+        id='y'
+        onConfigChange={c => {
+          captured = c
+        }}
+        persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    gridStore.getSnapshot()?.setCols(18)
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, 50)
+    })
+    expect(captured).toBeDefined()
+    expect((captured as { cols?: number }).cols).toBe(18)
+  })
+})
+describe('Grid remount on reset', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('reset increments resetCount causing remount', async () => {
+    writeStorage('z', { cols: 20 })
+    render(
+      <Grid editable id='z' persist>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    expect(readStorage('z')?.cols).toBe(20)
+    await act(async () => {
+      gridStore.getSnapshot()?.reset()
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(readStorage('z')).toBeNull()
+  })
+})
+describe('Grid no id + no persist', () => {
+  beforeEach(() => {
+    cleanup()
+    globalThis.localStorage.clear()
+  })
+  test('does not touch localStorage', async () => {
+    render(
+      <Grid editable>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      gridStore.getSnapshot()?.setCols(14)
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 50)
+      })
+    })
+    expect(globalThis.localStorage.length).toBe(0)
+  })
+})
+describe('extractKeys ordering edge cases', () => {
+  test('preserves order with mix of arrays and single', () => {
+    const children = [<div key='a' />, [<div key='b' />, <div key='c' />], <div key='d' />]
+    expect(extractKeys(children)).toEqual(['a', 'b', 'c', 'd'])
+  })
+  test('deeply nested arrays flattened', () => {
+    const children = [[[<div key='a' />], [<div key='b' />]]]
+    expect(extractKeys(children)).toEqual(['a', 'b'])
+  })
+})
 describe('bug: reload + resize causes cascade growth', () => {
   test('reload scenario: saved h smaller than measured minH — done phase preserves all', () => {
     const savedLayout = [
