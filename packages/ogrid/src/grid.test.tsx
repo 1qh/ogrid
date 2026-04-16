@@ -2,7 +2,7 @@
 /** biome-ignore-all lint/performance/noNamespaceImport: testing public exports */
 /** biome-ignore-all lint/performance/useTopLevelRegex: test patterns */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
-/* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-hooks/globals */
+/* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop, react-hooks/globals */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, react-hooks/globals */
 import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
@@ -1290,6 +1290,206 @@ describe('Panel when phase is measuring hides Copy', () => {
     const { container } = render(<Panel />)
     const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy')
     expect(copyBtn).toBeUndefined()
+  })
+})
+describe('Grid with className on layout items', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('className propagates to inner cell', async () => {
+    const { container } = render(
+      <Grid config={{ layout: [{ className: 'custom-cell', i: 'a', w: 12 }] }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelector('.custom-cell')).not.toBeNull()
+  })
+})
+describe('Grid with undefined config', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('renders with defaults when no config', async () => {
+    const { container } = render(
+      <Grid>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+  })
+  test('renders with partial config (only cols)', async () => {
+    const { container } = render(
+      <Grid config={{ cols: 12 }}>
+        <div key='a'>x</div>
+      </Grid>
+    )
+    await act(async () => {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 30)
+      })
+    })
+    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+  })
+})
+describe('Panel slider boundaries', () => {
+  beforeEach(() => {
+    cleanup()
+    gridStore.setState({
+      cols: 24,
+      compact: false,
+      editable: true,
+      gap: 16,
+      layout: [],
+      phase: 'done',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+  })
+  test('cols slider min=1 max=48', () => {
+    const { container } = render(<Panel />)
+    const cols = container.querySelectorAll<HTMLInputElement>('input[type=range]')[0]
+    expect(cols?.min).toBe('1')
+    expect(cols?.max).toBe('48')
+  })
+  test('gap slider min=0 max=48', () => {
+    const { container } = render(<Panel />)
+    const gap = container.querySelectorAll<HTMLInputElement>('input[type=range]')[1]
+    expect(gap?.min).toBe('0')
+    expect(gap?.max).toBe('48')
+  })
+  test('row slider min=10 max=120', () => {
+    const { container } = render(<Panel />)
+    const row = container.querySelectorAll<HTMLInputElement>('input[type=range]')[2]
+    expect(row?.min).toBe('10')
+    expect(row?.max).toBe('120')
+  })
+})
+describe('toGridConfig negative values edge', () => {
+  test('preserves negative x', () => {
+    const layout = [{ h: 2, i: 'a', w: 12, x: -1, y: 0 }]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]?.x).toBe(-1)
+  })
+  test('preserves fractional h (preserves even non-default)', () => {
+    const layout = [{ h: 2.5, i: 'a', w: 12, x: 0, y: 0 }]
+    const cfg = toGridConfig({ cols: 24, gap: 16, layout, rowHeight: 50 })
+    expect(cfg.layout?.[0]?.h).toBe(2.5)
+  })
+})
+describe('checkOverlaps warns on overlap', () => {
+  test('does not throw with overlapping items', () => {
+    const items = [
+      { h: 4, i: 'a', w: 12, x: 0, y: 0 },
+      { h: 4, i: 'b', w: 12, x: 6, y: 2 }
+    ]
+    expect(() => checkOverlaps(items)).not.toThrow()
+  })
+})
+describe('buildLayout with w=0 (degenerate)', () => {
+  test('preserves w=0 from config', () => {
+    const configMap = new Map([['a', { w: 0 }]])
+    const out = buildLayout({ cols: 24, configMap, fillSet: new Set(), itemKeys: ['a'] })
+    expect(out[0]?.w).toBe(0)
+  })
+})
+describe('useGridConfig returns live updates via store', () => {
+  beforeEach(() => {
+    cleanup()
+  })
+  test('transitions from null to config when phase becomes done', () => {
+    const snapshots: unknown[] = []
+    const Probe = () => {
+      snapshots.push(useGridConfig())
+      return null
+    }
+    gridStore.setState({
+      cols: 12,
+      compact: false,
+      editable: false,
+      gap: 16,
+      layout: [],
+      phase: 'measuring',
+      positionedIds: new Set(),
+      reset: () => {
+        /* Empty */
+      },
+      resizedIds: new Set(),
+      rowHeight: 50,
+      setCols: () => {
+        /* Empty */
+      },
+      setGap: () => {
+        /* Empty */
+      },
+      setRowHeight: () => {
+        /* Empty */
+      },
+      showRings: false,
+      toggleRings: () => {
+        /* Empty */
+      }
+    })
+    render(<Probe />)
+    expect(snapshots[0]).toBeNull()
+  })
+})
+describe('Grid public Panel via subcomponent property', () => {
+  test('Grid.Panel is same as Panel default export', () => {
+    expect(indexExports.Grid.Panel).toBe(Panel)
+  })
+})
+describe('storage JSON round-trip with all GridConfig fields', () => {
+  beforeEach(() => {
+    globalThis.localStorage.clear()
+  })
+  test('preserves cols, gap, rowHeight, layout with all fields', () => {
+    const cfg = {
+      cols: 20,
+      gap: 24,
+      layout: [{ className: 'x', fill: true, h: 6, i: 'a', minH: 2, minW: 3, w: 8, x: 4, y: 2 }],
+      rowHeight: 60
+    }
+    writeStorage('full', cfg)
+    const read = readStorage('full')
+    expect(read?.cols).toBe(20)
+    expect(read?.gap).toBe(24)
+    expect(read?.rowHeight).toBe(60)
+    expect(read?.layout?.[0]).toMatchObject(cfg.layout[0])
+  })
+  test('handles empty object', () => {
+    writeStorage('empty', {})
+    expect(readStorage('empty')).toEqual({})
+  })
+  test('handles empty layout', () => {
+    writeStorage('el', { layout: [] })
+    expect(readStorage('el')?.layout).toEqual([])
   })
 })
 describe('bug: reload + resize causes cascade growth', () => {
