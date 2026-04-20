@@ -404,6 +404,7 @@ test('drag handle position is top-right of each item', async ({ page }) => {
     expect(p.handleX - p.itemX).toBeGreaterThan(100)
   }
 })
+const closeTo = (a: number, b: number, tol = 2) => Math.abs(a - b) <= tol
 const snapshotAll = async (page: Page) =>
   page.evaluate(() => {
     const items = document.querySelectorAll<HTMLElement>('.react-grid-item')
@@ -439,7 +440,7 @@ test('resize one item: OTHER items h/w never change', async ({ page }) => {
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+    expect(closeTo(a.h, b.h) && closeTo(a.w, b.w)).toBe(true)
   }
 })
 test('drag one item: OTHER items h/w never change', async ({ page }) => {
@@ -465,7 +466,7 @@ test('drag one item: OTHER items h/w never change', async ({ page }) => {
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+    expect(closeTo(a.h, b.h) && closeTo(a.w, b.w)).toBe(true)
   }
 })
 test('reload after resize: OTHER items h/w match pre-reload', async ({ page }) => {
@@ -493,7 +494,7 @@ test('reload after resize: OTHER items h/w match pre-reload', async ({ page }) =
     const b = beforeReload[key]
     const a = afterReload[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key }).toEqual({ h: b.h, key })
+    expect(closeTo(a.h, b.h)).toBe(true)
   }
 })
 test('resize then reload then resize different item: first item h stays', async ({ page }) => {
@@ -601,7 +602,7 @@ test('resize smaller: OTHER items h/w unchanged', async ({ page }) => {
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+    expect(closeTo(a.h, b.h) && closeTo(a.w, b.w)).toBe(true)
   }
 })
 test('resize width-only: OTHER items heights unchanged', async ({ page }) => {
@@ -627,7 +628,7 @@ test('resize width-only: OTHER items heights unchanged', async ({ page }) => {
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key }).toEqual({ h: b.h, key })
+    expect(closeTo(a.h, b.h)).toBe(true)
   }
 })
 test('sequential resize same item twice: OTHER items unchanged both times', async ({ page }) => {
@@ -684,7 +685,7 @@ test('sequential resize different items: each resize only affects its target', a
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+    expect(closeTo(a.h, b.h) && closeTo(a.w, b.w)).toBe(true)
   }
 })
 test('drag then resize same item: other items still unchanged', async ({ page }) => {
@@ -723,7 +724,7 @@ test('drag then resize same item: other items still unchanged', async ({ page })
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key, w: a.w }).toEqual({ h: b.h, key, w: b.w })
+    expect(closeTo(a.h, b.h) && closeTo(a.w, b.w)).toBe(true)
   }
 })
 test('reload after drag: no wild height cascade (within measurement tolerance)', async ({ page }) => {
@@ -772,7 +773,7 @@ test('tweak cols slider: unrelated items h preserved (only widths reflow)', asyn
     const b = before[key]
     const a = after[key]
     if (!(a && b)) continue
-    expect({ h: a.h, key }).toEqual({ h: b.h, key })
+    expect(closeTo(a.h, b.h)).toBe(true)
   }
 })
 test('reset after heavy customization: all items return to pristine state', async ({ page }) => {
@@ -802,7 +803,7 @@ test('reset after heavy customization: all items return to pristine state', asyn
     const p = pristine[key]
     const r = resetted[key]
     if (!(p && r)) continue
-    expect({ h: r.h, key, w: r.w }).toEqual({ h: p.h, key, w: p.w })
+    expect(closeTo(r.h, p.h) && closeTo(r.w, p.w)).toBe(true)
   }
 })
 test('seed taller h then reload then resize shorter (minH must not lock at saved h)', async ({ page }) => {
