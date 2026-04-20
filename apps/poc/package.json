@@ -4,7 +4,7 @@
   "scripts": {
     "build": "next build --turbo",
     "dev": "next dev --turbo -p 3200",
-    "test": "playwright test"
+    "test": "playwright install chromium && playwright test"
   },
   "dependencies": {
     "@a/ui": "workspace:*",
