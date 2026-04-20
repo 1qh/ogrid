@@ -8,7 +8,7 @@
 /** biome-ignore-all lint/nursery/useExpect: has assertions */
 /** biome-ignore-all lint/suspicious/noSkippedTests: Panel UX redesign — old DOM tests obsolete */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, no-await-in-loop */
-import { act, cleanup, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
 import { cn } from './cn'
@@ -525,6 +525,12 @@ describe('Grid component', () => {
     expect(panelContainer.querySelector('[data-ogrid-panel]')).not.toBeNull()
   })
 })
+const openPopover = (container: HTMLElement) => {
+  const bubble = container.querySelector<HTMLButtonElement>('[data-ogrid-panel] button')
+  if (!bubble) throw new Error('no bubble')
+  fireEvent.pointerDown(bubble, { clientX: 10, clientY: 10, pointerId: 1, pointerType: 'mouse' })
+  fireEvent.pointerUp(bubble, { clientX: 10, clientY: 10, pointerId: 1, pointerType: 'mouse' })
+}
 describe('floating Panel bubble', () => {
   beforeEach(() => {
     cleanup()
@@ -583,6 +589,11 @@ describe('floating Panel bubble', () => {
     >)
     const { container } = render(<Panel />)
     expect(container.firstChild).toBeNull()
+  })
+  test('tap bubble opens popover with sliders', () => {
+    const { container } = render(<Panel />)
+    openPopover(container)
+    expect(container.querySelectorAll('input[type=range]').length).toBe(3)
   })
 })
 describe('cn', () => {
@@ -689,7 +700,7 @@ describe('useGridConfig hook', () => {
     expect(captured).toMatchObject({ cols: 20, gap: 20, rowHeight: 60 })
   })
 })
-describe.skip('Panel subcomponent direct', () => {
+describe('Panel subcomponent direct', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -725,32 +736,28 @@ describe.skip('Panel subcomponent direct', () => {
     const { container } = render(<Panel />)
     expect(container.firstChild).toBeNull()
   })
-  test('renders children even when editable false', () => {
-    gridStore.setState({ ...gridStore.getSnapshot(), editable: false })
-    const { container } = render(
-      <Panel>
-        <span>extra</span>
-      </Panel>
-    )
-    expect(container.textContent).toContain('extra')
-  })
-  test('renders cols/gap/row sliders when editable', () => {
+  test('renders cols/gap/row sliders after opening popover', () => {
     const { container } = render(<Panel />)
-    expect(container.textContent).toMatch(/Cols/u)
+    openPopover(container)
+    expect(container.textContent).toMatch(/Columns/u)
     expect(container.textContent).toMatch(/Gap/u)
     expect(container.textContent).toMatch(/Row/u)
   })
-  test('renders Reset button when done phase', () => {
+  test('renders Reset layout button when done phase', () => {
     const { container } = render(<Panel />)
-    expect(container.textContent).toContain('Reset')
+    openPopover(container)
+    expect(container.textContent).toContain('Reset layout')
   })
-  test('trailing slot renders at end', () => {
+  test('trailing slot renders in header', () => {
     const { container } = render(<Panel trailing={<span>after</span>} />)
+    openPopover(container)
     expect(container.textContent).toContain('after')
   })
-  test('item count shown', () => {
+  test('item count shown in header', () => {
     const { container } = render(<Panel />)
-    expect(container.textContent).toMatch(/1 items/u)
+    openPopover(container)
+    const headerText = container.querySelector('[role=dialog]')?.textContent ?? ''
+    expect(headerText).toContain('1')
   })
   test('clicking reset invokes store.reset', () => {
     let resetCalls = 0
@@ -761,12 +768,12 @@ describe.skip('Panel subcomponent direct', () => {
       }
     })
     const { container } = render(<Panel />)
-    const buttons = container.querySelectorAll('button')
-    const resetBtn = [...buttons].find(b => b.textContent === 'Reset')
+    openPopover(container)
+    const resetBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Reset layout')
     resetBtn?.click()
     expect(resetCalls).toBe(1)
   })
-  test('Rings toggle invokes toggleRings', () => {
+  test('Cell borders toggle invokes toggleRings', () => {
     let toggles = 0
     gridStore.setState({
       ...gridStore.getSnapshot(),
@@ -775,7 +782,8 @@ describe.skip('Panel subcomponent direct', () => {
       }
     })
     const { container } = render(<Panel />)
-    const ringsBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
+    openPopover(container)
+    const ringsBtn = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Cell borders'))
     ringsBtn?.click()
     expect(toggles).toBe(1)
   })
@@ -1190,7 +1198,7 @@ describe('emitConfigChange microtask deferral', () => {
     expect(fires).toBeGreaterThan(0)
   })
 })
-describe.skip('Panel Copy button generates GridConfig format', () => {
+describe('Panel Copy button generates GridConfig format', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -1236,7 +1244,8 @@ describe.skip('Panel Copy button generates GridConfig format', () => {
       value: { writeText: mockWrite }
     })
     const { container } = render(<Panel />)
-    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy')
+    openPopover(container)
+    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy config')
     copyBtn?.click()
     await new Promise<void>(resolve => {
       setTimeout(resolve, 20)
@@ -1254,7 +1263,7 @@ describe.skip('Panel Copy button generates GridConfig format', () => {
     })
   })
 })
-describe.skip('Panel slider interactions', () => {
+describe('Panel slider interactions', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -1290,6 +1299,7 @@ describe.skip('Panel slider interactions', () => {
   })
   test('Cols slider change updates store cols', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const cols = container.querySelectorAll<HTMLInputElement>('input[type=range]')[0]
     if (!cols) throw new Error('no slider')
     const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
@@ -1300,6 +1310,7 @@ describe.skip('Panel slider interactions', () => {
   })
   test('Gap slider change updates store gap', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const gap = container.querySelectorAll<HTMLInputElement>('input[type=range]')[1]
     if (!gap) throw new Error('no slider')
     const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
@@ -1310,6 +1321,7 @@ describe.skip('Panel slider interactions', () => {
   })
   test('Row slider change updates store rowHeight', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const row = container.querySelectorAll<HTMLInputElement>('input[type=range]')[2]
     if (!row) throw new Error('no slider')
     const setter = Object.getOwnPropertyDescriptor(globalThis.HTMLInputElement.prototype, 'value')?.set
@@ -1319,7 +1331,7 @@ describe.skip('Panel slider interactions', () => {
     expect(gridStore.getSnapshot()?.rowHeight).toBe(70)
   })
 })
-describe.skip('Panel when phase is measuring hides Copy', () => {
+describe('Panel when phase is measuring hides Copy', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -1352,7 +1364,8 @@ describe.skip('Panel when phase is measuring hides Copy', () => {
   })
   test('Copy button not rendered during measurement', () => {
     const { container } = render(<Panel />)
-    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy')
+    openPopover(container)
+    const copyBtn = [...container.querySelectorAll('button')].find(b => b.textContent === 'Copy config')
     expect(copyBtn).toBeUndefined()
   })
 })
@@ -1405,7 +1418,7 @@ describe('Grid with undefined config', () => {
     expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
   })
 })
-describe.skip('Panel slider boundaries', () => {
+describe('Panel slider boundaries', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -1438,18 +1451,21 @@ describe.skip('Panel slider boundaries', () => {
   })
   test('cols slider min=1 max=48', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const cols = container.querySelectorAll<HTMLInputElement>('input[type=range]')[0]
     expect(cols?.min).toBe('1')
     expect(cols?.max).toBe('48')
   })
   test('gap slider min=0 max=48', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const gap = container.querySelectorAll<HTMLInputElement>('input[type=range]')[1]
     expect(gap?.min).toBe('0')
     expect(gap?.max).toBe('48')
   })
   test('row slider min=10 max=120', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     const row = container.querySelectorAll<HTMLInputElement>('input[type=range]')[2]
     expect(row?.min).toBe('10')
     expect(row?.max).toBe('120')
@@ -1710,7 +1726,7 @@ describe('storage STORAGE_PREFIX stability', () => {
     expect(STORAGE_PREFIX).toBe('ogrid:')
   })
 })
-describe.skip('Panel children slot', () => {
+describe('Panel children slot', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -1741,23 +1757,23 @@ describe.skip('Panel children slot', () => {
       }
     })
   })
-  test('children render before sliders', () => {
+  test('children render before sliders in popover', () => {
     const { container } = render(
       <Panel>
         <span data-testid='start'>start-slot</span>
       </Panel>
     )
+    openPopover(container)
     const text = container.textContent ?? ''
     const startIdx = text.indexOf('start-slot')
-    const colsIdx = text.indexOf('Cols')
+    const colsIdx = text.indexOf('Columns')
     expect(startIdx).toBeGreaterThanOrEqual(0)
     expect(startIdx).toBeLessThan(colsIdx)
   })
-  test('trailing renders after spacer', () => {
+  test('trailing renders in popover header', () => {
     const { container } = render(<Panel trailing={<span>end-slot</span>} />)
-    const text = container.textContent ?? ''
-    expect(text).toContain('end-slot')
-    expect(text.indexOf('end-slot')).toBeGreaterThan(text.indexOf('Cols'))
+    openPopover(container)
+    expect(container.textContent).toContain('end-slot')
   })
   test('both children and trailing render', () => {
     const { container } = render(
@@ -1765,6 +1781,7 @@ describe.skip('Panel children slot', () => {
         <span>start</span>
       </Panel>
     )
+    openPopover(container)
     expect(container.textContent).toContain('start')
     expect(container.textContent).toContain('end')
   })
@@ -1997,7 +2014,7 @@ describe('Grid onConfigChange prop stability', () => {
     expect(calls1 + calls2).toBeGreaterThanOrEqual(0)
   })
 })
-describe.skip('Panel auto-hides with no editable and no slots', () => {
+describe('Panel auto-hides with no editable and no slots', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -2032,9 +2049,9 @@ describe.skip('Panel auto-hides with no editable and no slots', () => {
     const { container } = render(<Panel />)
     expect(container.firstChild).toBeNull()
   })
-  test('renders with trailing only (no children, no editable)', () => {
+  test('still null with trailing only when editable false', () => {
     const { container } = render(<Panel trailing={<span>t</span>} />)
-    expect(container.textContent).toContain('t')
+    expect(container.firstChild).toBeNull()
   })
 })
 describe('gridStore getSnapshot returns same identity until setState', () => {
@@ -2094,7 +2111,7 @@ describe('computeLayoutWithCols items with w exactly cols', () => {
     expect(placed[2]?.y).toBe(4)
   })
 })
-describe.skip('Panel children-only mode (view mode)', () => {
+describe('Panel view mode always hidden', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -2125,23 +2142,21 @@ describe.skip('Panel children-only mode (view mode)', () => {
       }
     })
   })
-  test('renders children without sliders', () => {
+  test('hides even with children', () => {
     const { container } = render(
       <Panel>
         <span>edit</span>
       </Panel>
     )
-    expect(container.textContent).toBe('edit')
-    expect(container.querySelector('input[type=range]')).toBeNull()
+    expect(container.firstChild).toBeNull()
   })
-  test('renders both children and trailing in view mode', () => {
+  test('hides even with children and trailing', () => {
     const { container } = render(
       <Panel trailing={<span>end</span>}>
         <span>start</span>
       </Panel>
     )
-    expect(container.textContent).toContain('start')
-    expect(container.textContent).toContain('end')
+    expect(container.firstChild).toBeNull()
   })
 })
 describe('Grid config with only cols', () => {
@@ -2895,7 +2910,7 @@ describe('toGridConfig mixed x/y positions preserved', () => {
     expect(cfg.layout?.[2]?.y).toBe(2)
   })
 })
-describe.skip('Panel item count', () => {
+describe('Panel item count', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -2928,10 +2943,12 @@ describe.skip('Panel item count', () => {
   })
   test('shows count matching layout length', () => {
     const { container } = render(<Panel />)
-    expect(container.textContent).toContain('7 items')
+    openPopover(container)
+    const header = container.querySelector('[role=dialog]')?.textContent ?? ''
+    expect(header).toContain('7')
   })
 })
-describe.skip('Panel Rings active/inactive', () => {
+describe('Panel Rings active/inactive', () => {
   beforeEach(() => {
     cleanup()
   })
@@ -2964,8 +2981,9 @@ describe.skip('Panel Rings active/inactive', () => {
       }
     })
     const { container } = render(<Panel />)
-    const rings = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
-    expect(rings?.className).toContain('bg-gray-900')
+    openPopover(container)
+    const rings = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Cell borders'))
+    expect(rings?.className).toContain('bg-muted')
   })
   test('inactive class when showRings=false', () => {
     gridStore.setState({
@@ -2996,8 +3014,9 @@ describe.skip('Panel Rings active/inactive', () => {
       }
     })
     const { container } = render(<Panel />)
-    const rings = [...container.querySelectorAll('button')].find(b => b.textContent === 'Rings')
-    expect(rings?.className).toContain('border')
+    openPopover(container)
+    const rings = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Cell borders'))
+    expect(rings?.className).not.toContain('bg-muted font-medium')
   })
 })
 describe('gridStore reset field re-identity across mounts', () => {
@@ -3117,7 +3136,7 @@ describe('gridStore snapshot identity', () => {
     expect(gridStore.getSnapshot()).toBe(gridStore.getSnapshot())
   })
 })
-describe.skip('Panel step=1 on ranges', () => {
+describe('Panel step=1 on ranges', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -3150,6 +3169,7 @@ describe.skip('Panel step=1 on ranges', () => {
   })
   test('all sliders step=1', () => {
     const { container } = render(<Panel />)
+    openPopover(container)
     for (const input of container.querySelectorAll<HTMLInputElement>('input[type=range]')) expect(input.step).toBe('1')
   })
 })
@@ -3207,7 +3227,7 @@ describe('Grid with onConfigChange AND persist', () => {
     expect(readStorage('both')?.cols).toBe(19)
   })
 })
-describe.skip('Panel editable empty layout', () => {
+describe('Panel editable empty layout', () => {
   beforeEach(() => {
     cleanup()
     gridStore.setState({
@@ -3238,9 +3258,11 @@ describe.skip('Panel editable empty layout', () => {
       }
     })
   })
-  test('shows 0 items', () => {
+  test('shows 0 in header', () => {
     const { container } = render(<Panel />)
-    expect(container.textContent).toContain('0 items')
+    openPopover(container)
+    const header = container.querySelector('[role=dialog]')?.textContent ?? ''
+    expect(header).toContain('0')
   })
 })
 describe('Grid classNameMap applies to cell', () => {
