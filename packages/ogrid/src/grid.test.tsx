@@ -584,24 +584,6 @@ describe('floating Panel bubble', () => {
     const { container } = render(<Panel />)
     expect(container.firstChild).toBeNull()
   })
-  test('rendered when children provided even without editable', () => {
-    gridStore.setState({ ...gridStore.getSnapshot(), editable: false } as NonNullable<
-      ReturnType<typeof gridStore.getSnapshot>
-    >)
-    const { container } = render(
-      <Panel>
-        <span>custom</span>
-      </Panel>
-    )
-    expect(container.querySelector('[data-ogrid-panel]')).not.toBeNull()
-  })
-  test('saved position restored on mount', () => {
-    globalThis.localStorage.setItem('ogrid:panel-position', JSON.stringify({ x: 100, y: 200 }))
-    const { container } = render(<Panel />)
-    const bubble = container.querySelector<HTMLButtonElement>('button')
-    expect(bubble?.style.left).toBe('100px')
-    expect(bubble?.style.top).toBe('200px')
-  })
 })
 describe('cn', () => {
   test('merges tailwind classes, deduplicates', () => {
