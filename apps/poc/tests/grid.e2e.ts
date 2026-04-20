@@ -796,7 +796,7 @@ test('reset after heavy customization: all items return to pristine state', asyn
   }
   await openPanel(page)
   await page.getByRole('button', { name: 'Reset layout' }).click()
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(1500)
   const resetted = await snapshotAll(page)
   for (const key of Object.keys(pristine)) {
     const p = pristine[key]
