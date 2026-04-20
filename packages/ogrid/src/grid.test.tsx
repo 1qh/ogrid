@@ -7,7 +7,7 @@
 /** biome-ignore-all lint/performance/noAwaitInLoops: sequential mount tests */
 /** biome-ignore-all lint/nursery/useExpect: has assertions */
 /** biome-ignore-all lint/suspicious/noSkippedTests: Panel UX redesign — old DOM tests obsolete */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, no-await-in-loop, react-hooks/globals */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, no-await-in-loop */
 import { act, cleanup, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'

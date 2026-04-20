@@ -11,9 +11,5 @@
     "jotai": "latest",
     "next": "latest",
     "ogrid": "workspace:*"
-  },
-  "devDependencies": {
-    "@playwright/test": "latest",
-    "playwright-core": "latest"
   }
 }
