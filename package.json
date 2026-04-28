@@ -27,7 +27,6 @@
     "@tailwindcss/typography": "latest",
     "@testing-library/react": "latest",
     "@turbo/gen": "latest",
-    "@types/react": "latest",
     "lintmax": "latest",
     "playwright-core": "latest",
     "react": "latest",
