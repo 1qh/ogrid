@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/noEmptyBlockStatements: intentional empty catch */
-/* oxlint-disable jsx-a11y/label-has-associated-control, react-perf/jsx-no-new-object-as-prop, react/jsx-handler-names */
+/** biome-ignore-all lint/nursery/noReactNativeLiteralColors: web project, RN rule false positive on inline gradient */
+/* oxlint-disable jsx-a11y/label-has-associated-control, react-perf/jsx-no-new-object-as-prop, react/jsx-handler-names, eslint-plugin-react(forbid-component-props) */
 /* eslint-disable @typescript-eslint/strict-void-return, no-empty, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 'use client'
 import type { ReactNode } from 'react'

@@ -7,7 +7,7 @@
 /** biome-ignore-all lint/performance/noAwaitInLoops: sequential mount tests */
 /** biome-ignore-all lint/nursery/useExpect: has assertions */
 /** biome-ignore-all lint/suspicious/noSkippedTests: Panel UX redesign — old DOM tests obsolete */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method, no-await-in-loop */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method */
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { buildLayout } from './build-layout'
@@ -1588,7 +1588,7 @@ describe('extractKeys with fragments and falsy', () => {
 })
 describe('cn edge cases', () => {
   test('numbers ignored safely', () => {
-    expect(cn('a', 0 as never, 'b')).toBe('a b')
+    expect(cn('a', 0, 'b')).toBe('a b')
   })
   test('tailwind conflict resolution', () => {
     expect(cn('text-sm', 'text-lg')).toBe('text-lg')

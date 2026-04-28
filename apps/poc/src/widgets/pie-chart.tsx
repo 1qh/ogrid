@@ -1,3 +1,4 @@
+/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 const outerData = [

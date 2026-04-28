@@ -1,3 +1,4 @@
+/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 /** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG */
 /* oxlint-disable jsx-no-jsx-as-prop */
 'use client'

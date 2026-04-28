@@ -1,3 +1,4 @@
+/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, complexity */
@@ -102,7 +103,7 @@ const GridInner = ({
     capTimer: null as null | ReturnType<typeof setTimeout>,
     idleTimer: null as null | ReturnType<typeof setTimeout>,
     openedAt: 0,
-    phase: 'measuring' as 'done' | 'measuring'
+    phase: 'measuring'
   })
   const [phase, setPhase] = useState<'done' | 'measuring'>('measuring')
   const [compact, setCompact] = useState(false)

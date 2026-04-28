@@ -5,13 +5,13 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register()
 class MockResizeObserver {
   readonly #cb: ResizeObserverCallback
   readonly #targets = new Set<Element>()
-  constructor(cb: ResizeObserverCallback) {
+  public constructor(cb: ResizeObserverCallback) {
     this.#cb = cb
   }
-  disconnect() {
+  public disconnect() {
     this.#targets.clear()
   }
-  observe(el: Element) {
+  public observe(el: Element) {
     this.#targets.add(el)
     queueMicrotask(() => {
       if (!this.#targets.has(el)) return
@@ -19,11 +19,11 @@ class MockResizeObserver {
       this.#cb([entry], this)
     })
   }
-  unobserve(el: Element) {
+  public unobserve(el: Element) {
     this.#targets.delete(el)
   }
 }
-globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+globalThis.ResizeObserver = MockResizeObserver
 const originalGetRect = globalThis.Element.prototype.getBoundingClientRect
 globalThis.Element.prototype.getBoundingClientRect = function patchedGetRect(this: Element) {
   const r = originalGetRect.call(this)

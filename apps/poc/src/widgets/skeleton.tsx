@@ -1,3 +1,4 @@
+/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Button } from '@a/ui/button'
 import { Skeleton } from '@a/ui/skeleton'

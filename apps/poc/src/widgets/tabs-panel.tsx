@@ -1,3 +1,4 @@
+/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@a/ui/tabs'
 const TabsPanel = () => (
