@@ -1,4 +1,3 @@
-/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 /* oxlint-disable jsx-no-new-array-as-prop, jsx-no-new-object-as-prop */
 'use client'
 import {

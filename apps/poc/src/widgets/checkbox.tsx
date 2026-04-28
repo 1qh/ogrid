@@ -1,4 +1,3 @@
-/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Checkbox } from '@a/ui/checkbox'
 import { Label } from '@a/ui/label'

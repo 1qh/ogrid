@@ -1,4 +1,3 @@
-/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 /** biome-ignore-all lint/correctness/useUniqueElementIds: demo static IDs */
 'use client'
 import { Button } from '@a/ui/button'

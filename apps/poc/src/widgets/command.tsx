@@ -1,4 +1,3 @@
-/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@a/ui/command'
 import { useState } from 'react'

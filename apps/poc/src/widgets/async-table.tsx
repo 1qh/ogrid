@@ -1,4 +1,3 @@
-/* oxlint-disable eslint-plugin-react(forbid-component-props) */
 'use client'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@a/ui/table'
 import { useEffect, useState } from 'react'
