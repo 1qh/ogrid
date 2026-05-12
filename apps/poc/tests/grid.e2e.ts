@@ -132,7 +132,7 @@ test('toggle edit off hides drag handles again', async ({ page }) => {
 test('panel item count matches rendered items', async ({ page }) => {
   await toggleEdit(page)
   await page.waitForTimeout(200)
-  const panelText = await page.locator('[data-ogrid-panel] [role="dialog"] .font-mono').first().textContent()
+  const panelText = await page.locator('[data-ogrid-panel] dialog .font-mono').first().textContent()
   const rendered = await page.locator('.react-grid-item').count()
   const panelCount = Number(panelText?.trim() ?? 0)
   expect(panelCount).toBe(rendered)
