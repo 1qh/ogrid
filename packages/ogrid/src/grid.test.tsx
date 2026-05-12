@@ -756,7 +756,7 @@ describe('Panel subcomponent direct', () => {
   test('item count shown in header', () => {
     const { container } = render(<Panel />)
     openPopover(container)
-    const headerText = container.querySelector('[role=dialog]')?.textContent ?? ''
+    const headerText = container.querySelector('dialog')?.textContent ?? ''
     expect(headerText).toContain('1')
   })
   test('clicking reset invokes store.reset', () => {
@@ -2944,7 +2944,7 @@ describe('Panel item count', () => {
   test('shows count matching layout length', () => {
     const { container } = render(<Panel />)
     openPopover(container)
-    const header = container.querySelector('[role=dialog]')?.textContent ?? ''
+    const header = container.querySelector('dialog')?.textContent ?? ''
     expect(header).toContain('7')
   })
 })
@@ -3261,7 +3261,7 @@ describe('Panel editable empty layout', () => {
   test('shows 0 in header', () => {
     const { container } = render(<Panel />)
     openPopover(container)
-    const header = container.querySelector('[role=dialog]')?.textContent ?? ''
+    const header = container.querySelector('dialog')?.textContent ?? ''
     expect(header).toContain('0')
   })
 })
