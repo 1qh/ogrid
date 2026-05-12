@@ -261,7 +261,7 @@ const Panel = ({
         </AnimatePresence>
         <AnimatePresence>
           {open ? (
-            <motion.div
+            <motion.dialog
               animate={{ opacity: 1, scale: 1, y: 0 }}
               aria-label='Grid settings'
               className={cn(
@@ -271,7 +271,7 @@ const Panel = ({
               exit={{ opacity: 0, scale: 0.94, y: -4 }}
               initial={{ opacity: 0, scale: 0.94, y: -4 }}
               key='popover'
-              role='dialog'
+              open
               style={{ [dock === 'right' ? 'right' : 'left']: EDGE_MARGIN + BUBBLE_SIZE + 10, top: popoverTop }}
               transition={{ damping: 28, mass: 0.7, stiffness: 380, type: 'spring' }}>
               <div className='flex items-center justify-between border-b border-border px-3 py-2'>
@@ -298,7 +298,7 @@ const Panel = ({
                 {children ? <div className='flex flex-col gap-1 border-b border-border pb-2'>{children}</div> : null}
                 {state ? <EditControls state={state} /> : null}
               </div>
-            </motion.div>
+            </motion.dialog>
           ) : null}
         </AnimatePresence>
         <motion.button
