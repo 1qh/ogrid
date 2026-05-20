@@ -1,10 +1,12 @@
 'use client'
+import type { GridConfig } from 'ogrid'
 import { Bubble } from 'levitato'
 import { Settings } from 'lucide-react'
-import { Grid, type GridConfig } from 'ogrid'
-import 'ogrid/styles.css'
 import Link from 'next/link'
+import 'ogrid/styles.css'
+import { Grid } from 'ogrid'
 import { useState } from 'react'
+
 const config: GridConfig = {
   layout: [
     { i: 'a', w: 8 },

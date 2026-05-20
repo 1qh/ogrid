@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/suspicious/noEmptyBlockStatements: SSR guards */
 /* eslint-disable no-empty */
 import type { GridConfig } from './types'
+
 const STORAGE_PREFIX = 'ogrid:'
 const readStorage = (id: string): GridConfig | null => {
   try {

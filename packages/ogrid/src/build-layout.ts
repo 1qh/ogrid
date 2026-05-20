@@ -1,4 +1,5 @@
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
+
 interface BuildLayoutArgs {
   cols: number
   configMap: ReadonlyMap<string, ConfigEntry>

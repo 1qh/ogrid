@@ -9,6 +9,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { cn } from './cn'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
+
 const POSITION_KEY = 'ogrid:panel-position'
 const BUBBLE_SIZE = 40
 const EDGE_MARGIN = 12

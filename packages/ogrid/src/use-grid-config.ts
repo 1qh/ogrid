@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react'
 import type { GridConfig, LayoutItem } from './types'
 import { DEFAULT_COLS, DEFAULT_GAP, DEFAULT_ROW_HEIGHT } from './constants'
 import { gridStore } from './context'
+
 interface ToGridConfigArgs {
   cols: number
   fillSet?: ReadonlySet<string>

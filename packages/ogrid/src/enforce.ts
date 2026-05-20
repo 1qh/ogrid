@@ -1,4 +1,5 @@
 import type { Layout } from 'react-grid-layout'
+
 interface EnforceArgs {
   fillSet: ReadonlySet<string>
   layout: Layout

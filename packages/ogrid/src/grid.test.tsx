@@ -24,6 +24,7 @@ import { measureNaturalHeight, pxToGridH } from './measurement'
 import Panel from './panel'
 import { clearStorage, readStorage, STORAGE_PREFIX, writeStorage } from './storage'
 import { toGridConfig, useGridConfig } from './use-grid-config'
+
 describe('computeLayoutWithCols', () => {
   test('places items row by row', () => {
     const items = [

@@ -1,6 +1,7 @@
 /* oxlint-disable promise/prefer-await-to-callbacks */
 /* eslint-disable @typescript-eslint/unbound-method, func-name-matching */
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
+
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register()
 class MockResizeObserver {
   readonly #cb: ResizeObserverCallback

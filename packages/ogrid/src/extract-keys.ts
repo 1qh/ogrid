@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closure */
 import type { ReactElement, ReactNode } from 'react'
 import { isValidElement } from 'react'
+
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
   const result: ReactElement[] = []
