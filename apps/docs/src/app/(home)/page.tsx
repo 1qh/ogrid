@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: grid id is intentional demo string */
+/* oxlint-disable react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Bubble } from 'levitato'
