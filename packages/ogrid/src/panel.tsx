@@ -101,6 +101,7 @@ const Slider = ({
         <span className='font-mono tabular-nums'>{String(value)}</span>
       </div>
       <input
+        aria-label={label}
         className='h-1.5 w-full cursor-pointer appearance-none rounded-full outline-none [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-110'
         max={max}
         min={min}
