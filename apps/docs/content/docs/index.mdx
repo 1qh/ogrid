@@ -1,0 +1,22 @@
+---
+title: ogrid
+description: Content-aware dashboard grid for React.
+---
+
+## Install
+
+```sh
+bun add ogrid
+```
+
+## Usage
+
+```tsx
+import { Grid } from 'ogrid'
+import 'ogrid/styles.css'
+
+<Grid id='dash' config={{ layout: [{ i: 'a', w: 6 }, { i: 'b', w: 6 }] }}>
+  <div key='a'>A</div>
+  <div key='b'>B</div>
+</Grid>
+```
