@@ -8,7 +8,7 @@ import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Grid } from 'ogrid'
 import 'ogrid/styles.css'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Accordion from '@/widgets/accordion'
 import AsyncTable from '@/widgets/async-table'
 import Avatars from '@/widgets/avatars'
@@ -28,6 +28,8 @@ import TabsPanel from '@/widgets/tabs-panel'
 import TextWidget from '@/widgets/text-widget'
 import Timeline from '@/widgets/timeline'
 import ToggleGroupWidget from '@/widgets/toggle-group'
+import type { GridSettings } from './tweak-panel'
+import TweakPanel from './tweak-panel'
 
 const BarChartWidget = dynamic(async () => import('@/widgets/bar-chart'), { ssr: false })
 const SparklineWidget = dynamic(async () => import('@/widgets/sparkline'), { ssr: false })
@@ -35,41 +37,45 @@ const AreaChartWidget = dynamic(async () => import('@/widgets/area-chart'), { ss
 const LineChartWidget = dynamic(async () => import('@/widgets/line-chart'), { ssr: false })
 const PieChartWidget = dynamic(async () => import('@/widgets/pie-chart'), { ssr: false })
 const RadialChartWidget = dynamic(async () => import('@/widgets/radial-chart'), { ssr: false })
-const config: GridConfig = {
-  layout: [
-    { fill: true, i: 'chart', w: 12 },
-    { i: 'kpi', w: 12 },
-    { fill: true, i: 'areachart', w: 12 },
-    { i: 'progress', w: 12 },
-    { i: 'table', w: 16 },
-    { i: 'stats', w: 8 },
-    { fill: true, i: 'scroll', w: 12 },
-    { i: 'timeline', w: 12 },
-    { fill: true, i: 'sparkline', w: 8 },
-    { fill: true, i: 'linechart', w: 8 },
-    { fill: true, i: 'piechart', w: 8 },
-    { i: 'text', w: 12 },
-    { i: 'layoutswitch', w: 12 },
-    { i: 'async', w: 12 },
-    { i: 'accordion', w: 12 },
-    { i: 'badges', w: 8 },
-    { i: 'calendar', w: 8 },
-    { i: 'checkbox', w: 8 },
-    { i: 'form', w: 12 },
-    { i: 'separator', w: 8 },
-    { i: 'tabs', w: 12 },
-    { i: 'toggles', w: 8 },
-    { i: 'avatars', w: 8 },
-    { fill: true, i: 'radialchart', w: 8 },
-    { i: 'prose', w: 12 }
-  ]
-}
+const layout: GridConfig['layout'] = [
+  { fill: true, i: 'chart', w: 12 },
+  { i: 'kpi', w: 12 },
+  { fill: true, i: 'areachart', w: 12 },
+  { i: 'progress', w: 12 },
+  { i: 'table', w: 16 },
+  { i: 'stats', w: 8 },
+  { fill: true, i: 'scroll', w: 12 },
+  { i: 'timeline', w: 12 },
+  { fill: true, i: 'sparkline', w: 8 },
+  { fill: true, i: 'linechart', w: 8 },
+  { fill: true, i: 'piechart', w: 8 },
+  { i: 'text', w: 12 },
+  { i: 'layoutswitch', w: 12 },
+  { i: 'async', w: 12 },
+  { i: 'accordion', w: 12 },
+  { i: 'badges', w: 8 },
+  { i: 'calendar', w: 8 },
+  { i: 'checkbox', w: 8 },
+  { i: 'form', w: 12 },
+  { i: 'separator', w: 8 },
+  { i: 'tabs', w: 12 },
+  { i: 'toggles', w: 8 },
+  { i: 'avatars', w: 8 },
+  { fill: true, i: 'radialchart', w: 8 },
+  { i: 'prose', w: 12 }
+]
+const DEFAULTS: GridSettings = { cols: 24, editing: false, gap: 12, rowHeight: 32 }
 const Page = () => {
-  const [editing, setEditing] = useState(false)
+  const [settings, setSettings] = useState<GridSettings>(DEFAULTS)
   const { setTheme, theme } = useTheme()
+  const config: GridConfig = useMemo(
+    () => ({ cols: settings.cols, gap: settings.gap, layout, rowHeight: settings.rowHeight }),
+    [settings.cols, settings.gap, settings.rowHeight]
+  )
+  const gridKey = `${settings.cols}-${settings.gap}-${settings.rowHeight}`
   return (
     <div className='px-4 py-4'>
-      <Grid config={config} editable={editing} id='poc' persist>
+      <Grid config={config} editable={settings.editing} id='poc' key={gridKey} persist>
         <BarChartWidget key='chart' />
         <KpiCard key='kpi' />
         <AreaChartWidget key='areachart' />
@@ -107,14 +113,8 @@ const Page = () => {
             {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
           </button>
         }>
-        <div className='flex flex-col gap-2 px-4 py-3 text-sm'>
-          <button
-            className='rounded-md border px-3 py-2 text-left hover:bg-muted'
-            onClick={() => setEditing(p => !p)}
-            type='button'>
-            {editing ? 'Exit edit mode' : 'Enter edit mode'}
-          </button>
-          <p className='text-xs text-muted-foreground'>Drag, resize, swap tiles in edit mode.</p>
+        <div className='p-2'>
+          <TweakPanel initial={DEFAULTS} onChange={setSettings} />
         </div>
       </Bubble>
     </div>

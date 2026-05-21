@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
+    "@tweakpane/core": "latest",
     "fumadocs-core": "latest",
     "fumadocs-mdx": "latest",
     "fumadocs-ui": "latest",
@@ -20,6 +21,7 @@
     "ogrid": "workspace:*",
     "react": "latest",
     "react-dom": "latest",
-    "recharts": "latest"
+    "recharts": "latest",
+    "tweakpane": "latest"
   }
 }
