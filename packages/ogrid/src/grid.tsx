@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
-/* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, complexity */
+/* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop */
 /* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
 'use client'
 import type { ReactNode } from 'react'
