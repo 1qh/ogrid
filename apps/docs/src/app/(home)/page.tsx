@@ -3,7 +3,7 @@
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Bubble } from 'levitato'
-import { Moon, Settings, Sun } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import dynamic from 'next/dynamic'
 import { Grid } from 'ogrid'
@@ -75,7 +75,7 @@ const Page = () => {
   const gridKey = `${settings.cols}-${settings.gap}-${settings.rowHeight}`
   return (
     <div className='px-4 py-4'>
-      <Grid config={config} editable={settings.editing} id='poc' key={gridKey} persist>
+      <Grid config={config} editable={settings.editing} key={gridKey}>
         <BarChartWidget key='chart' />
         <KpiCard key='kpi' />
         <AreaChartWidget key='areachart' />
@@ -102,20 +102,12 @@ const Page = () => {
         <RadialChartWidget key='radialchart' />
         <Prose key='prose' />
       </Grid>
-      <Bubble
-        icon={<Settings className='size-4' />}
-        title='Grid'
-        trailing={
-          <button
-            className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            type='button'>
-            {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
-          </button>
-        }>
-        <div className='p-2'>
-          <TweakPanel initial={DEFAULTS} onChange={setSettings} />
-        </div>
+      <Bubble icon={<Settings className='size-4' />}>
+        <TweakPanel
+          initial={DEFAULTS}
+          onChange={setSettings}
+          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        />
       </Bubble>
     </div>
   )

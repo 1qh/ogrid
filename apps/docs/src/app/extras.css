@@ -5,14 +5,14 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --tp-base-background-color: var(--color-fd-card);
+  --tp-base-background-color: var(--color-fd-background);
   --tp-base-shadow-color: rgba(0, 0, 0, 0.1);
   --tp-button-background-color: var(--color-fd-muted);
   --tp-button-background-color-active: var(--color-fd-accent);
   --tp-button-background-color-focus: var(--color-fd-accent);
   --tp-button-background-color-hover: var(--color-fd-accent);
   --tp-button-foreground-color: var(--color-fd-foreground);
-  --tp-container-background-color: var(--color-fd-muted);
+  --tp-container-background-color: var(--color-fd-background);
   --tp-container-background-color-active: var(--color-fd-accent);
   --tp-container-background-color-focus: var(--color-fd-accent);
   --tp-container-background-color-hover: var(--color-fd-accent);
