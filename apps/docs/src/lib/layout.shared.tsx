@@ -3,6 +3,7 @@ import { appName } from './shared'
 
 export const baseOptions = (): BaseLayoutProps => ({
   githubUrl: 'https://github.com/1qh/ogrid',
+  links: [{ text: 'Docs', url: '/docs' }],
   nav: {
     title: appName
   }
