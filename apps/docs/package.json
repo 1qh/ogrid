@@ -9,14 +9,17 @@
     "start": "next start"
   },
   "dependencies": {
+    "@a/ui": "workspace:*",
     "fumadocs-core": "latest",
     "fumadocs-mdx": "latest",
     "fumadocs-ui": "latest",
     "levitato": "latest",
     "lucide-react": "latest",
     "next": "latest",
+    "next-themes": "latest",
     "ogrid": "workspace:*",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "recharts": "latest"
   }
 }

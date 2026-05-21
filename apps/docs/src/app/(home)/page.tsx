@@ -1,63 +1,120 @@
-/** biome-ignore-all lint/correctness/useUniqueElementIds: grid id is intentional demo string */
+/** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG */
 /* oxlint-disable react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Bubble } from 'levitato'
-import { Settings } from 'lucide-react'
-import Link from 'next/link'
-import 'ogrid/styles.css'
+import { Moon, Settings, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import dynamic from 'next/dynamic'
 import { Grid } from 'ogrid'
+import 'ogrid/styles.css'
 import { useState } from 'react'
+import Accordion from '@/widgets/accordion'
+import AsyncTable from '@/widgets/async-table'
+import Avatars from '@/widgets/avatars'
+import Badges from '@/widgets/badges'
+import CalendarWidget from '@/widgets/calendar'
+import CheckboxWidget from '@/widgets/checkbox'
+import DataTableWidget from '@/widgets/data-table'
+import FormWidget from '@/widgets/form'
+import KpiCard from '@/widgets/kpi-card'
+import LayoutSwitchWidget from '@/widgets/layout-switch'
+import ProgressBars from '@/widgets/progress-bars'
+import Prose from '@/widgets/prose'
+import ScrollContent from '@/widgets/scroll-content'
+import Separator from '@/widgets/separator'
+import StatsGrid from '@/widgets/stats-grid'
+import TabsPanel from '@/widgets/tabs-panel'
+import TextWidget from '@/widgets/text-widget'
+import Timeline from '@/widgets/timeline'
+import ToggleGroupWidget from '@/widgets/toggle-group'
 
+const BarChartWidget = dynamic(async () => import('@/widgets/bar-chart'), { ssr: false })
+const SparklineWidget = dynamic(async () => import('@/widgets/sparkline'), { ssr: false })
+const AreaChartWidget = dynamic(async () => import('@/widgets/area-chart'), { ssr: false })
+const LineChartWidget = dynamic(async () => import('@/widgets/line-chart'), { ssr: false })
+const PieChartWidget = dynamic(async () => import('@/widgets/pie-chart'), { ssr: false })
+const RadialChartWidget = dynamic(async () => import('@/widgets/radial-chart'), { ssr: false })
 const config: GridConfig = {
   layout: [
-    { i: 'a', w: 8 },
-    { i: 'b', w: 8 },
-    { i: 'c', w: 8 },
-    { i: 'd', w: 8 }
+    { fill: true, i: 'chart', w: 12 },
+    { i: 'kpi', w: 12 },
+    { fill: true, i: 'areachart', w: 12 },
+    { i: 'progress', w: 12 },
+    { i: 'table', w: 16 },
+    { i: 'stats', w: 8 },
+    { fill: true, i: 'scroll', w: 12 },
+    { i: 'timeline', w: 12 },
+    { fill: true, i: 'sparkline', w: 8 },
+    { fill: true, i: 'linechart', w: 8 },
+    { fill: true, i: 'piechart', w: 8 },
+    { i: 'text', w: 12 },
+    { i: 'layoutswitch', w: 12 },
+    { i: 'async', w: 12 },
+    { i: 'accordion', w: 12 },
+    { i: 'badges', w: 8 },
+    { i: 'calendar', w: 8 },
+    { i: 'checkbox', w: 8 },
+    { i: 'form', w: 12 },
+    { i: 'separator', w: 8 },
+    { i: 'tabs', w: 12 },
+    { i: 'toggles', w: 8 },
+    { i: 'avatars', w: 8 },
+    { fill: true, i: 'radialchart', w: 8 },
+    { i: 'prose', w: 12 }
   ]
 }
-const tiles = [
-  { color: 'oklch(0.85 0.12 250)', id: 'a', label: 'A' },
-  { color: 'oklch(0.85 0.12 100)', id: 'b', label: 'B' },
-  { color: 'oklch(0.85 0.12 30)', id: 'c', label: 'C' },
-  { color: 'oklch(0.85 0.12 170)', id: 'd', label: 'D' }
-]
 const Page = () => {
   const [editing, setEditing] = useState(false)
+  const { setTheme, theme } = useTheme()
   return (
-    <div className='flex flex-1 flex-col gap-6 px-4 py-8'>
-      <div className='flex flex-col items-center gap-3 text-center'>
-        <h1 className='text-5xl font-extrabold tracking-tighter'>ogrid</h1>
-        <p className='text-xl text-fd-muted-foreground'>Content-aware dashboard grid for React</p>
-        <code className='rounded-lg bg-fd-muted px-4 py-2 text-sm'>bun add ogrid</code>
-        <Link
-          className='rounded-full bg-fd-primary px-6 py-2 text-sm font-semibold text-fd-primary-foreground transition-opacity hover:opacity-90'
-          href='/docs'>
-          Get Started
-        </Link>
-      </div>
-      <div className='mx-auto w-full max-w-5xl'>
-        <Grid config={config} editable={editing} id='ogrid-demo' persist>
-          {tiles.map(t => (
-            <div
-              className='flex h-full w-full items-center justify-center rounded-xl text-2xl font-bold'
-              key={t.id}
-              style={{ background: t.color }}>
-              {t.label}
-            </div>
-          ))}
-        </Grid>
-      </div>
-      <Bubble icon={<Settings className='size-4' />} title='Grid'>
+    <div className='px-4 py-4'>
+      <Grid config={config} editable={editing} id='poc' persist>
+        <BarChartWidget key='chart' />
+        <KpiCard key='kpi' />
+        <AreaChartWidget key='areachart' />
+        <ProgressBars key='progress' />
+        <DataTableWidget key='table' />
+        <StatsGrid key='stats' />
+        <ScrollContent key='scroll' />
+        <Timeline key='timeline' />
+        <SparklineWidget key='sparkline' />
+        <LineChartWidget key='linechart' />
+        <PieChartWidget key='piechart' />
+        <TextWidget key='text' />
+        <LayoutSwitchWidget key='layoutswitch' />
+        <AsyncTable key='async' />
+        <Accordion key='accordion' />
+        <Badges key='badges' />
+        <CalendarWidget key='calendar' />
+        <CheckboxWidget key='checkbox' />
+        <FormWidget key='form' />
+        <Separator key='separator' />
+        <TabsPanel key='tabs' />
+        <ToggleGroupWidget key='toggles' />
+        <Avatars key='avatars' />
+        <RadialChartWidget key='radialchart' />
+        <Prose key='prose' />
+      </Grid>
+      <Bubble
+        icon={<Settings className='size-4' />}
+        title='Grid'
+        trailing={
+          <button
+            className='rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            type='button'>
+            {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
+          </button>
+        }>
         <div className='flex flex-col gap-2 px-4 py-3 text-sm'>
           <button
-            className='rounded-md border px-3 py-2 text-left hover:bg-fd-muted'
+            className='rounded-md border px-3 py-2 text-left hover:bg-muted'
             onClick={() => setEditing(p => !p)}
             type='button'>
             {editing ? 'Exit edit mode' : 'Enter edit mode'}
           </button>
-          <p className='text-xs text-fd-muted-foreground'>Drag-resize tiles when edit mode is on.</p>
+          <p className='text-xs text-muted-foreground'>Drag, resize, swap tiles in edit mode.</p>
         </div>
       </Bubble>
     </div>
