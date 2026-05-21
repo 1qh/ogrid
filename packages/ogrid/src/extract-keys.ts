@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closure */
 import type { ReactElement, ReactNode } from 'react'
 import { isValidElement } from 'react'
 

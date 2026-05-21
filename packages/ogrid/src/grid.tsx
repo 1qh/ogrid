@@ -1,5 +1,4 @@
 /** biome-ignore-all lint/nursery/noContinue: loop control flow */
-/** biome-ignore-all lint/performance/useTopLevelRegex: regex used in closures */
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, complexity */
 /* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
 'use client'

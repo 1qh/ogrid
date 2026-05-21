@@ -3,10 +3,8 @@
 /** biome-ignore-all lint/performance/useTopLevelRegex: test patterns */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: test data */
-/* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop, react-hooks/globals */
+/* oxlint-disable import/no-namespace, react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop */
 /** biome-ignore-all lint/performance/noAwaitInLoops: sequential mount tests */
-/** biome-ignore-all lint/nursery/useExpect: has assertions */
-/** biome-ignore-all lint/suspicious/noSkippedTests: Panel UX redesign — old DOM tests obsolete */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/unbound-method */
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { beforeEach, describe, expect, test } from 'bun:test'

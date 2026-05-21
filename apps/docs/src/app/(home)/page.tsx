@@ -1,5 +1,4 @@
-/** biome-ignore-all lint/correctness/useUniqueElementIds: recharts SVG */
-/* oxlint-disable react-perf/jsx-no-jsx-as-prop, react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable react-perf/jsx-no-jsx-as-prop */
 'use client'
 import type { GridConfig } from 'ogrid'
 import { Bubble } from 'levitato'
