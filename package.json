@@ -1,4 +1,5 @@
 {
+  "name": "ogrid-workspace",
   "private": true,
   "type": "module",
   "workspaces": [
