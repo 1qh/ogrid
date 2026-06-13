@@ -1,3 +1,4 @@
+/* biome-ignore-all lint/nursery/noUnusedClasses: published react-grid-layout stylesheet; classes are the library's public CSS API applied at runtime by consumers, not in ogrid's own markup */
 .react-grid-layout {
   position: relative;
   transition: height 200ms ease;

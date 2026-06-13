@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/nursery/noContinue: loop control flow */
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop */
-/* eslint-disable complexity, no-continue, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
+/* eslint-disable complexity, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
 'use client'
 import type { ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'
@@ -175,10 +174,8 @@ const GridInner = ({
     mw.idleTimer = setTimeout(closeMeasureWindow, IDLE_TIMEOUT)
   }, [closeMeasureWindow])
   const measureAndUpdate = useCallback(() => {
-    for (const [key, el] of cardRef.current.entries()) {
-      if (fillSet.has(key)) continue
-      minHRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
-    }
+    for (const [key, el] of cardRef.current.entries())
+      if (!fillSet.has(key)) minHRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
     settingLayoutRef.current = true
     setLayout(prev => {
       const measured = prev.map(item => {
@@ -249,14 +246,16 @@ const GridInner = ({
       if (mw.phase !== 'measuring') return
       for (const entry of entries) {
         const el = entry.target
-        if (!(el instanceof HTMLDivElement)) continue
-        const key = el.dataset.ogridKey
-        if (!key || fillSet.has(key)) continue
-        const gridH = pxToGridH(el.scrollHeight, rowHeight, gap)
-        const prevMinH = minHRef.current.get(key)
-        if (prevMinH === gridH) continue
-        minHRef.current.set(key, gridH)
-        changed = true
+        if (el instanceof HTMLDivElement) {
+          const key = el.dataset.ogridKey
+          if (key && !fillSet.has(key)) {
+            const gridH = pxToGridH(el.scrollHeight, rowHeight, gap)
+            if (minHRef.current.get(key) !== gridH) {
+              minHRef.current.set(key, gridH)
+              changed = true
+            }
+          }
+        }
       }
       if (changed) {
         cancelAnimationFrame(rafRef.current)
