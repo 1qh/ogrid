@@ -32,13 +32,11 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
     const parts: string[] = [`i: "${item.i}"`]
     if (item.x !== 0) parts.push(`x: ${String(item.x)}`)
     if (item.y !== 0) parts.push(`y: ${String(item.y)}`)
-    parts.push(`w: ${String(item.w)}`)
-    parts.push(`h: ${String(item.h)}`)
+    parts.push(`w: ${String(item.w)}`, `h: ${String(item.h)}`)
     if (item.minH !== undefined && item.minH !== item.h) parts.push(`minH: ${String(item.minH)}`)
     lines.push(`    { ${parts.join(', ')} },`)
   }
-  lines.push('  ],')
-  lines.push('} satisfies GridConfig')
+  lines.push('  ],', '} satisfies GridConfig')
   return lines.join('\n')
 }
 const readPosition = (): null | { x: number; y: number } => {
