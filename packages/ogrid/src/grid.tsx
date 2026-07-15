@@ -128,11 +128,22 @@ const GridInner = ({
   const gapRef = useRef(gap)
   const rowHeightRef = useRef(rowHeight)
   const [layout, setLayout] = useState<Layout>(() => buildLayout({ cols, configMap, fillSet, itemKeys }))
+  const layoutRef = useRef(layout)
+  const commitLayout = useCallback((next: Layout) => {
+    layoutRef.current = next
+    setLayout(next)
+  }, [])
   const emitConfigChange = useCallback(
-    (l: Layout) => {
+    (l: Layout, colsOverride?: number) => {
       queueMicrotask(() => {
         onConfigChangeRef.current?.(
-          toGridConfig({ cols: colsRef.current, fillSet, gap: gapRef.current, layout: l, rowHeight: rowHeightRef.current })
+          toGridConfig({
+            cols: colsOverride ?? colsRef.current,
+            fillSet,
+            gap: gapRef.current,
+            layout: l,
+            rowHeight: rowHeightRef.current
+          })
         )
       })
     },
@@ -147,26 +158,24 @@ const GridInner = ({
     if (mw.capTimer) clearTimeout(mw.capTimer)
     mw.idleTimer = null
     mw.capTimer = null
-    setLayout(prev => {
-      const final = prev.map(item => {
-        if (fillSet.has(item.i)) return item
-        const minH = minHRef.current.get(item.i)
-        if (minH === undefined || minH <= 0) {
-          console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
-          return { ...item, h: FALLBACK_H, minH: 1 }
-        }
-        return { ...item, h: Math.max(item.h, minH), minH }
-      })
-      const placed = computeLayoutWithCols(final, colsRef.current)
-      freeformLayoutRef.current = placed
-      if (initialLayoutRef.current.length === 0) {
-        initialLayoutRef.current = placed
-        initialMinHRef.current = new Map(minHRef.current)
+    const final = layoutRef.current.map(item => {
+      if (fillSet.has(item.i)) return item
+      const minH = minHRef.current.get(item.i)
+      if (minH === undefined || minH <= 0) {
+        console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
+        return { ...item, h: FALLBACK_H, minH: 1 }
       }
-      return placed
+      return { ...item, h: Math.max(item.h, minH), minH }
     })
+    const placed = computeLayoutWithCols(final, colsRef.current)
+    freeformLayoutRef.current = placed
+    if (initialLayoutRef.current.length === 0) {
+      initialLayoutRef.current = placed
+      initialMinHRef.current = new Map(minHRef.current)
+    }
+    commitLayout(placed)
     setPhase('done')
-  }, [fillSet])
+  }, [commitLayout, fillSet])
   const resetIdleTimer = useCallback(() => {
     const mw = measureWindowRef.current
     if (mw.phase === 'done') return
@@ -176,26 +185,21 @@ const GridInner = ({
   const measureAndUpdate = useCallback(() => {
     for (const [key, el] of cardRef.current.entries())
       if (!fillSet.has(key)) minHRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
-    settingLayoutRef.current = true
-    setLayout(prev => {
-      const measured = prev.map(item => {
-        const minH = minHRef.current.get(item.i) ?? 1
-        const targetH = Math.max(item.h, minH)
-        return { ...item, h: targetH, minH }
-      })
-      const placed = computeLayout(measured)
-      const changed = prev.some((item, idx) => {
-        const p = placed[idx]
-        return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
-      })
-      if (!changed) {
-        settingLayoutRef.current = false
-        return prev
-      }
-      return placed
+    const prev = layoutRef.current
+    const measured = prev.map(item => {
+      const minH = minHRef.current.get(item.i) ?? 1
+      const targetH = Math.max(item.h, minH)
+      return { ...item, h: targetH, minH }
     })
+    const placed = computeLayout(measured)
+    const changed = prev.some((item, idx) => {
+      const p = placed[idx]
+      return p && (item.h !== p.h || item.y !== p.y || item.x !== p.x)
+    })
+    settingLayoutRef.current = changed
+    if (changed) commitLayout(placed)
     resetIdleTimer()
-  }, [computeLayout, fillSet, gap, resetIdleTimer, rowHeight])
+  }, [commitLayout, computeLayout, fillSet, gap, resetIdleTimer, rowHeight])
   colsRef.current = cols
   gapRef.current = gap
   rowHeightRef.current = rowHeight
@@ -281,12 +285,10 @@ const GridInner = ({
       rowHeight,
       setCols: (c: number) => {
         setCols(c)
-        setLayout(prev => {
-          const next = computeLayoutWithCols(clampLayoutToCols(prev, c), c)
-          freeformLayoutRef.current = next
-          emitConfigChange(next)
-          return next
-        })
+        const next = computeLayoutWithCols(clampLayoutToCols(layoutRef.current, c), c)
+        freeformLayoutRef.current = next
+        commitLayout(next)
+        emitConfigChange(next, c)
       },
       setGap: (g: number) => {
         setGap(g)
@@ -303,6 +305,7 @@ const GridInner = ({
   }, [
     closeMeasureWindow,
     cols,
+    commitLayout,
     compact,
     config,
     configMap,
@@ -342,9 +345,9 @@ const GridInner = ({
       const result = currentPhase === 'measuring' ? computeLayout(enforced) : enforced
       checkOverlaps(result)
       freeformLayoutRef.current = result
-      setLayout(result)
+      commitLayout(result)
     },
-    [computeLayout, fillSet]
+    [commitLayout, computeLayout, fillSet]
   )
   const handleDragStop = useCallback(
     (_layout: Layout, _oldItem: null | RGLLayoutItem, newItem: null | RGLLayoutItem) => {
