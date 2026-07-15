@@ -1,5 +1,5 @@
 /* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop */
-/* eslint-disable complexity, no-console, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, react-hooks/refs */
+/* eslint-disable complexity, no-console, @eslint-react/set-state-in-effect, react-hooks/refs, @eslint-react/refs */
 'use client'
 import type { ReactNode } from 'react'
 import type { Layout, LayoutItem as RGLLayoutItem } from 'react-grid-layout'

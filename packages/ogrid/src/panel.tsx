@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noEmptyBlockStatements: intentional empty catch */
 /** biome-ignore-all lint/nursery/noReactNativeLiteralColors: web project, RN rule false positive on inline gradient */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop, react/jsx-handler-names */
-/* eslint-disable @typescript-eslint/strict-void-return, no-empty, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
+/* eslint-disable @typescript-eslint/strict-void-return, no-empty, @eslint-react/set-state-in-effect, @eslint-react/immutability */
 'use client'
 import type { ReactNode } from 'react'
 import { animate, AnimatePresence, motion, MotionConfig, useMotionValue } from 'motion/react'
