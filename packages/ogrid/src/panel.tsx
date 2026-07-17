@@ -181,6 +181,7 @@ const Panel = ({
   hotkey?: false | string
   onToggle?: () => void
   trailing?: ReactNode
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- panel wires the grid store's edit/drag/resize/collapse state; the branching is inherent panel-chrome orchestration
 }) => {
   const state = useSyncExternalStore(gridStore.subscribe, gridStore.getSnapshot, () => null)
   const editable = state?.editable ?? false

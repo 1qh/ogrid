@@ -590,7 +590,7 @@ describe('floating Panel bubble', () => {
   test('tap bubble opens popover with sliders', () => {
     const { container } = render(<Panel />)
     openPopover(container)
-    expect(container.querySelectorAll('input[type=range]').length).toBe(3)
+    expect(container.querySelectorAll('input[type=range]')).toHaveLength(3)
   })
 })
 describe('cn', () => {
@@ -1062,7 +1062,7 @@ describe('Grid no id + no persist', () => {
         setTimeout(resolve, 50)
       })
     })
-    expect(globalThis.localStorage.length).toBe(0)
+    expect(globalThis.localStorage).toHaveLength(0)
   })
 })
 describe('extractKeys ordering edge cases', () => {
@@ -1247,7 +1247,7 @@ describe('Panel Copy button generates GridConfig format', () => {
     await new Promise<void>(resolve => {
       setTimeout(resolve, 20)
     })
-    expect(writes.length).toBe(1)
+    expect(writes).toHaveLength(1)
     const output = writes[0] ?? ''
     expect(output).toContain('cols: 20')
     expect(output).toContain('gap: 24')
@@ -1399,7 +1399,7 @@ describe('Grid with undefined config', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(1)
   })
   test('renders with partial config (only cols)', async () => {
     const { container } = render(
@@ -1412,7 +1412,7 @@ describe('Grid with undefined config', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(1)
   })
 })
 describe('Panel slider boundaries', () => {
@@ -1795,7 +1795,7 @@ describe('Grid with many children', () => {
         setTimeout(resolve, 50)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(50)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(50)
   })
 })
 describe('Grid children key changes cause remount behavior', () => {
@@ -1813,7 +1813,7 @@ describe('Grid children key changes cause remount behavior', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(1)
     rerender(
       <Grid>
         <div key='a'>a</div>
@@ -1825,7 +1825,7 @@ describe('Grid children key changes cause remount behavior', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(2)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(2)
   })
   test('removing a child drops it', async () => {
     const { container, rerender } = render(
@@ -1839,7 +1839,7 @@ describe('Grid children key changes cause remount behavior', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(2)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(2)
     rerender(
       <Grid>
         <div key='a'>a</div>
@@ -1850,7 +1850,7 @@ describe('Grid children key changes cause remount behavior', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(1)
   })
 })
 describe('Grid editable prop transition', () => {
@@ -1970,7 +1970,7 @@ describe('Grid rendering with no children', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(0)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(0)
   })
 })
 describe('Grid onConfigChange prop stability', () => {
@@ -2189,7 +2189,7 @@ describe('Grid config.layout with partial fields', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.react-grid-item').length).toBe(1)
+    expect(container.querySelectorAll('.react-grid-item')).toHaveLength(1)
   })
 })
 describe('buildLayout items missing from configMap get defaults', () => {
@@ -2338,7 +2338,9 @@ describe('Grid unmount clean up', () => {
           setTimeout(resolve, 20)
         })
       })
-      unmount()
+      expect(() => {
+        unmount()
+      }).not.toThrow()
     }
   })
 })
@@ -2477,6 +2479,7 @@ describe('Grid wrapper reset guards', () => {
         setTimeout(resolve, 50)
       })
     })
+    expect(document.querySelectorAll('.react-grid-item')).toHaveLength(1)
   })
   test('reset without id does not touch storage', async () => {
     writeStorage('other', { cols: 12 })
@@ -2606,14 +2609,8 @@ describe('Grid wrapper persist reads saved on mount', () => {
   })
   test('existing saved config applied as effective config', async () => {
     writeStorage('rsv', { cols: 18, gap: 22, rowHeight: 70 })
-    const captured: { cols?: number; gap?: number; rowHeight?: number }[] = []
     render(
-      <Grid
-        id='rsv'
-        onConfigChange={c => {
-          captured.push(c)
-        }}
-        persist>
+      <Grid id='rsv' persist>
         <div key='a'>x</div>
       </Grid>
     )
@@ -2675,7 +2672,7 @@ describe('computeLayoutWithCols more invariants', () => {
       { h: 2, i: 'y', w: 6, x: 0, y: 0 }
     ]
     const placed = computeLayoutWithCols(items, 24)
-    expect(placed.map(p => p.i).toSorted()).toEqual(['x', 'y'])
+    expect(placed.map(p => p.i).toSorted((a, b) => (a < b ? -1 : Number(a > b)))).toEqual(['x', 'y'])
   })
   test('output length matches input length', () => {
     const items = Array.from({ length: 30 }, (_, idx) => ({ h: 1, i: `i${idx}`, w: 3, x: 0, y: 0 }))
@@ -3297,7 +3294,7 @@ describe('Grid classNameMap applies to cell', () => {
         setTimeout(resolve, 30)
       })
     })
-    expect(container.querySelectorAll('.has').length).toBe(1)
+    expect(container.querySelectorAll('.has')).toHaveLength(1)
   })
 })
 describe('cn all-falsy inputs', () => {

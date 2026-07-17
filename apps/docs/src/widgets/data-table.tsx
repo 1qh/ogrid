@@ -18,6 +18,10 @@ const allRows = [
 ]
 const PAGE_SIZE = 5
 const sortKeys = ['name', 'email', 'role', 'status'] as const
+const sortIndicator = (active: boolean, dir: string): string => {
+  if (!active) return ''
+  return dir === 'asc' ? ' ↑' : ' ↓'
+}
 type SortDir = 'asc' | 'desc'
 type SortKey = (typeof sortKeys)[number]
 const DataTableWidget = () => {
@@ -68,7 +72,7 @@ const DataTableWidget = () => {
                   key={k}
                   onClick={() => handleSort(k)}>
                   {k.charAt(0).toUpperCase() + k.slice(1)}
-                  {sortKey === k ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                  {sortIndicator(sortKey === k, sortDir)}
                 </TableHead>
               ))}
             </TableRow>

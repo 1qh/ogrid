@@ -38,6 +38,11 @@ interface GridProps {
 }
 const FREEFORM = { ...verticalCompactor, preventCollision: false }
 const COMPACT = { ...verticalCompactor, preventCollision: false }
+const ringClass = (showRings: boolean, editable: boolean): string => {
+  if (showRings && editable) return 'ring-ring'
+  if (editable) return 'ring-ring/0 hover:ring-ring'
+  return 'ring-ring/0'
+}
 const DragHandle = () => (
   <div
     className={cn(
@@ -370,9 +375,8 @@ const GridInner = ({
     } else cardRef.current.delete(key)
   }, [])
   const isFreeform = editable && phase === 'done' && !compact
-  const effectiveLayout = compact
-    ? clampLayoutToCols(freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout, cols)
-    : layout
+  const freeformOrLayout = freeformLayoutRef.current.length > 0 ? freeformLayoutRef.current : layout
+  const effectiveLayout = compact ? clampLayoutToCols(freeformOrLayout, cols) : layout
   const effectiveCompactor = compact ? COMPACT : FREEFORM
   const childMap = useMemo(() => {
     const m = new Map<string, ReactNode>()
@@ -401,12 +405,7 @@ const GridInner = ({
             style={phase === 'measuring' ? { transition: 'none' } : undefined}
             width={width}>
             {itemKeys.map(key => (
-              <div
-                className={cn(
-                  'h-full rounded-lg ring-1 transition-shadow',
-                  showRings && editable ? 'ring-ring' : editable ? 'ring-ring/0 hover:ring-ring' : 'ring-ring/0'
-                )}
-                key={key}>
+              <div className={cn('h-full rounded-lg ring-1 transition-shadow', ringClass(showRings, editable))} key={key}>
                 <div
                   className={cn(
                     'relative flex flex-col',
