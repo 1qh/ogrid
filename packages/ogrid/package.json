@@ -36,7 +36,7 @@
     "build": "tsdown",
     "prepublishOnly": "bun run build",
     "postpublish": "bun ../../tools/prune-versions.ts",
-    "test": "bun test --preload ./src/happy-dom-preload.ts"
+    "test": "bun test"
   },
   "dependencies": {
     "clsx": "latest",
