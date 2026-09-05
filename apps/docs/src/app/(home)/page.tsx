@@ -73,7 +73,7 @@ const Page = () => {
   )
   const gridKey = `${settings.cols}-${settings.gap}-${settings.rowHeight}`
   return (
-    <div className='px-4 py-4'>
+    <div className='p-4'>
       <Grid config={config} editable={settings.editing} key={gridKey}>
         <BarChartWidget key='chart' />
         <KpiCard key='kpi' />

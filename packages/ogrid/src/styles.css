@@ -58,6 +58,7 @@
   border-bottom: 2px solid currentColor;
   opacity: 0.4;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: intentionally overrides the vendored react-grid-layout .react-resizable-handle base rule to hide the handle inside a specific container */
 .react-resizable-hide > .react-resizable-handle {
   display: none;
 }

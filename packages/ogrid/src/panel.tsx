@@ -42,6 +42,7 @@ const generateConfig = (state: NonNullable<ReturnType<typeof gridStore.getSnapsh
 const readPosition = (): null | { x: number; y: number } => {
   try {
     const raw = globalThis.localStorage.getItem(POSITION_KEY)
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: JSON.parse of a value this panel itself serialized as {x,y}; a bad shape is caught by the surrounding try and yields null
     return raw ? (JSON.parse(raw) as { x: number; y: number }) : null
   } catch {
     return null
@@ -228,7 +229,7 @@ const Panel = ({
       if (e.key === 'Escape') setOpen(false)
     }
     const clickHandler = (e: MouseEvent) => {
-      const target = e.target as Element | null
+      const target = e.target instanceof Element ? e.target : null
       if (target?.closest('[data-ogrid-panel]')) return
       setOpen(false)
     }

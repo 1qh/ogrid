@@ -6,6 +6,7 @@ const STORAGE_PREFIX = 'ogrid:'
 const readStorage = (id: string): GridConfig | null => {
   try {
     const raw = globalThis.localStorage.getItem(STORAGE_PREFIX + id)
+    // biome-ignore lint/nursery/noUnsafeTypeAssertion: JSON.parse of a value this module itself serialized as GridConfig; a bad shape is caught by the surrounding try and yields null
     return raw ? (JSON.parse(raw) as GridConfig) : null
   } catch {
     return null

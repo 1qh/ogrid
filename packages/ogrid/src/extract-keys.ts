@@ -4,6 +4,7 @@ import { isValidElement } from 'react'
 const KEY_PREFIX_RE = /^\.\$/u
 const flatChildren = (children: ReactNode): ReactElement[] => {
   const result: ReactElement[] = []
+  // biome-ignore lint/nursery/noUnsafeTypeAssertion: Array.isArray narrows the Iterable branch of ReactNode to any[]; the elements are ReactNode by the parameter contract
   const items = Array.isArray(children) ? (children as ReactNode[]) : [children]
   for (const child of items)
     if (Array.isArray(child)) result.push(...flatChildren(child))

@@ -16,7 +16,15 @@ class MockResizeObserver {
     this.#targets.add(el)
     queueMicrotask(() => {
       if (!this.#targets.has(el)) return
-      const entry = { contentRect: el.getBoundingClientRect(), target: el } as unknown as ResizeObserverEntry
+      const rect = el.getBoundingClientRect()
+      const box: readonly ResizeObserverSize[] = [{ blockSize: rect.height, inlineSize: rect.width }]
+      const entry: ResizeObserverEntry = {
+        borderBoxSize: box,
+        contentBoxSize: box,
+        contentRect: rect,
+        devicePixelContentBoxSize: box,
+        target: el
+      }
       this.#cb([entry], this)
     })
   }

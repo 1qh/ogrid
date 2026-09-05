@@ -20,9 +20,9 @@ const SkeletonWidget = () => {
             <Skeleton className='h-4 w-1/2' />
             <Skeleton className='h-20 w-full' />
             <div className='flex gap-2'>
-              <Skeleton className='h-8 w-8 rounded-full' />
-              <Skeleton className='h-8 w-8 rounded-full' />
-              <Skeleton className='h-8 w-8 rounded-full' />
+              <Skeleton className='size-8 rounded-full' />
+              <Skeleton className='size-8 rounded-full' />
+              <Skeleton className='size-8 rounded-full' />
             </div>
           </>
         ) : (

@@ -1,3 +1,5 @@
+/* oxlint-disable react/globals */
+/** biome-ignore-all lint/nursery/noUnsafeTypeAssertion: test fixtures construct partial/invalid shapes and assert captured values to exercise edge cases */
 /** biome-ignore-all lint/correctness/useUniqueElementIds: ogrid id prop */
 /** biome-ignore-all lint/performance/noNamespaceImport: testing public exports */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: test probes */

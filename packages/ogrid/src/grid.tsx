@@ -1,4 +1,4 @@
-/* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop */
+/* oxlint-disable jsx-no-new-object-as-prop, jsx-no-new-array-as-prop, react/exhaustive-effect-dependencies */
 /* eslint-disable complexity, no-console, @eslint-react/set-state-in-effect, react-hooks/refs, @eslint-react/refs */
 'use client'
 import type { ReactNode } from 'react'
@@ -91,20 +91,25 @@ const GridInner = ({
   onConfigChangeRef.current = onConfigChange
   const containerRef = useRef<HTMLDivElement>(null)
   const cardRef = useRef(new Map<string, HTMLDivElement>())
-  const minHRef = useRef(new Map<string, number>())
-  const lastKnownWRef = useRef(new Map<string, number>())
-  const previousMinHRef = useRef(new Map<string, number>())
+  const minHeightRef = useRef(new Map<string, number>())
+  const lastKnownWidthRef = useRef(new Map<string, number>())
+  const previousMinHeightRef = useRef(new Map<string, number>())
   const transitionFrameRef = useRef(new Map<string, number>())
   const settingLayoutRef = useRef(false)
   const positionedIdsRef = useRef(new Set<string>())
   const resizedIdsRef = useRef(new Set<string>())
   const freeformLayoutRef = useRef<Layout>([])
   const initialLayoutRef = useRef<Layout>([])
-  const initialMinHRef = useRef(new Map<string, number>())
+  const initialMinHeightRef = useRef(new Map<string, number>())
   const compactModeRef = useRef(false)
-  const measureWindowRef = useRef({
-    capTimer: null as null | ReturnType<typeof setTimeout>,
-    idleTimer: null as null | ReturnType<typeof setTimeout>,
+  const measureWindowRef = useRef<{
+    capTimer: null | ReturnType<typeof setTimeout>
+    idleTimer: null | ReturnType<typeof setTimeout>
+    openedAt: number
+    phase: 'done' | 'measuring'
+  }>({
+    capTimer: null,
+    idleTimer: null,
     openedAt: 0,
     phase: 'measuring'
   })
@@ -165,7 +170,7 @@ const GridInner = ({
     mw.capTimer = null
     const final = layoutRef.current.map(item => {
       if (fillSet.has(item.i)) return item
-      const minH = minHRef.current.get(item.i)
+      const minH = minHeightRef.current.get(item.i)
       if (minH === undefined || minH <= 0) {
         console.warn(`[ogrid] item '${item.i}' unmeasured at window close, using fallback h:${String(FALLBACK_H)}`)
         return { ...item, h: FALLBACK_H, minH: 1 }
@@ -176,7 +181,7 @@ const GridInner = ({
     freeformLayoutRef.current = placed
     if (initialLayoutRef.current.length === 0) {
       initialLayoutRef.current = placed
-      initialMinHRef.current = new Map(minHRef.current)
+      initialMinHeightRef.current = new Map(minHeightRef.current)
     }
     commitLayout(placed)
     setPhase('done')
@@ -189,10 +194,10 @@ const GridInner = ({
   }, [closeMeasureWindow])
   const measureAndUpdate = useCallback(() => {
     for (const [key, el] of cardRef.current.entries())
-      if (!fillSet.has(key)) minHRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
+      if (!fillSet.has(key)) minHeightRef.current.set(key, pxToGridH(el.scrollHeight, rowHeight, gap))
     const prev = layoutRef.current
     const measured = prev.map(item => {
-      const minH = minHRef.current.get(item.i) ?? 1
+      const minH = minHeightRef.current.get(item.i) ?? 1
       const targetH = Math.max(item.h, minH)
       return { ...item, h: targetH, minH }
     })
@@ -259,8 +264,8 @@ const GridInner = ({
           const key = el.dataset.ogridKey
           if (key && !fillSet.has(key)) {
             const gridH = pxToGridH(el.scrollHeight, rowHeight, gap)
-            if (minHRef.current.get(key) !== gridH) {
-              minHRef.current.set(key, gridH)
+            if (minHeightRef.current.get(key) !== gridH) {
+              minHeightRef.current.set(key, gridH)
               changed = true
             }
           }
@@ -330,9 +335,9 @@ const GridInner = ({
       createContentMinConstraint({
         cardRef: cardRef.current,
         fillSet,
-        lastKnownWRef: lastKnownWRef.current,
+        lastKnownWidthRef: lastKnownWidthRef.current,
         marginY: gap,
-        previousMinHRef: previousMinHRef.current,
+        previousMinHeightRef: previousMinHeightRef.current,
         rowHeight,
         transitionFrameRef: transitionFrameRef.current
       }),
@@ -346,7 +351,7 @@ const GridInner = ({
         return
       }
       const currentPhase = measureWindowRef.current.phase
-      const enforced = enforceMinH({ fillSet, layout: newLayout, minHByKey: minHRef.current, phase: currentPhase })
+      const enforced = enforceMinH({ fillSet, layout: newLayout, minHByKey: minHeightRef.current, phase: currentPhase })
       const result = currentPhase === 'measuring' ? computeLayout(enforced) : enforced
       checkOverlaps(result)
       freeformLayoutRef.current = result
